@@ -16,13 +16,13 @@ async def list_flows(ctx: Context) -> dto.FlowList:
     return await service.list_flows()
 
 @server_instance.flowlens_mcp.tool
-async def get_flow(flow_id: int, ctx: Context) -> dto.FullFlow:
+async def get_flow(flow_id: int, ctx: Context) -> dto.FlowlensFlow:
     """
     Get a specific flow by its ID.
     Args:
         flow_id (int): The ID of the flow to retrieve.
     Returns:
-        dto.FullFlow: The FullFlow dto object.
+        dto.FlowlensFlow: The FlowlensFlow dto object.
     """
     service: flow_lens.FlowLensService = ctx.get_state("flowlens_service")
     return await service.get_flow(flow_id)

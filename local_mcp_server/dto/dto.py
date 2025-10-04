@@ -60,7 +60,6 @@ class DeleteResponse(BaseModel):
     success: bool
     message: Optional[str] = None
 
-
 class FlowUpdate(BaseModel):
     title: Optional[str] = None
     description: Optional[str] = None
@@ -100,4 +99,17 @@ class TimelineOverview(BaseModel):
     network_requests_count: int
     event_type_summaries: List[EventTypeSummary]
     request_status_code_summaries: List[RequestStatusCodeSummary]
-    
+
+class FlowlensFlow(BaseModel):
+    id: int
+    title: str
+    description: Optional[str] = None
+    created_at: datetime = Field(..., description="Native datetime in UTC")
+    system_id: int
+    tags: Optional[List[FlowTag]] = None
+    reporter: Optional[str] = None
+    events_count: int
+    duration_ms: int
+    network_requests_count: int
+    event_type_summaries: List[EventTypeSummary]
+    request_status_code_summaries: List[RequestStatusCodeSummary]

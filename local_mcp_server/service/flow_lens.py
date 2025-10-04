@@ -1,6 +1,8 @@
 from ..dto import dto
 from ..utils import http_request, logger_setup
-from ..utils.settings import settings
+from ..utils.flow_registry import flow_registry
+from ..utils.timeline.registry import timeline_registry
+
 
 log = logger_setup.Logger(__name__)
 
@@ -18,16 +20,33 @@ class FlowLensService:
         response = await self._request_handler.get("flow", dto.FlowList)
         return response
 
-    async def get_flow(self, flow_id: int) -> dto.FullFlow:
+    async def get_flow(self, flow_id: int) -> dto.FlowlensFlow:
         """
         Get a specific flow by its ID.
         Args:
             flow_id (int): The ID of the flow to retrieve.
         Returns:
-            dto.FullFlow: The FullFlow dto object.
+            dto.FlowlensFlow: The FlowlensFlow dto object.
         """
-        response = await self._request_handler.get(f"flow/{flow_id}", dto.FullFlow)
-        return response
+        if await flow_registry.is_registered(flow_id):
+            return await flow_registry.get_flow(flow_id)
+        response: dto.FullFlow = await self._request_handler.get(f"flow/{flow_id}", dto.FullFlow)
+        timeline = await timeline_registry.register_timeline(response)
+        flow = dto.FlowlensFlow(
+            id=response.id,
+            title=response.title,
+            description=response.description,
+            created_at=response.created_at,
+            system_id=response.system_id,
+            tags=response.tags,
+            reporter=response.reporter,
+            events_count=timeline.events_count,
+            duration_ms=timeline.duration_ms,
+            network_requests_count=timeline.network_requests_count,
+            event_type_summaries=timeline.event_type_summaries,
+            request_status_code_summaries=timeline.request_status_code_summaries,
+        )
+        return flow
 
     async def delete_flow(self, flow_id: int) -> dto.DeleteResponse:
         """

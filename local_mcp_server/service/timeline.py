@@ -1,4 +1,3 @@
-import aiohttp
 from ..dto import dto
 
 class TimelineServiceParams:

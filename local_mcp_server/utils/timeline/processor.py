@@ -1,7 +1,7 @@
 from collections import defaultdict
 from typing import List
 import aiohttp
-from ..dto import dto
+from ...dto import dto
 
 class TimelineProcessor:
     def __init__(self, url: str):
