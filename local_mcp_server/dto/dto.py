@@ -83,3 +83,18 @@ class FlowShareLink(BaseModel):
     token: str
     share_url: str
     expires_at: datetime
+
+class EventTypeSummary(BaseModel):
+    event_type: str
+    events_count: int
+
+class RequestStatusCodeSummary(BaseModel):
+    status_code: int
+    total_requests: int
+    
+class TimelineOverview(BaseModel):
+    total_events_count: int
+    total_duration_ms: int
+    event_type_summaries: List[EventTypeSummary]
+    request_status_code_summaries: List[RequestStatusCodeSummary]
+    
