@@ -15,7 +15,9 @@ class TimelineProcessor:
         self._process_timeline()
         
         return dto.TimelineOverview(
-            total_duration_ms=total_recording_duration_ms,
+            meta_data=self._metadata,
+            timeline=self._timeline,
+            duration_ms=total_recording_duration_ms,
             events_count=len(self._timeline),
             network_requests_count=self._count_network_requests(),
             event_type_summaries=self._summarize_event_types(),
