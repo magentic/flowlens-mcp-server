@@ -1,0 +1,125 @@
+from fastmcp import Context
+
+from ..dto import dto
+from ..mcp import server_instance
+from ..service import flow_lens 
+
+
+@server_instance.flowlens_mcp.tool
+async def list_flows(ctx: Context) -> dto.FlowList:
+    """
+    List all flows for the authenticated user.
+    Returns:
+        dto.FlowList: List of Flow dto objects.
+    """
+    service: flow_lens.FlowLensService = ctx.get_state("flowlens_service")
+    return await service.list_flows()
+
+@server_instance.flowlens_mcp.tool
+async def get_flow(flow_id: int, ctx: Context) -> dto.FullFlow:
+    """
+    Get a specific flow by its ID.
+    Args:
+        flow_id (int): The ID of the flow to retrieve.
+    Returns:
+        dto.FullFlow: The FullFlow dto object.
+    """
+    service: flow_lens.FlowLensService = ctx.get_state("flowlens_service")
+    return await service.get_flow(flow_id)
+
+@server_instance.flowlens_mcp.tool
+async def delete_flow(flow_id: int, ctx: Context) -> dto.DeleteFlowResponse:
+    """
+    Delete a specific flow by its ID.
+    Args:
+        flow_id (int): The ID of the flow to delete.
+    Returns:
+        dto.DeleteFlowResponse: The response object containing the result of the delete operation.
+    """
+    service: flow_lens.FlowLensService = ctx.get_state("flowlens_service")
+    return await service.delete_flow(flow_id)
+
+@server_instance.flowlens_mcp.tool
+async def update_flow(flow_id: int, update_data: dto.FlowUpdate, ctx: Context) -> dto.FullFlow:
+    """
+    Update a specific flow by its ID.
+    Args:
+        flow_id (int): The ID of the flow to update.
+        update_data (dto.FlowUpdate): The data to update the flow with.
+    Returns:
+        dto.FullFlow: The updated FullFlow dto object.
+    """
+    service: flow_lens.FlowLensService = ctx.get_state("flowlens_service")
+    return await service.update_flow(flow_id, update_data)
+
+@server_instance.flowlens_mcp.tool
+async def list_tags(ctx: Context) -> dto.FlowTagList:
+    """
+    List all tags.
+    Returns:
+        dto.FlowTagList: List of FlowTag dto objects.
+    """
+    service: flow_lens.FlowLensService = ctx.get_state("flowlens_service")
+    return await service.list_tags()
+
+@server_instance.flowlens_mcp.tool
+async def create_tag(data: dto.FlowTagCreateUpdate, ctx: Context) -> dto.FlowTag:
+    """
+    Create a new tag.
+    Args:
+        data (dto.FlowTagCreateUpdate): The data to create the tag with.
+    Returns:
+        dto.FlowTag: The created FlowTag dto object.
+    """
+    service: flow_lens.FlowLensService = ctx.get_state("flowlens_service")
+    return await service.create_tag(data)
+
+@server_instance.flowlens_mcp.tool
+async def update_tag(tag_id: int, data: dto.FlowTagCreateUpdate, ctx: Context) -> dto.FlowTag:
+    """
+    Update an existing tag.
+    Args:
+        tag_id (int): The ID of the tag to update.
+        data (dto.FlowTagCreateUpdate): The data to update the tag with.
+    Returns:
+        dto.FlowTag: The updated FlowTag dto object.
+    """
+    service: flow_lens.FlowLensService = ctx.get_state("flowlens_service")
+    return await service.update_tag(tag_id, data)
+
+@server_instance.flowlens_mcp.tool
+async def delete_tag(tag_id: int, ctx: Context) -> bool:
+    """
+    Delete a specific tag by its ID.
+    Args:
+        tag_id (int): The ID of the tag to delete.
+    Returns:
+        bool: True if the tag was deleted successfully, False otherwise.
+    """
+    service: flow_lens.FlowLensService = ctx.get_state("flowlens_service")
+    return await service.delete_tag(tag_id)
+
+@server_instance.flowlens_mcp.tool
+async def get_flow_sequence_diagram(flow_id: int, ctx: Context) -> dto.FlowSequenceDiagramResponse:
+    """
+    Get the sequence diagram for a specific flow by its ID.
+    Args:
+        flow_id (int): The ID of the flow to retrieve the sequence diagram for.
+    Returns:
+        dto.FlowSequenceDiagramResponse: The FlowSequenceDiagramResponse dto object.
+    """
+    service: flow_lens.FlowLensService = ctx.get_state("flowlens_service")
+    return await service.get_flow_sequence_diagram(flow_id)
+
+@server_instance.flowlens_mcp.tool
+async def create_shareable_link(flow_id: int, ctx: Context) -> dto.FlowShareLink:
+    """
+    Create a shareable link for a specific flow by its ID.
+    Args:
+        flow_id (int): The ID of the flow to create a shareable link for.
+    Returns:
+        dto.FlowShareLink: The FlowShareLink dto object.
+    """    
+    service: flow_lens.FlowLensService = ctx.get_state("flowlens_service")
+    return await service.create_shareable_link(flow_id)
+
