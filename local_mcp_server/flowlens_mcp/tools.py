@@ -1,8 +1,9 @@
+from typing import List
 from fastmcp import Context
 
 from ..dto import dto
 from ..flowlens_mcp import server_instance
-from ..service import flow_lens 
+from ..service import flow_lens, timeline
 
 
 @server_instance.flowlens_mcp.tool
@@ -123,3 +124,46 @@ async def create_shareable_link(flow_id: int, ctx: Context) -> dto.FlowShareLink
     service: flow_lens.FlowLensService = ctx.get_state("flowlens_service")
     return await service.create_shareable_link(flow_id)
 
+@server_instance.flowlens_mcp.tool
+async def get_flow_timeline_events_within_range(flow_id: int, start_index: int, end_index: int, ctx: Context) -> List[dict]:
+    """
+    Get timeline events for a specific flow within a range of indices.
+    Args:
+        flow_id (int): The ID of the flow to retrieve events for.
+        start_index (int): The starting index of the events to retrieve.
+        end_index (int): The ending index of the events to retrieve.
+    Returns:
+        List[dict]: A list of timeline event dictionaries.
+    """
+    service: flow_lens.FlowLensService = ctx.get_state("flowlens_service")
+    flow: dto.FlowlensFlow = await service.get_flow(flow_id)
+    if not flow:
+        raise ValueError(f"Flow with ID {flow_id} not found.")
+    timeline_service = timeline.TimelineService(
+        timeline.TimelineServiceParams(
+            flow_id=flow.id
+        )
+    )
+    return await timeline_service.get_events_within_range(start_index, end_index)
+
+@server_instance.flowlens_mcp.tool
+async def get_flow_timeline_events_within_duration(flow_id: int, start_relative_time_ms: int, end_relative_time_ms: int, ctx: Context) -> List[dict]:
+    """
+    Get timeline events for a specific flow within a duration range.
+    Args:
+        flow_id (int): The ID of the flow to retrieve events for.
+        start_relative_time_ms (int): The starting time in milliseconds of the events to retrieve. it is relative to the start of the recording.
+        end_relative_time_ms (int): The ending time in milliseconds of the events to retrieve. it is relative to the start of the recording.
+    Returns:
+        List[dict]: A list of timeline event dictionaries.
+    """
+    service: flow_lens.FlowLensService = ctx.get_state("flowlens_service")
+    flow: dto.FlowlensFlow = await service.get_flow(flow_id)
+    if not flow:
+        raise ValueError(f"Flow with ID {flow_id} not found.")
+    timeline_service = timeline.TimelineService(
+        timeline.TimelineServiceParams(
+            flow_id=flow.id
+        )
+    )
+    return await timeline_service.get_events_within_duration(start_relative_time_ms, end_relative_time_ms)
