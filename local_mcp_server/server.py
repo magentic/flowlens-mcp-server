@@ -1,8 +1,7 @@
 import argparse
 from datetime import datetime
-from typing import List
-from fastmcp import Context
-from .mcp import server_instance
+from .flowlens_mcp import server_instance
+
 
 flowlens_mcp = server_instance.flowlens_mcp
 
@@ -22,7 +21,7 @@ def main():
     if args.stdio:
         flowlens_mcp.run(transport="stdio")
     else:
-        flowlens_mcp.run(transport="http", path="/mcp_stream/mcp/")
+        flowlens_mcp.run(transport="http", path="/mcp_stream/mcp/", port=8001)
 
 if __name__ == "__main__":
     main()

@@ -1,6 +1,6 @@
 from datetime import datetime
 from pydantic import BaseModel, Field
-from typing import List, Optional
+from typing import List, Optional, Type
 
 from ..models import enums
 
@@ -9,7 +9,7 @@ class RequestParams(BaseModel):
     endpoint: str
     payload: Optional[dict] = None
     request_type: enums.RequestType
-    response_model: Optional[BaseModel] = None
+    response_model: Optional[Type[BaseModel]] = None
 
 class FlowTag(BaseModel):
     id: int
@@ -55,16 +55,17 @@ class FullFlow(Flow):
     sequence_diagram_url: Optional[str] = None
     extended_sequence_diagram_url: Optional[str] = None
     
-class DeleteFlowResponse(BaseModel):
-    flow_id: int
+class DeleteResponse(BaseModel):
+    id: int
     success: bool
     message: Optional[str] = None
+
 
 class FlowUpdate(BaseModel):
     title: Optional[str] = None
     description: Optional[str] = None
     system_id: int
-    tags_ids: Optional[List[int]] = None
+    tag_ids: Optional[List[int]] = None
 
 class FlowTagCreateUpdate(BaseModel):
     title: str

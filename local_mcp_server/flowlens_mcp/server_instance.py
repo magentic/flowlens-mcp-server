@@ -27,7 +27,7 @@ class UserAuthMiddleware(Middleware):
             
             token = auth_header.split(" ")[1]
         service = flow_lens.FlowLensService(flow_lens.FlowLensServiceParams(token))
-        context.set_state("flowlens_service", service)
+        context.fastmcp_context.set_state("flowlens_service", service)
         return await call_next(context=context)
 
 flowlens_mcp.add_middleware(UserAuthMiddleware())

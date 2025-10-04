@@ -59,6 +59,10 @@ class HttpRequestHandler:
                 response = await client.post(url, headers=self._headers, json=params.payload)
             elif params.request_type == enums.RequestType.DELETE:
                 response = await client.delete(url, headers=self._headers)
+            elif params.request_type == enums.RequestType.PATCH:
+                response = await client.patch(url, headers=self._headers, json=params.payload)
+            else:
+                raise ValueError(f"Unsupported request type: {params.request_type}")
             response.raise_for_status()
             if response.text.strip():
                 return params.response_model(**response.json())

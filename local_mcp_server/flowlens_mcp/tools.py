@@ -1,7 +1,7 @@
 from fastmcp import Context
 
 from ..dto import dto
-from ..mcp import server_instance
+from ..flowlens_mcp import server_instance
 from ..service import flow_lens 
 
 
@@ -28,7 +28,7 @@ async def get_flow(flow_id: int, ctx: Context) -> dto.FullFlow:
     return await service.get_flow(flow_id)
 
 @server_instance.flowlens_mcp.tool
-async def delete_flow(flow_id: int, ctx: Context) -> dto.DeleteFlowResponse:
+async def delete_flow(flow_id: int, ctx: Context) -> dto.DeleteResponse:
     """
     Delete a specific flow by its ID.
     Args:
@@ -88,13 +88,13 @@ async def update_tag(tag_id: int, data: dto.FlowTagCreateUpdate, ctx: Context) -
     return await service.update_tag(tag_id, data)
 
 @server_instance.flowlens_mcp.tool
-async def delete_tag(tag_id: int, ctx: Context) -> bool:
+async def delete_tag(tag_id: int, ctx: Context) -> dto.DeleteResponse:
     """
     Delete a specific tag by its ID.
     Args:
         tag_id (int): The ID of the tag to delete.
     Returns:
-        bool: True if the tag was deleted successfully, False otherwise.
+        dto.DeleteResponse: The response object containing the result of the delete operation.
     """
     service: flow_lens.FlowLensService = ctx.get_state("flowlens_service")
     return await service.delete_tag(tag_id)

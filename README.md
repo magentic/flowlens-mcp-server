@@ -36,10 +36,10 @@ poetry build
 
 # Run with pipx (HTTP transport, clears cache if needed)
 rm -rf ~/.local/pipx/.cache/
-pipx run --spec dist/local_mcp_server-0.1.0-py3-none-any.whl local-mcp-server
+pipx run --spec dist/magentic_mcp_server-x.x.x-py3-none-any.whl local-mcp-server
 
 # Run with pipx using stdio transport
-pipx run --spec dist/local_mcp_server-0.1.0-py3-none-any.whl local-mcp-server --stdio
+pipx run --spec dist/magentic_mcp_server-x.x.x-py3-none-any.whl local-mcp-server --stdio
 ```
 
 ## Server Configuration

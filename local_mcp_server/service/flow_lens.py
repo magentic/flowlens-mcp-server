@@ -29,7 +29,7 @@ class FlowLensService:
         response = await self._request_handler.get(f"flow/{flow_id}", dto.FullFlow)
         return response
 
-    async def delete_flow(self, flow_id: int) -> dto.DeleteFlowResponse:
+    async def delete_flow(self, flow_id: int) -> dto.DeleteResponse:
         """
         Delete a specific flow by its ID.
         Args:
@@ -37,7 +37,7 @@ class FlowLensService:
         Returns:
             dto.DeleteFlowResponse: The response object containing the result of the delete operation.
         """
-        response = await self._request_handler.delete(f"flow/{flow_id}", dto.DeleteFlowResponse)
+        response = await self._request_handler.delete(f"flow/{flow_id}", dto.DeleteResponse)
         return response
 
     async def update_flow(self, flow_id: int, update_data: dto.FlowUpdate) -> dto.FullFlow:
@@ -49,7 +49,7 @@ class FlowLensService:
         Returns:
             dto.FullFlow: The updated FullFlow dto object.
         """
-        response = await self._request_handler.post(f"flow/{flow_id}", 
+        response = await self._request_handler.patch(f"flow/{flow_id}", 
                                                     update_data.model_dump(), dto.FullFlow)
         return response
 
@@ -85,15 +85,15 @@ class FlowLensService:
         response = await self._request_handler.patch(f"tag/{tag_id}", data.model_dump(), dto.FlowTag)
         return response
     
-    async def delete_tag(self, tag_id: int) -> bool:
+    async def delete_tag(self, tag_id: int) -> dto.DeleteResponse:
         """
         Delete a specific tag by its ID.
         Args:
             tag_id (int): The ID of the tag to delete.
         Returns:
-            bool: True if the tag was deleted successfully, False otherwise.
+            dto.DeleteResponse: The response object containing the result of the delete operation.
         """
-        response = await self._request_handler.delete(f"tag/{tag_id}", bool)
+        response = await self._request_handler.delete(f"tag/{tag_id}", dto.DeleteResponse)
         return response
     
     async def get_flow_sequence_diagram(self, flow_id: int) -> dto.FlowSequenceDiagramResponse:
