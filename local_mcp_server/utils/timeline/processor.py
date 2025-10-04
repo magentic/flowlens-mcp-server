@@ -30,7 +30,7 @@ class TimelineProcessor:
             event_type = event.get("type")
             if event_type:
                 count_dict[event_type] += 1
-        return [dto.EventTypeSummary(type=event_type, count=count) 
+        return [dto.EventTypeSummary(event_type=event_type, events_count=count) 
                 for event_type, count in count_dict.items()]
 
     def _summarize_request_status_codes(self) -> List[dto.RequestStatusCodeSummary]:
@@ -43,7 +43,7 @@ class TimelineProcessor:
                     count_dict[status_code] += 1
             if event.get("type") == "network_request_pending":
                 count_dict["no_response"] += 1
-        return [dto.RequestStatusCodeSummary(status_code=status_code, count=count) 
+        return [dto.RequestStatusCodeSummary(status_code=str(status_code), requests_count=count) 
                 for status_code, count in count_dict.items()]
     
     
@@ -115,5 +115,9 @@ class TimelineProcessor:
         async with aiohttp.ClientSession() as session:
             async with session.get(url) as response:
                 response.raise_for_status()
-                return await response.json()
-        raise RuntimeError("Failed to load JSON from URL")
+                try:
+                    return await response.json(content_type=None)
+                except aiohttp.ContentTypeError:
+                    text = await response.text()
+                    import json
+                    return json.loads(text)

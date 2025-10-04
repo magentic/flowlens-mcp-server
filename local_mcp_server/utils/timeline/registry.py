@@ -10,7 +10,7 @@ class TimelineRegistry:
 
     async def register_timeline(self, flow: dto.FullFlow) -> dto.TimelineOverview:
         if await self.is_registered(flow.id):
-            return
+            return await self.get_timeline(flow.id)
         
         processor = TimelineProcessor(flow.timeline_url)
         timeline = await processor.process()

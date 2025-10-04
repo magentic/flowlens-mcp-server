@@ -88,8 +88,8 @@ class EventTypeSummary(BaseModel):
     events_count: int
 
 class RequestStatusCodeSummary(BaseModel):
-    status_code: int
-    total_requests: int
+    status_code: str
+    requests_count: int
     
 class TimelineOverview(BaseModel):
     meta_data: dict

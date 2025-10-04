@@ -1,4 +1,4 @@
-from rpds import List
+from typing import List
 from ..dto import dto
 from ..utils.timeline.registry import timeline_registry
 
@@ -17,7 +17,7 @@ class TimelineService:
         timeline: List[dict] = timeline_overview.timeline
         start_index = max(0, start_index)
         end_index = min(len(timeline) - 1, end_index)
-        return List(timeline[start_index:end_index + 1])
+        return list(timeline[start_index:end_index + 1])
 
     async def get_events_within_duration(self, start_time: int, end_time: int) -> List[dict]:
         timeline_overview = await timeline_registry.get_timeline(self.params.flow_id)
