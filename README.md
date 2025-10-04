@@ -44,7 +44,6 @@ pipx run --spec dist/local_mcp_server-0.1.0-py3-none-any.whl local-mcp-server --
 
 ## Server Configuration
 
-
 By default, the server runs with HTTP transport:
 - **Host**: `127.0.0.1` (localhost)
 - **Port**: `8000` (default)
@@ -53,8 +52,10 @@ By default, the server runs with HTTP transport:
 
 To run the server using stdio transport (for integration with tools that require stdio), use the `--stdio` option. No HTTP server will be started in this mode.
 
+
 ## Client Configuration Example
 
+### HTTP
 ```json
 {
   "local_magentic": {
@@ -64,6 +65,16 @@ To run the server using stdio transport (for integration with tools that require
       "Authorization": "Bearer your-token-here"
     }
   }
+}
+```
+
+### STDIO
+
+```json
+"pipx_magentic": {
+  "command": "pipx",
+  "args": ["run", "magentic-mcp-server==0.1.5", "--stdio", "--token", "your-token-here"],
+  "type": "stdio"
 }
 ```
 
