@@ -93,8 +93,9 @@ class RequestStatusCodeSummary(BaseModel):
     total_requests: int
     
 class TimelineOverview(BaseModel):
-    total_events_count: int
-    total_duration_ms: int
+    events_count: int
+    duration_ms: int
+    network_requests_count: int
     event_type_summaries: List[EventTypeSummary]
     request_status_code_summaries: List[RequestStatusCodeSummary]
     

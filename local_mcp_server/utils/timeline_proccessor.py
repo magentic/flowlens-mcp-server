@@ -1,3 +1,5 @@
+from collections import defaultdict
+from typing import List
 import aiohttp
 from ..dto import dto
 
@@ -14,9 +16,38 @@ class TimelineProcessor:
         
         return dto.TimelineOverview(
             total_duration_ms=total_recording_duration_ms,
-            total_events_count=len(self._timeline),
-            event_type_summaries=[],
-            request_status_code_summaries=[])
+            events_count=len(self._timeline),
+            network_requests_count=self._count_network_requests(),
+            event_type_summaries=self._summarize_event_types(),
+            request_status_code_summaries=self._summarize_request_status_codes()
+        )
+
+    def _summarize_event_types(self) -> List[dto.EventTypeSummary]:
+        count_dict = defaultdict(int)
+        for event in self._timeline:
+            event_type = event.get("type")
+            if event_type:
+                count_dict[event_type] += 1
+        return [dto.EventTypeSummary(type=event_type, count=count) 
+                for event_type, count in count_dict.items()]
+
+    def _summarize_request_status_codes(self) -> List[dto.RequestStatusCodeSummary]:
+        count_dict = defaultdict(int)
+        for event in self._timeline:
+            if event.get("type") == "network_request_response":
+                resp_data = event.get("response_data", {})
+                status_code = resp_data.get("status", None) or resp_data.get("status_code", None)
+                if status_code:
+                    count_dict[status_code] += 1
+            if event.get("type") == "network_request_pending":
+                count_dict["no_response"] += 1
+        return [dto.RequestStatusCodeSummary(status_code=status_code, count=count) 
+                for status_code, count in count_dict.items()]
+    
+    
+    def _count_network_requests(self) -> int:
+        return sum(1 for event in self._timeline 
+                   if "network_" in event.get("type"))
 
     def _process_timeline(self):
         requests_map = {}
@@ -34,14 +65,13 @@ class TimelineProcessor:
                 requests_map[correlation_id] = event
                 continue
 
-            if (event_type == "network_request") and (correlation_id in requests_map):
+            if (event_type == "network_response") and (correlation_id in requests_map):
                 request_event = requests_map[correlation_id]
                 merged_event = self._merge_request_response_events(request_event, event)
                 processed_timeline.append(merged_event)
                 del requests_map[correlation_id]
                 continue
             
-            processed_timeline.append(event)
                 
         # Add remaining unmatched requests (pending)
         for request_event in requests_map.values():
