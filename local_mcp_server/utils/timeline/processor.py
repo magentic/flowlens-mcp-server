@@ -22,7 +22,8 @@ class TimelineProcessor:
             events_count=len(self._timeline.events),
             network_requests_count=self._count_network_requests(),
             event_type_summaries=self._summarize_event_types(),
-            request_status_code_summaries=self._summarize_request_status_codes()
+            request_status_code_summaries=self._summarize_request_status_codes(),
+            network_request_domain_summary=self._summarize_request_domains()
         )
 
     def _summarize_event_types(self) -> List[dto.EventTypeSummary]:
@@ -46,7 +47,19 @@ class TimelineProcessor:
         return [dto.RequestStatusCodeSummary(status_code=str(status_code), requests_count=count) 
                 for status_code, count in count_dict.items()]
     
-    
+    def _summarize_request_domains(self) -> List[dto.NetworkRequestDomainSummary]:
+        count_dict = defaultdict(int)
+        request_types = {enums.TimelineEventType.NETWORK_REQUEST, enums.TimelineEventType.NETWORK_REQUEST_WITH_RESPONSE,
+                         enums.TimelineEventType.NETWORK_REQUEST_PENDING}
+        for event in self._timeline.events:
+            if event.type not in request_types:
+                continue
+            domain = event.network_request_data.domain_name
+            if domain:
+                count_dict[domain] += 1
+        return [dto.NetworkRequestDomainSummary(domain=domain, requests_count=count) 
+                for domain, count in count_dict.items()]
+        
     def _count_network_requests(self) -> int:
         return sum(1 for event in self._timeline.events
                    if event.type in {enums.TimelineEventType.NETWORK_REQUEST, 

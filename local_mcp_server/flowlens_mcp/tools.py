@@ -23,7 +23,7 @@ async def list_flows(ctx: Context) -> dto.FlowList:
 async def get_flow(flow_id: int, ctx: Context) -> dto.FlowlensFlow:
     """
     Get a specific full flow by its ID. It contains all flow data including a summary of timeline events 
-    e.g. number of events, status codes distribution, events types distribution, etc.
+    e.g. number of events, status codes distribution, events types distribution, network requests domain distribution, etc.
     It is a very important entry point to start investigating a flow.
     Args:
         flow_id (int): The ID of the flow to retrieve.

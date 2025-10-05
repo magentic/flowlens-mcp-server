@@ -90,6 +90,10 @@ class EventTypeSummary(BaseModel):
 class RequestStatusCodeSummary(BaseModel):
     status_code: str
     requests_count: int
+
+class NetworkRequestDomainSummary(BaseModel):
+    domain: str
+    requests_count: int
     
 class TimelineOverview(BaseModel):
     timeline: "Timeline"
@@ -98,13 +102,15 @@ class TimelineOverview(BaseModel):
     network_requests_count: int
     event_type_summaries: List[EventTypeSummary]
     request_status_code_summaries: List[RequestStatusCodeSummary]
+    network_request_domain_summary: List[NetworkRequestDomainSummary]
     
     def __str__(self):
         return (f"TimelineOverview(duration_ms={self.duration_ms}, \n"
                 f"events_count={self.events_count}, \n"
                 f"network_requests_count={self.network_requests_count}, \n"
                 f"event_type_summaries={self.event_type_summaries}, \n"
-                f"request_status_code_summaries={self.request_status_code_summaries})")
+                f"request_status_code_summaries={self.request_status_code_summaries}) \n"
+                f"network_request_domain_summary={self.network_request_domain_summary})")
 
 class FlowlensFlow(BaseModel):
     id: int
@@ -143,6 +149,12 @@ class NetworkRequestData(BaseNetworkData):
     method: str
     url: str
     resource_type: Optional[str] = None
+    
+    
+    @property
+    def domain_name(self) -> str:
+        parts = urlsplit(self.url)
+        return parts.netloc
     
     def reduce_into_one_line(self) -> str:
         return f"{self.method} {self.url}"
