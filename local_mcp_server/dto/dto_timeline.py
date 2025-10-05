@@ -86,7 +86,7 @@ class Timeline(BaseModel):
         matches: List[TimelineEventType] = []
         for event in self.events:
             if isinstance(event, (NetworkRequestEvent, NetworkRequestWithResponseEvent)):
-                if event.search_with_regex(url_pattern):
+                if event.search_url_with_regex(url_pattern):
                     matches.append(event.truncate())
         header += f"Total Matches: {len(matches)}\n"
         return header + "\n".join([event.reduce_into_one_line() for event in matches])

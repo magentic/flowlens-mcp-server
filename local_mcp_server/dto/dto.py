@@ -243,7 +243,7 @@ class NetworkRequestEvent(BaseTimelineEvent):
         return is_url_match is not None
     
     def search_with_regex(self, pattern: str) -> bool:
-        match_obj = re.search(pattern, self.network_request_data.url or "")
+        match_obj = super().search_with_regex(pattern)
         match_obj = match_obj or re.search(pattern, self.network_request_data.body or "")
         return match_obj is not None
 
@@ -288,7 +288,8 @@ class NetworkRequestWithResponseEvent(BaseTimelineEvent):
         return copy
     
     def search_url_with_regex(self, pattern: str) -> bool:
-        is_url_match = re.search(pattern, self.network_request_data.url or "")
+        match_obj = super().search_with_regex(pattern)
+        is_url_match = match_obj or re.search(pattern, self.network_request_data.url or "")
         return is_url_match is not None
     
     def search_with_regex(self, pattern: str) -> bool:
