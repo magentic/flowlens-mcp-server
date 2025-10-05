@@ -3,20 +3,20 @@ from typing import List
 import aiohttp
 
 from local_mcp_server.models import enums
-from ...dto import dto
+from ...dto import dto, dto_timeline
 from .loader import TimelineLoader
 
 class TimelineProcessor:
     def __init__(self, url: str):
         self.url = url
-        self._timeline: dto.Timeline = None
+        self._timeline: dto_timeline.Timeline = None
 
-    async def process(self) -> dto.TimelineOverview:
+    async def process(self) -> dto_timeline.TimelineOverview:
         self._timeline = await self._load_timeline_data()
         total_recording_duration_ms = self._timeline.metadata.get("recording_duration_ms", 0)
         self._timeline.events = self._process_timeline_events()
-        
-        return dto.TimelineOverview(
+
+        return dto_timeline.TimelineOverview(
             timeline=self._timeline,
             duration_ms=total_recording_duration_ms,
             events_count=len(self._timeline.events),
@@ -65,7 +65,7 @@ class TimelineProcessor:
                    if event.type in {enums.TimelineEventType.NETWORK_REQUEST, 
                                      enums.TimelineEventType.NETWORK_REQUEST_WITH_RESPONSE})
 
-    def _process_timeline_events(self) -> dto.Timeline:
+    def _process_timeline_events(self) -> dto_timeline.Timeline:
         requests_map = {}
         processed_timeline = []
 
@@ -118,8 +118,8 @@ class TimelineProcessor:
             network_response_data=response_event.network_response_data,
             duration_ms=response_event.relative_time_ms - request_event.relative_time_ms
         )
-    
-    async def _load_timeline_data(self) -> dto.Timeline:
+
+    async def _load_timeline_data(self) -> dto_timeline.Timeline:
         loader = TimelineLoader(self.url)
         timeline = await loader.load()
         return timeline

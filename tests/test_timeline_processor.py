@@ -1,7 +1,7 @@
 import unittest
 from datetime import datetime, timedelta, timezone
 from local_mcp_server.utils.timeline.processor import TimelineProcessor
-from local_mcp_server.dto import dto
+from local_mcp_server.dto import dto, dto_timeline
 
 class TestTimelineProcessor(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
@@ -13,7 +13,7 @@ class TestTimelineProcessor(unittest.IsolatedAsyncioTestCase):
         overview = await self._processor.process()
         print(f"Timeline Overview: \n{overview}")
         # print(overview.timeline.create_events_summary())
-        self.assertIsInstance(overview, dto.TimelineOverview)
+        self.assertIsInstance(overview, dto_timeline.TimelineOverview)
     
 
 if __name__ == "__main__":

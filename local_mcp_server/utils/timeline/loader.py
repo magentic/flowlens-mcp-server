@@ -1,7 +1,7 @@
 import aiohttp
 import json
 from typing import List, Type
-from ...dto import dto
+from ...dto import dto, dto_timeline
 
 class TimelineLoader:
     def __init__(self, url: str):
@@ -9,19 +9,19 @@ class TimelineLoader:
         self._raw_timeline: list = None
         self._metadata: dict = None
         
-    async def load(self) -> dto.Timeline:
+    async def load(self) -> dto_timeline.Timeline:
         await self._load_timeline_data()
         events = []
         for i, event in enumerate(self._raw_timeline):
             event["index"] = i
             dto_event = self._create_dto_event(event)
             events.append(dto_event)
-        return dto.Timeline(
+        return dto_timeline.Timeline(
             metadata=self._metadata,
             events=events)
-            
-    def _create_dto_event(self, event: dict) -> dto.TimelineEventType:
-        types_dict: dict[str, Type[dto.TimelineEventType]] = {
+
+    def _create_dto_event(self, event: dict) -> dto_timeline.TimelineEventType:
+        types_dict: dict[str, Type[dto_timeline.TimelineEventType]] = {
             "network_request": dto.NetworkRequestEvent,
             "network_response": dto.NetworkResponseEvent,
             "dom_action": dto.DomActionEvent,

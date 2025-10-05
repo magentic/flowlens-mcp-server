@@ -1,6 +1,6 @@
 from typing import List, Optional
 
-from ..dto import dto
+from ..dto import dto, dto_timeline
 from ..models import enums
 from ..utils.timeline.registry import timeline_registry
 
@@ -21,8 +21,8 @@ class TimelineService:
     
     def __init__(self, params: TimelineServiceParams):
         self.params = params
-        self._overview: dto.TimelineOverview = None
-        self._timeline: dto.Timeline = None
+        self._overview: dto_timeline.TimelineOverview = None
+        self._timeline: dto_timeline.Timeline = None
 
     @load_timeline
     async def list_events_within_range(self, start_index: int, 
@@ -60,6 +60,15 @@ class TimelineService:
     @load_timeline
     async def get_network_response_body(self, index: int) -> str:
         return self._timeline.get_network_response_body(index)
+    
+    @load_timeline
+    async def search_events_with_regex(self, pattern: str) -> str:
+        return self._timeline.search_events_with_regex(pattern)
+    
+    @load_timeline
+    async def search_network_events_with_url_regex(self, url_pattern: str) -> str:
+        return self._timeline.search_network_events_with_url_regex(url_pattern)
+    
 
     
 

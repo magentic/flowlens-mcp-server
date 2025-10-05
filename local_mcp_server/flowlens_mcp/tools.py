@@ -228,18 +228,36 @@ async def get_network_response_full_body_by_index(flow_id: int, event_index: int
 
 
 @server_instance.flowlens_mcp.tool
-async def get_network_requests_events(ctx: Context) -> dto.NetworkRequestEvent:
+async def search_flow_network_events_with_url_regex(flow_id: int, url_pattern: str, ctx: Context) -> str:
     """
-    TODO: Check network requests search in chrome devtools
-    Get network request event for a specific flow by event index. This is important to understand the context of the request.
-    so you can see the request details including method, url, headers (truncated), body (truncated), etc.
+    Search network request timeline events for a specific flow by URL pattern using regex. this returns a summary of the matched events in one line each.
+    each line starts with the event index, event_type, action_type, relative_timestamp, and the rest is data depending on the event type.
+    If you need full details of an event use get_full_flow_timeline_event_by_index tool using the flow_id and event_index.
+    Favour this tool to search for specific network requests by URL pattern.
     Args:
-        flow_id (int): The ID of the flow to retrieve the event for.
-        event_index (int): The index of the event to retrieve.
+        flow_id (int): The ID of the flow to retrieve events for.
+        url_pattern (str): The URL pattern to search for using regex.
     Returns:
-        dto.NetworkRequestEvent: The NetworkRequestEvent dto object.
+        str: header + A list of matched network request timeline events in string format one per line.
     """
-    pass
+    timeline_service = await _extract_timeline_service(flow_id, ctx)
+    return await timeline_service.search_network_events_with_url_regex(url_pattern)
+
+@server_instance.flowlens_mcp.tool
+async def search_flow_events_with_regex(flow_id: int, pattern: str, ctx: Context) -> str:
+    """
+    Search timeline events for a specific flow by pattern using regex. this returns a summary of the matched events in one line each.
+    each line starts with the event index, event_type, action_type, relative_timestamp, and the rest is data depending on the event type.
+    If you need full details of an event use get_full_flow_timeline_event_by_index tool using the flow_id and event_index.
+    Favour this tool to search for specific events by pattern. Use this tool when you want to search the events content.
+    Args:
+        flow_id (int): The ID of the flow to retrieve events for.
+        pattern (str): The pattern to search for using regex.
+    Returns:
+        str: header + A list of matched timeline events in string format one per line.
+    """
+    timeline_service = await _extract_timeline_service(flow_id, ctx)
+    return await timeline_service.search_events_with_regex(pattern)
 
 
 
