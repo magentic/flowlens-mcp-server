@@ -384,9 +384,30 @@ class LocalStorageEvent(BaseTimelineEvent):
         values["action_type"] = actions_map.get(action, None)
         return values
 
+class ConsoleWarningData(BaseModel):
+    message: Optional[str] = None
+    stack: Optional[str] = None
+    userAgent: Optional[str] = None
+    
+class ConsoleWarningEvent(BaseTimelineEvent):
+    page_url: str = None
+    console_warn_data: ConsoleWarningData
+    
+    def reduce_into_one_line(self) -> str:
+        base_line = super().reduce_into_one_line()
+        return (f"{base_line} {self.console_warn_data.message} ")
+
+    @model_validator(mode="before")
+    def validate_console_warning(cls, values):
+        if not isinstance(values, dict):
+            return values
+        values['type'] = enums.TimelineEventType.CONSOLE_WARNING
+        values['action_type'] = enums.ActionType.WARNING_LOGGED
+        return values
 
 TimelineEventType = Union[NetworkRequestEvent, NetworkResponseEvent, NetworkRequestWithResponseEvent,
-                         DomActionEvent, NavigationEvent, LocalStorageEvent]
+                         DomActionEvent, NavigationEvent, LocalStorageEvent, ConsoleWarningEvent]
+
 
 
     

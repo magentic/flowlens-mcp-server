@@ -15,7 +15,8 @@ class TimelineLoader:
         for i, event in enumerate(self._raw_timeline):
             event["index"] = i
             dto_event = self._create_dto_event(event)
-            events.append(dto_event)
+            if dto_event:
+                events.append(dto_event)
         return dto_timeline.Timeline(
             metadata=self._metadata,
             events=events)
@@ -31,7 +32,7 @@ class TimelineLoader:
         event_type = event.get("type")
         dto_event_class = types_dict.get(event_type)
         if not dto_event_class:
-            raise ValueError(f"Unknown event type: {event_type}")
+            return None
         return dto_event_class.model_validate(event)
 
     async def _load_timeline_data(self):
