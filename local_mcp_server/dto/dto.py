@@ -375,18 +375,23 @@ class Timeline(BaseModel):
         for event in self.events:
             lines.append(event.reduce_into_one_line())
         return "\n".join(lines)
-    
-    def create_event_summary_for_range(self, start_index: int, end_index: int) -> str:
+
+
+    def create_event_summary_for_range(self, start_index: int, end_index: int, events_type: Optional[enums.TimelineEventType] = None) -> str:
         start_index = max(0, start_index)
         end_index = min(len(self.events) - 1, end_index)
         header = f"Events from index {start_index} to {end_index}:\n"
-        return header + "\n".join(event.reduce_into_one_line() for event in self.events[start_index:end_index + 1])
-    
-    def create_event_summary_for_duration(self, start_time: int, end_time: int) -> str:
-        events = list(event for event in self.events if start_time <= event.relative_time_ms <= end_time)
+        if events_type:
+            header = f"Events of type {events_type.value} from index {start_index} to {end_index}:\n"
+        return header + "\n".join(event.reduce_into_one_line() 
+                                  for event in self.events[start_index:end_index + 1] if event.type == events_type or events_type is None)
+
+    def create_event_summary_for_duration(self, start_time: int, end_time: int, events_type: Optional[enums.TimelineEventType] = None) -> str:
+        events = list(event for event in self.events if start_time <= event.relative_time_ms <= end_time and (event.type == events_type if events_type else True))
         events.sort(key=lambda e: e.relative_time_ms)
         header = f"Events from {start_time}ms to {end_time}ms:\n"
-        return header + "\n".join(event.reduce_into_one_line() for event in events)
+        return header + "\n".join(event.reduce_into_one_line() 
+                                  for event in events if event.type == events_type or events_type is None)
     
     def get_event_by_index(self, index: int) -> TimelineEventType:
         if 0 <= index < len(self.events):

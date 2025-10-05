@@ -1,6 +1,8 @@
 from typing import List
 from fastmcp import Context
 
+from local_mcp_server.models import enums
+
 from ..dto import dto
 from ..flowlens_mcp import server_instance
 from ..service import flow_lens, timeline
@@ -164,6 +166,90 @@ async def get_full_flow_timeline_event_by_index(flow_id: int, event_index: int, 
     """
     timeline_service = await _extract_timeline_service(flow_id, ctx)
     return await timeline_service.get_full_event_by_index(event_index)
+
+@server_instance.flowlens_mcp.tool
+async def get_flow_network_timeline_events_within_range(flow_id: int, start_index: int, end_index: int, ctx: Context) -> str:
+    """
+    Get network request timeline events for a specific flow within a range of indices. this returns a summary of the events in one line each.
+    each line starts with the event index, event_type, action_type, relative_timestamp, and the rest is data depending on the event type.
+    If you need full details of an event use get_full_flow_timeline_event_by_index tool using the flow_id and event_index.
+    Favour this tool to get network request events when you are interested in events that have a response (e.g. successful requests, failed requests) over get_flow_timeline_network_events_within_range.
+    Args:
+        flow_id (int): The ID of the flow to retrieve events for.
+        start_index (int): The starting index of the events to retrieve.
+        end_index (int): The ending index of the events to retrieve.
+    Returns:
+        str: header + A list of network request timeline events in string format one per line.
+    """
+    timeline_service = await _extract_timeline_service(flow_id, ctx)
+    return await timeline_service.get_events_within_range(start_index, end_index, events_type=enums.TimelineEventType.NETWORK_REQUEST_WITH_RESPONSE)
+
+@server_instance.flowlens_mcp.tool
+async def get_flow_pending_network_timeline_events_within_range(flow_id: int, start_index: int, end_index: int, ctx: Context) -> str:
+    """
+    Get pending network request timeline events that don't have a response for a specific flow within a range of indices. this returns a summary of the events in one line each.
+    each line starts with the event index, event_type, action_type, relative_timestamp, and the rest is data depending on the event type.
+    If you need full details of an event use get_full_flow_timeline_event_by_index tool using the flow_id and event_index.
+    Favour this tool to get network request events as it includes events that do not have a response (e.g. pending requests) over get_flow_timeline_network_events_within_range.
+    Args:
+        flow_id (int): The ID of the flow to retrieve events for.
+        start_index (int): The starting index of the events to retrieve.
+        end_index (int): The ending index of the events to retrieve.
+    Returns:
+        str: header + A list of network request timeline events in string format one per line.
+    """
+    timeline_service = await _extract_timeline_service(flow_id, ctx)
+    return await timeline_service.get_events_within_range(start_index, end_index, events_type=enums.TimelineEventType.NETWORK_REQUEST_PENDING)
+
+@server_instance.flowlens_mcp.tool
+async def get_flow_timeline_dom_actions_events_within_range(flow_id: int, start_index: int, end_index: int, ctx: Context) -> str:
+    """
+    Get DOM action timeline events for a specific flow within a range of indices. this returns a summary of the events in one line each.
+    each line starts with the event index, event_type, action_type, relative_timestamp, and the rest is data depending on the event type.
+    If you need full details of an event use get_full_flow_timeline_event_by_index tool using the flow_id and event_index.
+    Favour this tool to get user interactions like clicks, scrolls, form inputs, etc. over get_flow_timeline_events_within_range.
+    Args:
+        flow_id (int): The ID of the flow to retrieve events for.
+        start_index (int): The starting index of the events to retrieve.
+        end_index (int): The ending index of the events to retrieve.
+    Returns:
+        str: header + A list of DOM action timeline events in string format one per line.
+    """
+    timeline_service = await _extract_timeline_service(flow_id, ctx)
+    return await timeline_service.get_events_within_range(start_index, end_index, events_type=enums.TimelineEventType.DOM_ACTION)
+
+@server_instance.flowlens_mcp.tool
+async def get_flow_timeline_navigation_events_within_range(flow_id: int, start_index: int, end_index: int, ctx: Context) -> str:
+    """
+    Get navigation timeline events for a specific flow within a range of indices. this returns a summary of the events in one line each.
+    each line starts with the event index, event_type, action_type, relative_timestamp, and the rest is data depending on the event type.
+    If you need full details of an event use get_full_flow_timeline_event_by_index tool using the flow_id and event_index.
+    Favour this tool to get page navigations over get_flow_timeline_events_within_range.
+    Args:
+        flow_id (int): The ID of the flow to retrieve events for.
+        start_index (int): The starting index of the events to retrieve.
+        end_index (int): The ending index of the events to retrieve.  
+    """
+    timeline_service = await _extract_timeline_service(flow_id, ctx)
+    return await timeline_service.get_events_within_range(start_index, end_index, events_type=enums.TimelineEventType.NAVIGATION)
+
+@server_instance.flowlens_mcp.tool
+async def get_flow_timeline_local_storage_events_within_range(flow_id: int, start_index: int, end_index: int, ctx: Context) -> str:
+    """
+    Get local storage timeline events for a specific flow within a range of indices. this returns a summary of the events in one line each.
+    each line starts with the event index, event_type, action_type, relative_timestamp, and the rest is data depending on the event type.
+    If you need full details of an event use get_full_flow_timeline_event_by_index tool using the flow_id and event_index.
+    Favour this tool to get local storage changes over get_flow_timeline_events_within_range.
+    Args:
+        flow_id (int): The ID of the flow to retrieve events for.
+        start_index (int): The starting index of the events to retrieve.
+        end_index (int): The ending index of the events to retrieve.
+    Returns:
+        str: header + A list of local storage timeline events in string format one per line.
+    """
+    timeline_service = await _extract_timeline_service(flow_id, ctx)
+    return await timeline_service.get_events_within_range(start_index, end_index, events_type=enums.TimelineEventType.LOCAL_STORAGE)
+
 
 @server_instance.flowlens_mcp.tool
 async def get_network_request_full_headers_by_index(flow_id: int, event_index: int, ctx: Context) -> dict:

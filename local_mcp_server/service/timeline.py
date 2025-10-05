@@ -1,5 +1,7 @@
-from typing import List
+from typing import List, Optional
+
 from ..dto import dto
+from ..models import enums
 from ..utils.timeline.registry import timeline_registry
 
 class TimelineServiceParams:
@@ -23,9 +25,10 @@ class TimelineService:
         self._timeline: dto.Timeline = None
 
     @load_timeline
-    async def get_events_within_range(self, start_index: int, end_index: int) -> List[dict]:
-        return self._timeline.create_event_summary_for_range(start_index, end_index)
-    
+    async def get_events_within_range(self, start_index: int, 
+                                      end_index: int, events_type: Optional[enums.TimelineEventType] = None) -> List[dict]:
+        return self._timeline.create_event_summary_for_range(start_index, end_index, events_type)
+
     @load_timeline
     async def get_events_within_duration(self, start_time: int, end_time: int) -> List[dict]:
         return self._timeline.create_event_summary_for_duration(start_time, end_time)
@@ -57,6 +60,7 @@ class TimelineService:
     @load_timeline
     async def get_network_response_body(self, index: int) -> str:
         return self._timeline.get_network_response_body(index)
+
     
 
 
