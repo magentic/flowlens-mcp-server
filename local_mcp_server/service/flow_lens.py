@@ -17,7 +17,7 @@ class FlowLensService:
         self._request_handler = http_request.HttpRequestHandler(params.token)
 
     async def list_flows(self) -> dto.FlowList:
-        response = await self._request_handler.get("flow", dto.FlowList)
+        response = await self._request_handler.get("flows", dto.FlowList)
         return response
 
     async def get_flow(self, flow_id: int) -> dto.FlowlensFlow:
@@ -78,7 +78,7 @@ class FlowLensService:
         Returns:
             dto.FlowTagList: List of FlowTag dto objects.
         """
-        response = await self._request_handler.get("tag", dto.FlowTagList)
+        response = await self._request_handler.get("tags", dto.FlowTagList)
         return response
 
     async def create_tag(self, data: dto.FlowTagCreateUpdate) -> dto.FlowTag:
