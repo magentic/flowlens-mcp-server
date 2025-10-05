@@ -13,3 +13,23 @@ class FlowSequenceDiagramStatus(Enum):
     COMPLETED = "COMPLETED"
     FAILED = "FAILED"
     
+class TimelineEventType(Enum):
+    NETWORK_REQUEST = "network_request"
+    NETWORK_RESPONSE = "network_response"
+    NETWORK_REQUEST_WITH_RESPONSE = "network_request_with_response"
+    NETWORK_REQUEST_PENDING = "network_request_pending"
+    LOCAL_STORAGE = "local_storage"
+    DOM_ACTION = "dom_action"
+    NAVIGATION = "navigation"
+    
+class ActionType(Enum):
+    DEBUGGER_REQUEST = "debugger_request"
+    DEBUGGER_RESPONSE = "debugger_response"
+    DEBUGGER_REQUEST_WITH_RESPONSE = "debugger_request_with_response"
+    DEBUGGER_REQUEST_PENDING = "debugger_request_pending"
+    CLICK = "click"
+    KEYDOWN_SESSION = "keydown_session"
+    GET = "get"
+    SET = "set"
+    HISTORY_CHANGE = "history_change"
+    UNKNOWN = "unknown"
