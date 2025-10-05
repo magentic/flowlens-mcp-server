@@ -393,6 +393,11 @@ class Timeline(BaseModel):
             return self.events[index].truncate()
         raise IndexError(f"Event index {index} out of range.")
     
+    def get_full_event_by_index(self, index: int) -> TimelineEventType:
+        if 0 <= index < len(self.events):
+            return self.events[index]
+        raise IndexError(f"Event index {index} out of range.")
+    
     def get_event_by_relative_timestamp(self, relative_timestamp: int) -> TimelineEventType:
         for event in self.events:
             if event.relative_time_ms == relative_timestamp:
@@ -400,25 +405,25 @@ class Timeline(BaseModel):
         raise ValueError(f"No event found with relative timestamp {relative_timestamp}ms.")
     
     def get_network_request_headers(self, event_index: int):
-        event = self.get_event_by_index(event_index)
+        event = self.get_full_event_by_index(event_index)
         if isinstance(event, (NetworkRequestEvent, NetworkRequestWithResponseEvent)):
             return event.network_request_data.headers
         raise TypeError(f"Event with type {event.type} does not have network request headers.")
 
     def get_network_response_headers(self, event_index: int):
-        event = self.get_event_by_index(event_index)
+        event = self.get_full_event_by_index(event_index)
         if isinstance(event, NetworkRequestWithResponseEvent):
             return event.network_response_data.headers
         raise TypeError(f"Event with type {event.type} does not have network response headers.")
     
     def get_network_request_body(self, event_index: int):
-        event = self.get_event_by_index(event_index)
+        event = self.get_full_event_by_index(event_index)
         if isinstance(event, (NetworkRequestEvent, NetworkRequestWithResponseEvent)):
             return event.network_request_data.body
         raise TypeError(f"Event with type {event.type} does not have network request body.")
     
     def get_network_response_body(self, event_index: int):
-        event = self.get_event_by_index(event_index)
+        event = self.get_full_event_by_index(event_index)
         if isinstance(event, NetworkRequestWithResponseEvent):
             return event.network_response_data.body
         raise TypeError(f"Event with type {event.type} does not have network response body.")
