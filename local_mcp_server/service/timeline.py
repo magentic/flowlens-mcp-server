@@ -41,7 +41,22 @@ class TimelineService:
     @load_timeline
     async def get_full_event_by_relative_timestamp(self, relative_timestamp: int) -> dto.TimelineEventType:
         return self._timeline.get_event_by_relative_timestamp(relative_timestamp)
-
+    
+    @load_timeline
+    async def get_network_request_headers_by_index(self, index: int) -> dict:
+        return self._timeline.get_network_request_headers(index)
+    
+    @load_timeline
+    async def get_network_response_headers_by_index(self, index: int) -> dict:
+        return self._timeline.get_network_response_headers(index)
+    
+    @load_timeline
+    async def get_network_request_body(self, index: int) -> str:
+        return self._timeline.get_network_request_body(index)
+    
+    @load_timeline
+    async def get_network_response_body(self, index: int) -> str:
+        return self._timeline.get_network_response_body(index)
     
 
 

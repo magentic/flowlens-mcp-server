@@ -101,18 +101,6 @@ async def delete_tag(tag_id: int, ctx: Context) -> dto.DeleteResponse:
     return await service.delete_tag(tag_id)
 
 @server_instance.flowlens_mcp.tool
-async def get_flow_sequence_diagram(flow_id: int, ctx: Context) -> dto.FlowSequenceDiagramResponse:
-    """
-    Get the sequence diagram for a specific flow by its ID.
-    Args:
-        flow_id (int): The ID of the flow to retrieve the sequence diagram for.
-    Returns:
-        dto.FlowSequenceDiagramResponse: The FlowSequenceDiagramResponse dto object.
-    """
-    service: flow_lens.FlowLensService = ctx.get_state("flowlens_service")
-    return await service.get_flow_sequence_diagram(flow_id)
-
-@server_instance.flowlens_mcp.tool
 async def create_shareable_link(flow_id: int, ctx: Context) -> dto.FlowShareLink:
     """
     Create a shareable link for a specific flow by its ID.
@@ -167,6 +155,58 @@ async def get_full_flow_timeline_event_by_index(flow_id: int, event_index: int, 
     """
     timeline_service = await _extract_timeline_service(flow_id, ctx)
     return await timeline_service.get_full_event_by_index(event_index)
+
+@server_instance.flowlens_mcp.tool
+async def get_network_request_full_headers_by_index(flow_id: int, event_index: int, ctx: Context) -> dict:
+    """
+    Get network request full headers for a specific flow by event index.
+    Args:
+        flow_id (int): The ID of the flow to retrieve the event for.
+        event_index (int): The index of the event to retrieve headers for.
+    Returns:
+        dict: The network request full headers.
+    """
+    timeline_service = await _extract_timeline_service(flow_id, ctx)
+    return await timeline_service.get_network_request_headers_by_index(event_index)
+
+@server_instance.flowlens_mcp.tool
+async def get_network_response_full_headers_by_index(flow_id: int, event_index: int, ctx: Context) -> dict:
+    """
+    Get network response full headers for a specific flow by event index.
+    Args:
+        flow_id (int): The ID of the flow to retrieve the event for.
+        event_index (int): The index of the event to retrieve headers for.
+    Returns:
+        dict: The network response full headers.
+    """
+    timeline_service = await _extract_timeline_service(flow_id, ctx)
+    return await timeline_service.get_network_response_headers_by_index(event_index)
+
+@server_instance.flowlens_mcp.tool
+async def get_network_request_full_body_by_index(flow_id: int, event_index: int, ctx: Context) -> str:
+    """
+    Get network request full body for a specific flow by event index.
+    Args:
+        flow_id (int): The ID of the flow to retrieve the event for.
+        event_index (int): The index of the event to retrieve the request body for.
+    Returns:
+        str: The network request full body.
+    """
+    timeline_service = await _extract_timeline_service(flow_id, ctx)
+    return await timeline_service.get_network_request_body(event_index)
+
+@server_instance.flowlens_mcp.tool
+async def get_network_response_full_body_by_index(flow_id: int, event_index: int, ctx: Context) -> str:
+    """
+    Get network response full body for a specific flow by event index.
+    Args:
+        flow_id (int): The ID of the flow to retrieve the event for.
+        event_index (int): The index of the event to retrieve the response body for.
+    Returns:
+        str: The network response full body.
+    """
+    timeline_service = await _extract_timeline_service(flow_id, ctx)
+    return await timeline_service.get_network_response_body(event_index)
 
 async def _extract_timeline_service(flow_id: int, ctx: Context):
     service: flow_lens.FlowLensService = ctx.get_state("flowlens_service")

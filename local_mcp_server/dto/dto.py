@@ -120,7 +120,26 @@ class FlowlensFlow(BaseModel):
     event_type_summaries: List[EventTypeSummary]
     request_status_code_summaries: List[RequestStatusCodeSummary]
 
-class NetworkRequestData(BaseModel):
+class BaseNetworkData(BaseModel):
+    headers: Optional[dict] = None
+    body: Optional[str] = None
+    
+    def truncate(self):
+        copy = self.model_copy()
+        copy.body = self._truncate_string(copy.body)
+        new_headers = {}
+        for key, value in (copy.headers or {}).items():
+            new_headers[key] = self._truncate_string(value)
+        copy.headers = new_headers
+        return copy
+    
+    @staticmethod
+    def _truncate_string(s: str) -> str:
+        if isinstance(s, str) and len(s) > settings.max_string_length:
+            return s[:settings.max_string_length] + "...(truncated)"
+        return s
+    
+class NetworkRequestData(BaseNetworkData):
     method: str
     url: str
     resource_type: Optional[str] = None
@@ -137,26 +156,26 @@ class NetworkRequestData(BaseModel):
         values["url"] = cleaned
         return values
 
-class NetworkResponseData(BaseModel):
+class NetworkResponseData(BaseNetworkData):
     status: int
-    headers: Optional[dict] = None
     request_url: Optional[str] = None
     request_method: Optional[str] = None
-    body: Optional[str] = None
     
     def reduce_into_one_line(self) -> str:
         return (f"{self.status}")
     
     @model_validator(mode="before")
     def validate_str_length(cls, values:dict):
-        headers = values.get("headers")
-        new_headers = {}
-        if headers and isinstance(headers, dict):
-            for key, value in headers.items():
-                new_headers[key] = cls._truncate_string(value)
-            values["headers"] = new_headers
-        body = values.get("body")
-        values["body"] = cls._truncate_string(body)
+        # TODO: do truncation in the scope of get_event()
+        # headers = values.get("headers")
+        # new_headers = {}
+        # if headers and isinstance(headers, dict):
+        #     for key, value in headers.items():
+        #         new_headers[key] = cls._truncate_string(value)
+        #     values["headers"] = new_headers
+        url: str = values.get("request_url")
+        if url.endswith(('.png', '.jpg', '.jpeg', '.gif', '.svg', '.webp', '.avif', '.bmp', '.tiff', '.mp4', '.mp3', '.wav', '.avi', '.mov', '.wmv', '.flv', '.mkv')):
+            values["body"] = "<binary or media content not shown>"
         return values
     
     @staticmethod
@@ -207,9 +226,12 @@ class BaseTimelineEvent(BaseModel):
     relative_time_ms: int
     index: int
     
-    def reduce_into_one_line(self) -> str:
-        return f"{self.index} {self.type.value} {self.relative_time_ms}ms {self.action_type.value} "
+    def truncate(self):
+        return self
     
+    def reduce_into_one_line(self) -> str:
+        return f"{self.index} {self.type.value} {self.action_type.value} {self.relative_time_ms}ms"
+
 class NetworkRequestEvent(BaseTimelineEvent):
     correlation_id: str
     network_request_data: NetworkRequestData
@@ -247,10 +269,16 @@ class NetworkRequestWithResponseEvent(BaseTimelineEvent):
     network_request_data: NetworkRequestData
     network_response_data: NetworkResponseData
     duration_ms: int
-    
+
+    def truncate(self):
+        copy = self.model_copy()
+        copy.network_response_data = copy.network_response_data.truncate()
+        copy.network_request_data = copy.network_request_data.truncate()
+        return copy
+
     def reduce_into_one_line(self) -> str:
         base_line = super().reduce_into_one_line()
-        return (f"{base_line} {self.correlation_id} {self.network_request_data.reduce_into_one_line()}"
+        return (f"{base_line} {self.correlation_id} {self.network_request_data.reduce_into_one_line()} "
                 f"{self.network_response_data.reduce_into_one_line()} duration={self.duration_ms}ms")
 
     @model_validator(mode="before")
@@ -269,6 +297,12 @@ class NetworkRequestWithResponseEvent(BaseTimelineEvent):
             values['duration_ms'] = network_response.get('relative_time_ms', 0) - network_request.get('relative_time_ms', 0)
             values['correlation_id'] = network_response.get('correlation_id')
         return values
+    
+    @staticmethod
+    def _truncate_string(s: str) -> str:
+        if isinstance(s, str) and len(s) > settings.max_string_length:
+            return s[:settings.max_string_length] + "...(truncated)"
+        return s
 
 class DomActionEvent(BaseTimelineEvent):
     page_url: str
@@ -356,11 +390,36 @@ class Timeline(BaseModel):
     
     def get_event_by_index(self, index: int) -> TimelineEventType:
         if 0 <= index < len(self.events):
-            return self.events[index]
+            return self.events[index].truncate()
         raise IndexError(f"Event index {index} out of range.")
     
     def get_event_by_relative_timestamp(self, relative_timestamp: int) -> TimelineEventType:
         for event in self.events:
             if event.relative_time_ms == relative_timestamp:
-                return event
+                return event.truncate()
         raise ValueError(f"No event found with relative timestamp {relative_timestamp}ms.")
+    
+    def get_network_request_headers(self, event_index: int):
+        event = self.get_event_by_index(event_index)
+        if isinstance(event, (NetworkRequestEvent, NetworkRequestWithResponseEvent)):
+            return event.network_request_data.headers
+        raise TypeError(f"Event with type {event.type} does not have network request headers.")
+
+    def get_network_response_headers(self, event_index: int):
+        event = self.get_event_by_index(event_index)
+        if isinstance(event, NetworkRequestWithResponseEvent):
+            return event.network_response_data.headers
+        raise TypeError(f"Event with type {event.type} does not have network response headers.")
+    
+    def get_network_request_body(self, event_index: int):
+        event = self.get_event_by_index(event_index)
+        if isinstance(event, (NetworkRequestEvent, NetworkRequestWithResponseEvent)):
+            return event.network_request_data.body
+        raise TypeError(f"Event with type {event.type} does not have network request body.")
+    
+    def get_network_response_body(self, event_index: int):
+        event = self.get_event_by_index(event_index)
+        if isinstance(event, NetworkRequestWithResponseEvent):
+            return event.network_response_data.body
+        raise TypeError(f"Event with type {event.type} does not have network response body.")
+    
