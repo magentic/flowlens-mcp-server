@@ -5,27 +5,43 @@ from ..utils.timeline.registry import timeline_registry
 class TimelineServiceParams:
     def __init__(self, flow_id: int):
         self.flow_id = flow_id
-        
+
+def load_timeline(func):
+    async def wrapper(self, *args, **kwargs):
+        if not self._overview:
+            self._overview = await timeline_registry.get_timeline(self.params.flow_id)
+            self._timeline = self._overview.timeline
+        return await func(self, *args, **kwargs)
+    return wrapper
+           
 class TimelineService:
     _timeline_state = {}
     
     def __init__(self, params: TimelineServiceParams):
         self.params = params
-    
-    async def get_events_within_range(self, start_index: int, end_index: int) -> List[dict]:
-        timeline_overview = await timeline_registry.get_timeline(self.params.flow_id)
-        timeline: List[dict] = timeline_overview.timeline
-        start_index = max(0, start_index)
-        end_index = min(len(timeline) - 1, end_index)
-        return list(timeline[start_index:end_index + 1])
+        self._overview: dto.TimelineOverview = None
+        self._timeline: dto.Timeline = None
 
-    async def get_events_within_duration(self, start_time: int, end_time: int) -> List[dict]:
-        timeline_overview = await timeline_registry.get_timeline(self.params.flow_id)
-        timeline: List[dict] = timeline_overview.timeline
-        events = list(event for event in timeline if start_time <= event["relative_time_ms"] <= end_time)
-        events.sort(key=lambda e: e["relative_time_ms"])
-        return events
+    @load_timeline
+    async def get_events_within_range(self, start_index: int, end_index: int) -> List[dict]:
+        return self._timeline.create_event_summary_for_range(start_index, end_index)
     
+    @load_timeline
+    async def get_events_within_duration(self, start_time: int, end_time: int) -> List[dict]:
+        return self._timeline.create_event_summary_for_duration(start_time, end_time)
+
+    @load_timeline
+    async def list_all_events(self) -> str:
+        return self._timeline.create_events_summary()
+    
+    @load_timeline
+    async def get_timeline_full_event_by_index(self, index: int) -> dto.TimelineEventType:
+        return self._timeline.get_event_by_index(index)
+    
+
+    
+
+
     
     
     

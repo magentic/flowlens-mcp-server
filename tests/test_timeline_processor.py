@@ -11,7 +11,7 @@ class TestTimelineProcessor(unittest.IsolatedAsyncioTestCase):
     
     async def test_process_timeline(self):
         overview = await self._processor.process()
-        print(overview)
+        print(overview.timeline.create_events_summary())
         self.assertIsInstance(overview, dto.TimelineOverview)
     
 

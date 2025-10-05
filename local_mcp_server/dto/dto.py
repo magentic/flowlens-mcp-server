@@ -2,6 +2,8 @@ from datetime import datetime
 from pydantic import BaseModel, Field, model_validator
 from typing import List, Optional, Type, Union
 
+from local_mcp_server.service import timeline
+
 from ..models import enums
 from ..utils.settings import settings
 from urllib.parse import urlsplit, urlunsplit
@@ -126,6 +128,9 @@ class NetworkRequestData(BaseModel):
     url: str
     resource_type: Optional[str] = None
     
+    def reduce_into_one_line(self) -> str:
+        return f"{self.method} {self.url}"
+    
     @model_validator(mode="before")
     def validate_url_length(cls, values:dict):
         url = values.get("url")
@@ -141,6 +146,9 @@ class NetworkResponseData(BaseModel):
     request_url: Optional[str] = None
     request_method: Optional[str] = None
     body: Optional[str] = None
+    
+    def reduce_into_one_line(self) -> str:
+        return (f"{self.status}")
     
     @model_validator(mode="before")
     def validate_str_length(cls, values:dict):
@@ -164,15 +172,24 @@ class DomTarget(BaseModel):
     src: Optional[str] = None
     textContent: Optional[str] = None
     xpath: str
-    
+
+    def reduce_into_one_line(self) -> str:
+        return f"{self.textContent or self.src or ''}"
+
 class NavigationData(BaseModel):
     url: str
     frame_id: int
     transition_type: str
     
+    def reduce_into_one_line(self) -> str:
+        return f"{self.url} {self.frame_id} {self.transition_type}"
+
 class LocalStorageData(BaseModel):
     key: str
     value: Optional[str] = None
+    
+    def reduce_into_one_line(self) -> str:
+        return f"{self.key} {self.value or ''}"
     
     @model_validator(mode="before")
     def validate_value_length(cls, values:dict):
@@ -193,10 +210,17 @@ class BaseTimelineEvent(BaseModel):
     relative_time_ms: int
     index: int
     
+    def reduce_into_one_line(self) -> str:
+        return f"{self.index} {self.type.value} {self.relative_time_ms}ms {self.action_type.value} "
+    
 class NetworkRequestEvent(BaseTimelineEvent):
     correlation_id: str
     network_request_data: NetworkRequestData
-    
+
+    def reduce_into_one_line(self) -> str:
+        base_line = super().reduce_into_one_line()
+        return (f"{base_line} {self.correlation_id} {self.network_request_data.reduce_into_one_line()}")
+
     @model_validator(mode="before")
     def validate_request_data(cls, values):
         if not isinstance(values, dict):
@@ -208,7 +232,11 @@ class NetworkRequestEvent(BaseTimelineEvent):
 class NetworkResponseEvent(BaseTimelineEvent):
     correlation_id: str
     network_response_data: NetworkResponseData
-
+    
+    def reduce_into_one_line(self) -> str:
+        base_line = super().reduce_into_one_line()
+        return (f"{base_line} {self.correlation_id} {self.network_response_data.reduce_into_one_line()}")
+    
     @model_validator(mode="before")
     def validate_response_data(cls, values):
         if not isinstance(values, dict):
@@ -222,6 +250,11 @@ class NetworkRequestWithResponseEvent(BaseTimelineEvent):
     network_request_data: NetworkRequestData
     network_response_data: NetworkResponseData
     duration_ms: int
+    
+    def reduce_into_one_line(self) -> str:
+        base_line = super().reduce_into_one_line()
+        return (f"{base_line} {self.correlation_id} {self.network_request_data.reduce_into_one_line()}"
+                f"{self.network_response_data.reduce_into_one_line()} duration={self.duration_ms}ms")
 
     @model_validator(mode="before")
     def validate_request_response_data(cls, values):
@@ -244,6 +277,10 @@ class DomActionEvent(BaseTimelineEvent):
     page_url: str
     target: DomTarget
     
+    def reduce_into_one_line(self) -> str:
+        base_line = super().reduce_into_one_line()
+        return (f"{base_line} {self.target.reduce_into_one_line()} ")
+    
     @model_validator(mode="before")
     def validate_dom_action(cls, values):
         if not isinstance(values, dict):
@@ -261,6 +298,10 @@ class NavigationEvent(BaseTimelineEvent):
     page_url: str
     navigation_data: NavigationData
     
+    def reduce_into_one_line(self) -> str:
+        base_line = super().reduce_into_one_line()
+        return (f"{base_line} {self.page_url}")
+    
     @model_validator(mode="before")
     def validate_navigation(cls, values):
         if not isinstance(values, dict):
@@ -272,6 +313,10 @@ class NavigationEvent(BaseTimelineEvent):
 class LocalStorageEvent(BaseTimelineEvent):
     page_url: str
     local_storage_data: LocalStorageData
+    
+    def reduce_into_one_line(self) -> str:
+        base_line = super().reduce_into_one_line()
+        return (f"{base_line} {self.local_storage_data.reduce_into_one_line()} ")
     
     @model_validator(mode="before")
     def validate_local_storage(cls, values):
@@ -287,9 +332,32 @@ class LocalStorageEvent(BaseTimelineEvent):
         return values
 
 
-EventType = Union[NetworkRequestEvent, NetworkResponseEvent, NetworkRequestWithResponseEvent,
+TimelineEventType = Union[NetworkRequestEvent, NetworkResponseEvent, NetworkRequestWithResponseEvent,
                          DomActionEvent, NavigationEvent, LocalStorageEvent]
 
 class Timeline(BaseModel):
     metadata: dict
-    events: List[EventType]
+    events: List[TimelineEventType]
+
+    def create_events_summary(self) -> str:
+        lines = [f"Total Events: {len(self.events)}"]
+        for event in self.events:
+            lines.append(event.reduce_into_one_line())
+        return "\n".join(lines)
+    
+    def create_event_summary_for_range(self, start_index: int, end_index: int) -> str:
+        start_index = max(0, start_index)
+        end_index = min(len(self.events) - 1, end_index)
+        header = f"Events from index {start_index} to {end_index}:\n"
+        return header + "\n".join(event.reduce_into_one_line() for event in self.events[start_index:end_index + 1])
+    
+    def create_event_summary_for_duration(self, start_time: int, end_time: int) -> str:
+        events = list(event for event in self.events if start_time <= event.relative_time_ms <= end_time)
+        events.sort(key=lambda e: e.relative_time_ms)
+        header = f"Events from {start_time}ms to {end_time}ms:\n"
+        return header + "\n".join(event.reduce_into_one_line() for event in events)
+    
+    def get_event_by_index(self, index: int) -> TimelineEventType:
+        if 0 <= index < len(self.events):
+            return self.events[index]
+        raise IndexError(f"Event index {index} out of range.")

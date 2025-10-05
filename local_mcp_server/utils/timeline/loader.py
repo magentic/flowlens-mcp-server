@@ -20,8 +20,8 @@ class TimelineLoader:
             metadata=self._metadata,
             events=events)
             
-    def _create_dto_event(self, event: dict) -> dto.EventType:
-        types_dict: dict[str, Type[dto.EventType]] = {
+    def _create_dto_event(self, event: dict) -> dto.TimelineEventType:
+        types_dict: dict[str, Type[dto.TimelineEventType]] = {
             "network_request": dto.NetworkRequestEvent,
             "network_response": dto.NetworkResponseEvent,
             "dom_action": dto.DomActionEvent,
