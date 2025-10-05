@@ -35,9 +35,12 @@ class TimelineService:
         return self._timeline.create_events_summary()
     
     @load_timeline
-    async def get_timeline_full_event_by_index(self, index: int) -> dto.TimelineEventType:
+    async def get_full_event_by_index(self, index: int) -> dto.TimelineEventType:
         return self._timeline.get_event_by_index(index)
     
+    @load_timeline
+    async def get_full_event_by_relative_timestamp(self, relative_timestamp: int) -> dto.TimelineEventType:
+        return self._timeline.get_event_by_relative_timestamp(relative_timestamp)
 
     
 

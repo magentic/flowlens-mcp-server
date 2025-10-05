@@ -1,9 +1,6 @@
 from datetime import datetime
 from pydantic import BaseModel, Field, model_validator
 from typing import List, Optional, Type, Union
-
-from local_mcp_server.service import timeline
-
 from ..models import enums
 from ..utils.settings import settings
 from urllib.parse import urlsplit, urlunsplit
@@ -361,3 +358,9 @@ class Timeline(BaseModel):
         if 0 <= index < len(self.events):
             return self.events[index]
         raise IndexError(f"Event index {index} out of range.")
+    
+    def get_event_by_relative_timestamp(self, relative_timestamp: int) -> TimelineEventType:
+        for event in self.events:
+            if event.relative_time_ms == relative_timestamp:
+                return event
+        raise ValueError(f"No event found with relative timestamp {relative_timestamp}ms.")

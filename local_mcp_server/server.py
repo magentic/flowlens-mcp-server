@@ -1,6 +1,6 @@
 import argparse
 from datetime import datetime
-from .flowlens_mcp import server_instance
+from local_mcp_server.flowlens_mcp import server_instance
 
 
 flowlens_mcp = server_instance.flowlens_mcp

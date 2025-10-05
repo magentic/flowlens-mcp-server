@@ -125,7 +125,7 @@ async def create_shareable_link(flow_id: int, ctx: Context) -> dto.FlowShareLink
     return await service.create_shareable_link(flow_id)
 
 @server_instance.flowlens_mcp.tool
-async def get_flow_timeline_events_within_range(flow_id: int, start_index: int, end_index: int, ctx: Context) -> List[dict]:
+async def get_flow_timeline_events_within_range(flow_id: int, start_index: int, end_index: int, ctx: Context) -> str:
     """
     Get timeline events for a specific flow within a range of indices.
     Args:
@@ -133,21 +133,13 @@ async def get_flow_timeline_events_within_range(flow_id: int, start_index: int, 
         start_index (int): The starting index of the events to retrieve.
         end_index (int): The ending index of the events to retrieve.
     Returns:
-        List[dict]: A list of timeline event dictionaries.
+        str: header + A list of timeline events in string format one per line.
     """
-    service: flow_lens.FlowLensService = ctx.get_state("flowlens_service")
-    flow: dto.FlowlensFlow = await service.get_flow(flow_id)
-    if not flow:
-        raise ValueError(f"Flow with ID {flow_id} not found.")
-    timeline_service = timeline.TimelineService(
-        timeline.TimelineServiceParams(
-            flow_id=flow.id
-        )
-    )
+    timeline_service = await _extract_timeline_service(flow_id, ctx)
     return await timeline_service.get_events_within_range(start_index, end_index)
 
 @server_instance.flowlens_mcp.tool
-async def get_flow_timeline_events_within_duration(flow_id: int, start_relative_time_ms: int, end_relative_time_ms: int, ctx: Context) -> List[dict]:
+async def get_flow_timeline_events_within_duration(flow_id: int, start_relative_time_ms: int, end_relative_time_ms: int, ctx: Context) -> str:
     """
     Get timeline events for a specific flow within a duration range.
     Args:
@@ -155,8 +147,28 @@ async def get_flow_timeline_events_within_duration(flow_id: int, start_relative_
         start_relative_time_ms (int): The starting time in milliseconds of the events to retrieve. it is relative to the start of the recording.
         end_relative_time_ms (int): The ending time in milliseconds of the events to retrieve. it is relative to the start of the recording.
     Returns:
-        List[dict]: A list of timeline event dictionaries.
+        str: header + A list of timeline events in string format one per line.
     """
+    timeline_service = await _extract_timeline_service(flow_id, ctx)
+    return await timeline_service.get_events_within_duration(start_relative_time_ms, end_relative_time_ms)
+
+@server_instance.flowlens_mcp.tool
+async def get_full_flow_timeline_event_by_index(flow_id: int, event_index: int, ctx: Context) -> dto.TimelineEventType:
+    """
+    Get a full timeline event for a specific flow by its index.
+    Args:
+        flow_id (int): The ID of the flow to retrieve the event for.
+        event_index (int): The index of the event to retrieve.
+    Returns:
+        dto.TimelineEventType: The TimelineEventType dto object which is union of all possible event types (
+                                    NetworkRequestEvent, NetworkResponseEvent, NetworkRequestWithResponseEvent,
+                                    DomActionEvent, NavigationEvent, LocalStorageEvent)
+                                    
+    """
+    timeline_service = await _extract_timeline_service(flow_id, ctx)
+    return await timeline_service.get_full_event_by_index(event_index)
+
+async def _extract_timeline_service(flow_id: int, ctx: Context):
     service: flow_lens.FlowLensService = ctx.get_state("flowlens_service")
     flow: dto.FlowlensFlow = await service.get_flow(flow_id)
     if not flow:
@@ -166,4 +178,7 @@ async def get_flow_timeline_events_within_duration(flow_id: int, start_relative_
             flow_id=flow.id
         )
     )
-    return await timeline_service.get_events_within_duration(start_relative_time_ms, end_relative_time_ms)
+    
+    return timeline_service
+
+
