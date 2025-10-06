@@ -166,6 +166,28 @@ async def list_flow_timeline_local_storage_events_within_range(flow_id: int, sta
     timeline_service = await _extract_timeline_service(flow_id, ctx)
     return await timeline_service.list_events_within_range(start_index, end_index, events_type=enums.TimelineEventType.LOCAL_STORAGE)
 
+@server_instance.flowlens_mcp.tool
+async def list_flow_timeline_events_within_range_of_type(flow_id: int, start_index: int, end_index: int, event_type: str, ctx: Context) -> str:
+    """
+    List timeline events for a specific flow within a range of indices and of a specific type. this returns a summary of the events in one line each.
+    each line starts with the event index, event_type, action_type, relative_timestamp, and the rest is data depending on the event type.
+    If you need full details of an event use get_full_flow_timeline_event_by_index tool using the flow_id and event_index.
+    Favour this tool to get events of a specific type over get_flow_timeline_events_within_range but no tool for that specific type exists e.g. 
+    get_flow_timeline_dom_actions_events_within_range, get_flow_timeline_navigation_events_within_range, etc.
+    Args:
+        flow_id (int): The ID of the flow to retrieve events for.
+        start_index (int): The starting index of the events to retrieve.
+        end_index (int): The ending index of the events to retrieve.
+        event_type (str): The type of events to retrieve. must be one of enums.TimelineEventType values.
+                            Possible values are:
+                                "console_warn" -> console warning events
+                                "console_error" -> console error events
+    Returns:
+        str: header + A list of timeline events in string format one per line.
+    """
+    timeline_service = await _extract_timeline_service(flow_id, ctx)
+    
+    return await timeline_service.list_events_within_range(start_index, end_index, events_type=enums.TimelineEventType(event_type))
 
 @server_instance.flowlens_mcp.tool
 async def get_network_request_full_headers_by_index(flow_id: int, event_index: int, ctx: Context) -> dict:

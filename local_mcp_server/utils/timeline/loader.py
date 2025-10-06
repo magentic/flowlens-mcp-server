@@ -27,7 +27,9 @@ class TimelineLoader:
             "network_response": dto.NetworkResponseEvent,
             "dom_action": dto.DomActionEvent,
             "navigation": dto.NavigationEvent,
-            "local_storage": dto.LocalStorageEvent
+            "local_storage": dto.LocalStorageEvent,
+            "console_warn": dto.ConsoleWarningEvent,
+            "console_error": dto.ConsoleErrorEvent
         }
         event_type = event.get("type")
         dto_event_class = types_dict.get(event_type)

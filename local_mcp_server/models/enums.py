@@ -22,7 +22,8 @@ class TimelineEventType(Enum):
     DOM_ACTION = "dom_action"
     NAVIGATION = "navigation"
     CONSOLE_WARNING = "console_warn"
-    
+    CONSOLE_ERROR = "console_error"
+
 class ActionType(Enum):
     DEBUGGER_REQUEST = "debugger_request"
     DEBUGGER_RESPONSE = "debugger_response"
@@ -34,4 +35,5 @@ class ActionType(Enum):
     SET = "set"
     HISTORY_CHANGE = "history_change"
     WARNING_LOGGED = "warning_logged"
+    ERROR_LOGGED = "error_logged"
     UNKNOWN = "unknown"
