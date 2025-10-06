@@ -192,6 +192,44 @@ async def search_flow_events_with_regex(flow_id: int, pattern: str, event_type: 
     timeline_service = await _extract_timeline_service(flow_id, ctx)
     return await timeline_service.search_events_with_regex(pattern, event_type)
 
+# @server_instance.flowlens_mcp.tool
+# async def take_screenshot_at_timestamp(flow_id: int, timestamp: int, ctx: Context) -> str:
+#     """
+#     Take a screenshot at a specific timeline relative timestamp in seconds for a specific flow. 
+#     The screenshot is taken from the video recording of the flow. 
+#     The screenshot is returned as a base64 encoded string of a JPEG image.
+#     Favour this tool when you need to have a visual look on the state of the application at a specific time.
+#     this compensate of lacking this information in the timeline events.
+#     Args:
+#         flow_id (int): The ID of the flow to take the screenshot for.
+#         timestamp (int): The timestamp in seconds to take the screenshot at. 
+#                             Use the relative timestamp from the timeline events but converted to seconds.
+#     Returns:
+#         str: The base64 encoded string of the JPEG image.
+#     """
+#     service: flow_lens.FlowLensService = ctx.get_state("flowlens_service")
+#     return await service.take_screenshot(flow_id, timestamp)
+
+
+@server_instance.flowlens_mcp.tool
+async def take_screenshot_at_timestamp(flow_id: int, timestamp: int, ctx: Context) -> str:
+    """
+    Save a screenshot at a specific timeline relative timestamp in seconds for a specific flow. 
+    The screenshot is taken from the video recording of the flow. 
+    The screenshot is returned as a base64 encoded string of a JPEG image.
+    Favour this tool when you need to have a visual look on the state of the application at a specific time.
+    this compensate of lacking this information in the timeline events.
+    Args:
+        flow_id (int): The ID of the flow to take the screenshot for.
+        timestamp (int): The timestamp in seconds to take the screenshot at. 
+                            Use the relative timestamp from the timeline events but converted to seconds.
+    Returns:
+        str: The path to the saved screenshot JPEG image.
+    """
+    service: flow_lens.FlowLensService = ctx.get_state("flowlens_service")
+    return await service.save_screenshot(flow_id, timestamp)
+
+
 async def _extract_timeline_service(flow_id: int, ctx: Context) -> timeline.TimelineService:
     service: flow_lens.FlowLensService = ctx.get_state("flowlens_service")
     flow: dto.FlowlensFlow = await service.get_flow(flow_id)

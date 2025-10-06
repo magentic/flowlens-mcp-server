@@ -1,2 +1,3 @@
 dist/**
 **/*.pyc
+magentic_mcp_data/**

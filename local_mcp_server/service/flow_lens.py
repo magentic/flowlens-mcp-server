@@ -2,7 +2,7 @@ from ..dto import dto
 from ..utils import http_request, logger_setup
 from ..utils.flow_registry import flow_registry
 from ..utils.timeline.registry import timeline_registry
-
+from ..utils.video.handler import VideoHandler, VideoHandlerParams
 
 log = logger_setup.Logger(__name__)
 
@@ -32,6 +32,7 @@ class FlowLensService:
             return await flow_registry.get_flow(flow_id)
         response: dto.FullFlow = await self._request_handler.get(f"flow/{flow_id}", dto.FullFlow)
         timeline_overview = await timeline_registry.register_timeline(response)
+        await self._load_video(response)
         flow = dto.FlowlensFlow(
             id=response.id,
             title=response.title,
@@ -137,4 +138,25 @@ class FlowLensService:
         """
         response = await self._request_handler.post(f"flow/{flow_id}/share", {}, dto.FlowShareLink)
         return response
+
+    async def take_screenshot(self, flow_id: int, timestamp: float) -> str:
     
+        flow = await self.get_flow(flow_id)
+        params = VideoHandlerParams(flow.id)
+        handler = VideoHandler(params)
+        image_base64 = await handler.take_screenshot_base64(timestamp)
+        return image_base64
+    
+    async def save_screenshot(self, flow_id: int, timestamp: float) -> str:
+        flow = await self.get_flow(flow_id)
+        params = VideoHandlerParams(flow.id)
+        handler = VideoHandler(params)
+        image_path = await handler.save_screenshot(timestamp)
+        return image_path
+
+    async def _load_video(self, flow: dto.FullFlow):
+        if not flow.video_url:
+            return
+        params = VideoHandlerParams(flow.id, flow.video_url)
+        handler = VideoHandler(params)
+        await handler.load_video()
