@@ -160,7 +160,7 @@ class NetworkResponseData(BaseNetworkData):
     request_method: Optional[str] = None
     
     def reduce_into_one_line(self) -> str:
-        return (f"{self.status}")
+        return (f"status_code={self.status}")
     
     @model_validator(mode="before")
     def validate_str_length(cls, values:dict):

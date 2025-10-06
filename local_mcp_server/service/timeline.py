@@ -62,8 +62,8 @@ class TimelineService:
         return self._timeline.get_network_response_body(index)
     
     @load_timeline
-    async def search_events_with_regex(self, pattern: str) -> str:
-        return self._timeline.search_events_with_regex(pattern)
+    async def search_events_with_regex(self, pattern: str, event_type:Optional[enums.TimelineEventType] = None) -> str:
+        return self._timeline.search_events_with_regex(pattern, event_type)
     
     @load_timeline
     async def search_network_events_with_url_regex(self, url_pattern: str) -> str:

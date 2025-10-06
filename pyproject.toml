@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "magentic-mcp-server"
-version = "0.1.9"
+version = "0.1.10"
 description = "Local MCP server shim for development"
 authors = ["magentic <devnull@example.com>"]
 license = "MIT"
