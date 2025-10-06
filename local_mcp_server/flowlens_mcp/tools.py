@@ -168,19 +168,19 @@ async def search_flow_events_with_regex(flow_id: int, pattern: str, event_type: 
     Search timeline events for a specific flow by pattern using regex. 
     It works by searching the oneliner of each event which contains the most important information about the event.
     Oneliners are as below:
-    - event_type = enums.TimelineEventType.NetworkRequestWithResponseEvent
+    - NetworkRequestWithResponseEvent (network request and response)
     [index:int] network_request_with_response debugger_request_with_response [relative_timestamp:int]ms [POST|PUT|PATCH|GET|DELETE] [url:string] status_code=[status_code:int] duration=[duration:int]ms
-    - event_type = enums.TimelineEventType.NETWORK_REQUEST_PENDING
+    - NetworkRequestPending (request sent but no response received yet)
     [index:int] network_request_pending debugger_request_pending [relative_timestamp:int]ms [POST|PUT|PATCH|GET|DELETE] [url:string]
-    - event_type = enums.TimelineEventType.DomActionEvent
+    - DomActionEvent (click, keydown_session, scroll, etc.)
     [index:int] dom_action [click|keydown_session|scroll|etc.] [relative_timestamp:int]ms [element_text:string or element_src:string]
-    - event_type = enums.TimelineEventType.NavigationEvent
+    - NavigationEvent (page navigation)
     [index:int] navigation history_change [relative_timestamp:int]ms [url:string] [frame_id:string] [transition_type:string]
-    - event_type = enums.TimelineEventType.LocalStorageEvent
+    - LocalStorageEvent (local storage set or get)
     [index:int] local_storage [set|get] [relative_timestamp:int]ms [key:string] [value:string or empty if get]
-    - event_type = enums.TimelineEventType.ConsoleWarningEvent
+    - ConsoleWarningEvent (console warning message)
     [index:int] console_warn warning_logged [relative_timestamp:int]ms [message:string]
-    - event_type = enums.TimelineEventType.ConsoleErrorEvent
+    - ConsoleErrorEvent (console error message)
     [index:int] console_error error_logged [relative_timestamp:int]ms [message:string]
 
     Args:

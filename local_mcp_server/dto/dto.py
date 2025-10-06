@@ -111,6 +111,7 @@ class FlowlensFlow(BaseModel):
     network_requests_count: int
     event_type_summaries: List[EventTypeSummary]
     request_status_code_summaries: List[RequestStatusCodeSummary]
+    network_request_domain_summary: List[NetworkRequestDomainSummary]
 
 class BaseNetworkData(BaseModel):
     headers: Optional[dict] = None
@@ -293,14 +294,15 @@ class NetworkRequestWithResponseEvent(BaseTimelineEvent):
         return is_url_match is not None
     
     def search_with_regex(self, pattern: str) -> bool:
-        match_obj = re.search(pattern, self.network_request_data.url or "")
+        match_obj = super().search_with_regex(pattern)
+        match_obj = match_obj or re.search(pattern, self.network_request_data.url or "")
         match_obj = match_obj or re.search(pattern, self.network_request_data.body or "")
         match_obj = match_obj or re.search(pattern, self.network_response_data.body or "")
         return match_obj is not None
     
     def reduce_into_one_line(self) -> str:
         base_line = super().reduce_into_one_line()
-        return (f"{base_line} {self.correlation_id} {self.network_request_data.reduce_into_one_line()} "
+        return (f"{base_line} {self.network_request_data.reduce_into_one_line()} "
                 f"{self.network_response_data.reduce_into_one_line()} duration={self.duration_ms}ms")
 
     @model_validator(mode="before")

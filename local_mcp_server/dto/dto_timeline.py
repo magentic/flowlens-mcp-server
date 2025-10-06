@@ -79,7 +79,7 @@ class Timeline(BaseModel):
             if event.type != event_type:
                     continue
             if event.search_with_regex(pattern):
-                matches.append(event.truncate())
+                matches.append(event)
         header += f"Total Matches: {len(matches)}\n"
         return header + "\n".join([event.reduce_into_one_line() for event in matches])
 

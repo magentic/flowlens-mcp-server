@@ -31,7 +31,7 @@ class FlowLensService:
         if await flow_registry.is_registered(flow_id):
             return await flow_registry.get_flow(flow_id)
         response: dto.FullFlow = await self._request_handler.get(f"flow/{flow_id}", dto.FullFlow)
-        timeline = await timeline_registry.register_timeline(response)
+        timeline_overview = await timeline_registry.register_timeline(response)
         flow = dto.FlowlensFlow(
             id=response.id,
             title=response.title,
@@ -40,11 +40,12 @@ class FlowLensService:
             system_id=response.system_id,
             tags=response.tags,
             reporter=response.reporter,
-            events_count=timeline.events_count,
-            duration_ms=timeline.duration_ms,
-            network_requests_count=timeline.network_requests_count,
-            event_type_summaries=timeline.event_type_summaries,
-            request_status_code_summaries=timeline.request_status_code_summaries,
+            events_count=timeline_overview.events_count,
+            duration_ms=timeline_overview.duration_ms,
+            network_requests_count=timeline_overview.network_requests_count,
+            event_type_summaries=timeline_overview.event_type_summaries,
+            request_status_code_summaries=timeline_overview.request_status_code_summaries,
+            network_request_domain_summary=timeline_overview.network_request_domain_summary,
         )
         return flow
 
