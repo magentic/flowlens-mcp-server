@@ -72,12 +72,14 @@ class Timeline(BaseModel):
             return event.network_response_data.body
         raise TypeError(f"Event with type {event.type} does not have network response body.")
 
-    def search_events_with_regex(self, pattern: str) -> str:
+    def search_events_with_regex(self, pattern: str, event_type: Optional[enums.TimelineEventType] = None) -> str:
         header = f"Events matching pattern '{pattern}':\n"
         matches: List[TimelineEventType] = []
         for event in self.events:
+            if event.type != event_type:
+                    continue
             if event.search_with_regex(pattern):
-                    matches.append(event.truncate())
+                matches.append(event.truncate())
         header += f"Total Matches: {len(matches)}\n"
         return header + "\n".join([event.reduce_into_one_line() for event in matches])
 
