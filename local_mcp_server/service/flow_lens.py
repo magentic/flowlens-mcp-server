@@ -101,6 +101,6 @@ class FlowLensService:
     async def _load_video(self, flow: dto.FullFlow):
         if not flow.video_url:
             return
-        params = VideoHandlerParams(flow.id, flow.video_duration_ms, flow.video_url)
+        params = VideoHandlerParams(flow.id, flow.video_url)
         handler = VideoHandler(params)
         await handler.load_video()
