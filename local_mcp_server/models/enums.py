@@ -23,6 +23,7 @@ class TimelineEventType(Enum):
     NAVIGATION = "navigation"
     CONSOLE_WARNING = "console_warn"
     CONSOLE_ERROR = "console_error"
+    JAVASCRIPT_ERROR = "javascript_error"
 
 class ActionType(Enum):
     DEBUGGER_REQUEST = "debugger_request"
@@ -33,7 +34,10 @@ class ActionType(Enum):
     KEYDOWN_SESSION = "keydown_session"
     GET = "get"
     SET = "set"
+    CLEAR = "clear"
+    REMOVE = "remove"
     HISTORY_CHANGE = "history_change"
     WARNING_LOGGED = "warning_logged"
     ERROR_LOGGED = "error_logged"
+    ERROR_CAPTURED = "error_captured"
     UNKNOWN = "unknown"

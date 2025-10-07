@@ -169,7 +169,7 @@ class NetworkRequestData(BaseNetworkData):
         return parts.netloc
     
     def reduce_into_one_line(self) -> str:
-        return f"{self.method} {self.url}"
+        return f"{self.method} {self._truncate_string(self.url)}"
     
     @model_validator(mode="before")
     def validate_url_length(cls, values:dict):
@@ -179,6 +179,11 @@ class NetworkRequestData(BaseNetworkData):
         cleaned = urlunsplit((parts.scheme, parts.netloc, parts.path, "", ""))
         values["url"] = cleaned
         return values
+    
+    def _truncate_string(self, s: str) -> str:
+        if isinstance(s, str) and len(s) > settings.max_string_length:
+            return s[:settings.max_string_length] + "...(truncated)"
+        return s    
 
 class NetworkResponseData(BaseNetworkData):
     status: int
@@ -200,12 +205,13 @@ class NetworkResponseData(BaseNetworkData):
         url: str = values.get("request_url")
         if url.endswith(('.png', '.jpg', '.jpeg', '.gif', '.svg', '.webp', '.avif', '.bmp', '.tiff', '.mp4', '.mp3', '.wav', '.avi', '.mov', '.wmv', '.flv', '.mkv')):
             values["body"] = "<binary or media content not shown>"
+        values["url"] = cls._truncate_string(url, 2000)
         return values
     
     @staticmethod
-    def _truncate_string(s: str) -> str:
-        if isinstance(s, str) and len(s) > settings.max_string_length:
-            return s[:settings.max_string_length] + "...(truncated)"
+    def _truncate_string(s: str, max_length: int=None) -> str:
+        if isinstance(s, str) and len(s) > max_length:
+            return s[:max_length or settings.max_string_length] + "...(truncated)"
         return s
 
 class DomTarget(BaseModel):
@@ -405,7 +411,9 @@ class LocalStorageEvent(BaseTimelineEvent):
         values['type'] = enums.TimelineEventType.LOCAL_STORAGE
         actions_map = {
             "set": enums.ActionType.GET,
-            "get": enums.ActionType.SET
+            "get": enums.ActionType.SET,
+            "clear": enums.ActionType.CLEAR,
+            "remove": enums.ActionType.REMOVE
         }
         action = values.get("action_type")
         values["action_type"] = actions_map.get(action, None)
@@ -422,7 +430,7 @@ class ConsoleWarningEvent(BaseTimelineEvent):
     
     def reduce_into_one_line(self) -> str:
         base_line = super().reduce_into_one_line()
-        return (f"{base_line} {self.console_warn_data.message} ")
+        return (f"{base_line} {self._truncate_string(self.console_warn_data.message)} ")
 
     @model_validator(mode="before")
     def validate_console_warning(cls, values):
@@ -431,6 +439,11 @@ class ConsoleWarningEvent(BaseTimelineEvent):
         values['type'] = enums.TimelineEventType.CONSOLE_WARNING
         values['action_type'] = enums.ActionType.WARNING_LOGGED
         return values
+    
+    def _truncate_string(self, s: str) -> str:
+        if isinstance(s, str) and len(s) > settings.max_string_length:
+            return s[:settings.max_string_length] + "...(truncated)"
+        return s
 
 class ConsoleErrorEvent(BaseTimelineEvent):
     page_url: str = None
@@ -448,8 +461,72 @@ class ConsoleErrorEvent(BaseTimelineEvent):
         values['action_type'] = enums.ActionType.ERROR_LOGGED
         return values
 
+class JavaScriptErrorData(BaseModel):
+    message: Optional[str] = None
+    filename: Optional[str] = None
+    lineno: Optional[int] = None
+    colno: Optional[int] = None
+    error: Optional[str] = None
+    stack: Optional[str] = None
+    url: Optional[str] = None
+    userAgent: Optional[str] = None
+
+class JavaScriptErrorEvent(BaseTimelineEvent):
+    page_url: str = None
+    javascript_error_data: JavaScriptErrorData
+    
+    def reduce_into_one_line(self) -> str:
+        base_line = super().reduce_into_one_line()
+        return (f"{base_line} {self._truncate_string(self.javascript_error_data.message)} ")
+
+    @model_validator(mode="before")
+    def validate_javascript_error(cls, values):
+        if not isinstance(values, dict):
+            return values
+        values['type'] = enums.TimelineEventType.JAVASCRIPT_ERROR
+        values['action_type'] = enums.ActionType.ERROR_CAPTURED
+        return values
+    
+    def _truncate_string(self, s: str) -> str:
+        if isinstance(s, str) and len(s) > settings.max_string_length:
+            return s[:settings.max_string_length] + "...(truncated)"
+        return s
+
+class SessionStorageData(BaseModel):
+    key: str
+    value: Optional[str] = None
+
+class SessionStorageEvent(BaseTimelineEvent):
+    page_url: str = None
+    session_storage_data: SessionStorageData
+    
+    def reduce_into_one_line(self) -> str:
+        base_line = super().reduce_into_one_line()
+        return (f"{base_line} {self._truncate_string(self.session_storage_data.key)} {self._truncate_string(self.session_storage_data.value) or ''} ")
+
+    @model_validator(mode="before")
+    def validate_session_storage(cls, values):
+        if not isinstance(values, dict):
+            return values
+        values['type'] = enums.TimelineEventType.LOCAL_STORAGE
+        actions_map = {
+            "set": enums.ActionType.SET,
+            "get": enums.ActionType.GET,
+            "clear": enums.ActionType.CLEAR,
+            "remove": enums.ActionType.REMOVE
+        }
+        action = values.get("action_type")
+        values["action_type"] = actions_map.get(action, None)
+        return values
+
+    def _truncate_string(self, s: str) -> str:
+        if isinstance(s, str) and len(s) > settings.max_string_length:
+            return s[:settings.max_string_length] + "...(truncated)"
+        return s
+
 TimelineEventType = Union[NetworkRequestEvent, NetworkResponseEvent, NetworkRequestWithResponseEvent,
-                         DomActionEvent, NavigationEvent, LocalStorageEvent, ConsoleWarningEvent, ConsoleErrorEvent]
+                         DomActionEvent, NavigationEvent, LocalStorageEvent, ConsoleWarningEvent, ConsoleErrorEvent,
+                         JavaScriptErrorEvent, SessionStorageEvent]
 
 
 

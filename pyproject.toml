@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "magentic-mcp-server"
-version = "0.1.10"
+version = "0.1.12"
 description = "Local MCP server shim for development"
 authors = ["magentic <devnull@example.com>"]
 license = "MIT"
@@ -19,7 +19,9 @@ aiofiles = "^24.1.0"
 opencv-python = "^4.12.0.88"
 
 [tool.poetry.scripts]
-local-mcp-server = "local_mcp_server.server:main"
+flowlens-server = "local_mcp_server.server:main"
+flowlens-stdio = "local_mcp_server.server:run_stdio"
+flowlens-http = "local_mcp_server.server:run_http"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

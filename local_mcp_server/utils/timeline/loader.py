@@ -29,7 +29,9 @@ class TimelineLoader:
             "navigation": dto.NavigationEvent,
             "local_storage": dto.LocalStorageEvent,
             "console_warn": dto.ConsoleWarningEvent,
-            "console_error": dto.ConsoleErrorEvent
+            "console_error": dto.ConsoleErrorEvent,
+            "javascript_error": dto.JavaScriptErrorEvent,
+            "session_storage": dto.SessionStorageEvent
         }
         event_type = event.get("type")
         dto_event_class = types_dict.get(event_type)

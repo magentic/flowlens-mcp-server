@@ -191,10 +191,14 @@ async def search_flow_events_with_regex(flow_id: int, pattern: str, event_type: 
     [index:int] navigation history_change [relative_timestamp:int]ms [url:string] [frame_id:string] [transition_type:string]
     - LocalStorageEvent (local storage set or get)
     [index:int] local_storage [set|get] [relative_timestamp:int]ms [key:string] [value:string or empty if get]
+    - SessionStorageEvent (session storage set or get)
+    [index:int] session_storage [set|get] [relative_timestamp:int]ms [key:string] [value:string or empty if get]
     - ConsoleWarningEvent (console warning message)
     [index:int] console_warn warning_logged [relative_timestamp:int]ms [message:string]
     - ConsoleErrorEvent (console error message)
     [index:int] console_error error_logged [relative_timestamp:int]ms [message:string]
+    - JavaScriptErrorEvent (javascript error message)
+    [index:int] javascript_error error_captured [relative_timestamp:int]ms [message:string]
 
     Args:
         flow_id (int): The ID of the flow to retrieve events for.
