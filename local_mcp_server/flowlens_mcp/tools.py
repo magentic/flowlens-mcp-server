@@ -25,6 +25,7 @@ async def get_flow(flow_id: int, ctx: Context) -> dto.FlowlensFlow:
     Get a specific full flow by its ID. It contains all flow data including a summary of timeline events 
     e.g. number of events, status codes distribution, events types distribution, network requests domain distribution, etc.
     It is a very important entry point to start investigating a flow.
+    Note: the comments field in the returned flow is truncated to max of 50 characters per comment. If you need full comments use get_flow_full_comments tool.
     Args:
         flow_id (int): The ID of the flow to retrieve.
     Returns:
@@ -32,6 +33,18 @@ async def get_flow(flow_id: int, ctx: Context) -> dto.FlowlensFlow:
     """
     service: flow_lens.FlowLensService = ctx.get_state("flowlens_service")
     return await service.get_flow(flow_id)
+
+@server_instance.flowlens_mcp.tool
+async def get_flow_full_comments(flow_id: int, ctx: Context) -> List[dto.FlowComment]:
+    """
+    Get all comments for a specific flow.
+    Args:
+        flow_id (int): The ID of the flow to retrieve comments for.
+    Returns:
+        List[dto.FlowComment]: A list of FlowComment dto objects.
+    """
+    service: flow_lens.FlowLensService = ctx.get_state("flowlens_service")
+    return await service.get_flow_full_comments(flow_id)
 
 @server_instance.flowlens_mcp.tool
 async def list_flow_timeline_events_within_range(flow_id: int, start_index: int, end_index: int, ctx: Context) -> str:

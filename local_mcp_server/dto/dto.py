@@ -18,6 +18,15 @@ class FlowTag(BaseModel):
     
 class FlowTagList(BaseModel):
     tags: List[FlowTag]
+    
+class FlowComment(BaseModel):
+    flow_id: int
+    timestamp: int
+    content: str
+    id: Optional[int] = None
+    user_id: Optional[int] = None
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
 
 class System(BaseModel):
     id: int
@@ -46,6 +55,7 @@ class Flow(BaseModel):
     is_timeline_uploaded: bool
     is_video_uploaded: bool
     has_extended_sequence_diagram: bool
+    comments: Optional[List[FlowComment]] = None
 
 class FlowList(BaseModel):
     flows: List[Flow]
@@ -105,6 +115,7 @@ class FlowlensFlow(BaseModel):
     created_at: datetime = Field(..., description="Native datetime in UTC")
     system_id: int
     tags: Optional[List[FlowTag]] = None
+    comments: Optional[List[FlowComment]] = None
     reporter: Optional[str] = None
     events_count: int
     duration_ms: int
@@ -112,6 +123,20 @@ class FlowlensFlow(BaseModel):
     event_type_summaries: List[EventTypeSummary]
     request_status_code_summaries: List[RequestStatusCodeSummary]
     network_request_domain_summary: List[NetworkRequestDomainSummary]
+    
+    def truncate(self):
+        copy = self.model_copy()
+        if copy.description:
+            copy.description = self._truncate_string(copy.description)
+        for comment in (copy.comments or []):
+            comment.content = self._truncate_string(comment.content)
+        return copy
+    
+    @staticmethod
+    def _truncate_string(s: str) -> str:
+        if isinstance(s, str) and len(s) > settings.max_string_length:
+            return s[:settings.max_string_length] + "...(truncated)"
+        return s
 
 class BaseNetworkData(BaseModel):
     headers: Optional[dict] = None

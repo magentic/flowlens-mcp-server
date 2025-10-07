@@ -1,3 +1,4 @@
+from typing import List
 from ..dto import dto
 from ..utils import http_request, logger_setup
 from ..utils.flow_registry import flow_registry
@@ -21,13 +22,6 @@ class FlowLensService:
         return response
 
     async def get_flow(self, flow_id: int) -> dto.FlowlensFlow:
-        """
-        Get a specific flow by its ID.
-        Args:
-            flow_id (int): The ID of the flow to retrieve.
-        Returns:
-            dto.FlowlensFlow: The FlowlensFlow dto object.
-        """
         if await flow_registry.is_registered(flow_id):
             return await flow_registry.get_flow(flow_id)
         response: dto.FullFlow = await self._request_handler.get(f"flow/{flow_id}", dto.FullFlow)
@@ -40,6 +34,7 @@ class FlowLensService:
             created_at=response.created_at,
             system_id=response.system_id,
             tags=response.tags,
+            comments=response.comments,
             reporter=response.reporter,
             events_count=timeline_overview.events_count,
             duration_ms=timeline_overview.duration_ms,
@@ -48,94 +43,43 @@ class FlowLensService:
             request_status_code_summaries=timeline_overview.request_status_code_summaries,
             network_request_domain_summary=timeline_overview.network_request_domain_summary,
         )
-        return flow
+        await flow_registry.register_flow(flow)
+        return flow.truncate()
+
+    async def get_flow_full_comments(self, flow_id: int) -> List[dto.FlowComment]:
+        flow = await self.get_flow(flow_id)
+        return flow.comments
 
     async def delete_flow(self, flow_id: int) -> dto.DeleteResponse:
-        """
-        Delete a specific flow by its ID.
-        Args:
-            flow_id (int): The ID of the flow to delete.
-        Returns:
-            dto.DeleteFlowResponse: The response object containing the result of the delete operation.
-        """
         response = await self._request_handler.delete(f"flow/{flow_id}", dto.DeleteResponse)
         return response
 
     async def update_flow(self, flow_id: int, update_data: dto.FlowUpdate) -> dto.FullFlow:
-        """
-        Update a specific flow by its ID.
-        Args:
-            flow_id (int): The ID of the flow to update.
-            update_data (dto.FlowUpdate): The data to update the flow with.
-        Returns:
-            dto.FullFlow: The updated FullFlow dto object.
-        """
         response = await self._request_handler.patch(f"flow/{flow_id}", 
                                                     update_data.model_dump(), dto.FullFlow)
         return response
 
     async def list_tags(self) -> dto.FlowTagList:
-        """
-        List all tags.
-        Returns:
-            dto.FlowTagList: List of FlowTag dto objects.
-        """
         response = await self._request_handler.get("tags", dto.FlowTagList)
         return response
 
     async def create_tag(self, data: dto.FlowTagCreateUpdate) -> dto.FlowTag:
-        """
-        Create a new tag.
-        Args:
-            data (dto.FlowTagCreateUpdate): The data to create the tag with.
-        Returns:
-            dto.FlowTag: The created FlowTag dto object.
-        """
         response = await self._request_handler.post("tag", data.model_dump(), dto.FlowTag)
         return response
     
     async def update_tag(self, tag_id: int, data: dto.FlowTagCreateUpdate) -> dto.FlowTag:
-        """
-        Update a specific tag by its ID.
-        Args:
-            tag_id (int): The ID of the tag to update.
-            data (dto.FlowTagCreateUpdate): The data to update the tag with.
-        Returns:
-            dto.FlowTag: The updated FlowTag dto object.
-        """
         response = await self._request_handler.patch(f"tag/{tag_id}", data.model_dump(), dto.FlowTag)
         return response
     
     async def delete_tag(self, tag_id: int) -> dto.DeleteResponse:
-        """
-        Delete a specific tag by its ID.
-        Args:
-            tag_id (int): The ID of the tag to delete.
-        Returns:
-            dto.DeleteResponse: The response object containing the result of the delete operation.
-        """
         response = await self._request_handler.delete(f"tag/{tag_id}", dto.DeleteResponse)
         return response
     
     async def get_flow_sequence_diagram(self, flow_id: int) -> dto.FlowSequenceDiagramResponse:
-        """
-        Get the sequence diagram for a specific flow.
-        Args:
-            flow_id (int): The ID of the flow to retrieve the sequence diagram for.
-        Returns:
-            dto.FlowSequenceDiagramResponse: The response object containing the sequence diagram information.
-        """
         response = await self._request_handler.get(f"flow/{flow_id}/sequence_diagram", dto.FlowSequenceDiagramResponse)
         return response
 
     async def create_shareable_link(self, flow_id: int) -> dto.FlowShareLink:
-        """
-        Create a shareable link for a specific flow.
-        Args:
-            flow_id (int): The ID of the flow to create a shareable link for.
-        Returns:
-            dto.FlowShareLink: The response object containing the shareable link information.
-        """
         response = await self._request_handler.post(f"flow/{flow_id}/share", {}, dto.FlowShareLink)
         return response
 
