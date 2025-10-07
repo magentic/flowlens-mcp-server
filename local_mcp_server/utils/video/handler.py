@@ -1,4 +1,3 @@
-import subprocess
 import asyncio
 import aiofiles
 import base64
@@ -9,6 +8,10 @@ import tempfile
 from typing import Optional
 import aiohttp
 from ..settings import settings
+
+
+# Module-level cache: {video_path: [(frame_index, timestamp), ...]}
+_FRAME_TIMESTAMP_CACHE = {}
 
 
 class VideoHandlerParams:
@@ -28,7 +31,6 @@ class VideoHandler:
         self._params = params
         self._video_dir_path = f"{settings.save_dir_path}/videos/{self._params.flow_id}"
         self._video_name = "video.webm"
-        self._frame_timestamps = None  # Cached list of (frame_index, timestamp)
 
     async def load_video(self):
         await self._download_video()
@@ -51,11 +53,11 @@ class VideoHandler:
         video_path = os.path.join(self._video_dir_path, self._video_name)
 
         # Load frame timestamps if not cached
-        if self._frame_timestamps is None:
-            self._frame_timestamps = self._load_frame_timestamps(video_path)
+        if video_path not in _FRAME_TIMESTAMP_CACHE:
+            _FRAME_TIMESTAMP_CACHE[video_path] = self._load_frame_timestamps(video_path)
 
         # Find the best matching frame for the requested timestamp
-        best_frame_index = self._find_closest_frame(timestamp)
+        best_frame_index = self._find_closest_frame(timestamp, _FRAME_TIMESTAMP_CACHE[video_path])
 
         # Extract that specific frame
         cap = cv2.VideoCapture(video_path)
@@ -73,37 +75,44 @@ class VideoHandler:
         return _FrameInfo(best_frame_index, buffer)
 
     def _load_frame_timestamps(self, video_path: str) -> list[tuple[int, float]]:
-        """Load all frame timestamps using ffprobe. Returns list of (frame_index, timestamp)."""
+        """Load all frame timestamps by iterating through video. Returns list of (frame_index, timestamp)."""
         try:
-            cmd = [
-                "ffprobe", "-v", "error", "-select_streams", "v:0",
-                "-show_entries", "frame=best_effort_timestamp_time",
-                "-of", "csv=p=0", video_path
-            ]
-            result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+            cap = cv2.VideoCapture(video_path)
             timestamps = []
-            for idx, line in enumerate(result.stdout.strip().split('\n')):
-                if line:
-                    timestamps.append((idx, float(line)))
+            frame_idx = 0
+
+            while True:
+                ret = cap.grab()  # Fast frame grab without decoding
+                if not ret:
+                    break
+                ts = cap.get(cv2.CAP_PROP_POS_MSEC) / 1000.0
+                timestamps.append((frame_idx, ts))
+                frame_idx += 1
+
+            cap.release()
+
+            if not timestamps:
+                raise RuntimeError("No frames found in video")
+
             return timestamps
         except Exception as e:
             raise RuntimeError(f"Failed to load frame timestamps: {e}")
 
-    def _find_closest_frame(self, target_timestamp: float) -> int:
+    def _find_closest_frame(self, target_timestamp: float, frame_timestamps: list) -> int:
         """Find the frame index closest to the target timestamp."""
-        if not self._frame_timestamps:
+        if not frame_timestamps:
             raise RuntimeError("Frame timestamps not loaded")
 
         # Validate timestamp is within video duration
-        last_timestamp = self._frame_timestamps[-1][1]
+        last_timestamp = frame_timestamps[-1][1]
         if target_timestamp > last_timestamp:
             raise ValueError(f"Requested timestamp {target_timestamp:.3f}s exceeds video duration {last_timestamp:.3f}s")
 
         # Binary search for closest timestamp
         best_idx = 0
-        min_diff = abs(self._frame_timestamps[0][1] - target_timestamp)
+        min_diff = abs(frame_timestamps[0][1] - target_timestamp)
 
-        for frame_idx, ts in self._frame_timestamps:
+        for frame_idx, ts in frame_timestamps:
             diff = abs(ts - target_timestamp)
             if diff < min_diff:
                 min_diff = diff
