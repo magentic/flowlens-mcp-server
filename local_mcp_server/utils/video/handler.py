@@ -1,74 +1,125 @@
-from typing import Optional
-import aiohttp
-import aiofiles
+import subprocess
 import asyncio
+import aiofiles
 import base64
 import cv2
 import os
 import shutil
 import tempfile
+from typing import Optional
+import aiohttp
 from ..settings import settings
+
 
 class VideoHandlerParams:
     def __init__(self, flow_id: int, url: Optional[str] = None):
         self.url = url
         self.flow_id = flow_id
 
+
 class _FrameInfo:
     def __init__(self, index: int, buffer):
         self.index = index
         self.buffer = buffer
-             
+
+
 class VideoHandler:
     def __init__(self, params: VideoHandlerParams):
         self._params = params
         self._video_dir_path = f"{settings.save_dir_path}/videos/{self._params.flow_id}"
         self._video_name = "video.webm"
-        
+        self._frame_timestamps = None  # Cached list of (frame_index, timestamp)
+
     async def load_video(self):
         await self._download_video()
-    
-    async def take_screenshot_base64(self, timestamp: int) -> str:
-        video_path = f"{self._video_dir_path}/{self._video_name}"
-        if not os.path.exists(video_path):
-            raise RuntimeError(f"video not found for flow id {self._params.flow_id}")
-        return await asyncio.to_thread(self._extract_frame, timestamp)
-
-    def _extract_frame(self, timestamp: float):
-        frame_info = self._extract_frame_buffer(timestamp)
-        return base64.b64encode(frame_info.buffer.tobytes()).decode('utf-8')
 
     async def save_screenshot(self, timestamp: float) -> str:
         frame_info = await self._extract_frame_async(timestamp)
-        output_path = f"{self._video_dir_path}/screenshot_{frame_info.index}.jpg"
+        os.makedirs(self._video_dir_path, exist_ok=True)
+
+        output_path = os.path.join(self._video_dir_path, f"screenshot_{frame_info.index}.jpg")
+
         async with aiofiles.open(output_path, "wb") as f:
-            await f.write(frame_info.buffer.tobytes())
+            await f.write(bytearray(frame_info.buffer))
+
         return os.path.abspath(output_path)
-    
+
     async def _extract_frame_async(self, timestamp):
         return await asyncio.to_thread(self._extract_frame_buffer, timestamp)
 
     def _extract_frame_buffer(self, timestamp) -> _FrameInfo:
-        video_path = f"{self._video_dir_path}/{self._video_name}"
+        video_path = os.path.join(self._video_dir_path, self._video_name)
+
+        # Load frame timestamps if not cached
+        if self._frame_timestamps is None:
+            self._frame_timestamps = self._load_frame_timestamps(video_path)
+
+        # Find the best matching frame for the requested timestamp
+        best_frame_index = self._find_closest_frame(timestamp)
+
+        # Extract that specific frame
         cap = cv2.VideoCapture(video_path)
-        fps = cap.get(cv2.CAP_PROP_FPS) or 25
-        
-        frame_index = int(timestamp * fps)
-        cap.set(cv2.CAP_PROP_POS_FRAMES, frame_index)
+        cap.set(cv2.CAP_PROP_POS_FRAMES, best_frame_index)
         ret, frame = cap.read()
         cap.release()
-        
-        if not ret:
-            raise RuntimeError(f"Failed to read frame at timestamp {timestamp}")
-        
-        _, buffer = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 95])
-        return _FrameInfo(frame_index, buffer)
-    
-    
+
+        if not ret or frame is None:
+            raise RuntimeError(f"Failed to extract frame at index {best_frame_index} (timestamp {timestamp:.3f}s)")
+
+        success, buffer = cv2.imencode(".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, 95])
+        if not success:
+            raise RuntimeError("Failed to encode frame as JPEG")
+
+        return _FrameInfo(best_frame_index, buffer)
+
+    def _load_frame_timestamps(self, video_path: str) -> list[tuple[int, float]]:
+        """Load all frame timestamps using ffprobe. Returns list of (frame_index, timestamp)."""
+        try:
+            cmd = [
+                "ffprobe", "-v", "error", "-select_streams", "v:0",
+                "-show_entries", "frame=best_effort_timestamp_time",
+                "-of", "csv=p=0", video_path
+            ]
+            result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+            timestamps = []
+            for idx, line in enumerate(result.stdout.strip().split('\n')):
+                if line:
+                    timestamps.append((idx, float(line)))
+            return timestamps
+        except Exception as e:
+            raise RuntimeError(f"Failed to load frame timestamps: {e}")
+
+    def _find_closest_frame(self, target_timestamp: float) -> int:
+        """Find the frame index closest to the target timestamp."""
+        if not self._frame_timestamps:
+            raise RuntimeError("Frame timestamps not loaded")
+
+        # Validate timestamp is within video duration
+        last_timestamp = self._frame_timestamps[-1][1]
+        if target_timestamp > last_timestamp:
+            raise ValueError(f"Requested timestamp {target_timestamp:.3f}s exceeds video duration {last_timestamp:.3f}s")
+
+        # Binary search for closest timestamp
+        best_idx = 0
+        min_diff = abs(self._frame_timestamps[0][1] - target_timestamp)
+
+        for frame_idx, ts in self._frame_timestamps:
+            diff = abs(ts - target_timestamp)
+            if diff < min_diff:
+                min_diff = diff
+                best_idx = frame_idx
+            elif diff > min_diff:
+                # Timestamps are sorted, so we can stop early
+                break
+
+        return best_idx
+
+
     async def _download_video(self):
         if not self._params.url:
             return
-        if os.path.exists(f"{self._video_dir_path}/{self._video_name}"):
+        dest_path = os.path.join(self._video_dir_path, self._video_name)
+        if os.path.exists(dest_path):
             return
         try:
             os.makedirs(self._video_dir_path, exist_ok=True)
@@ -81,8 +132,6 @@ class VideoHandler:
                     async with aiofiles.open(tmp_path, "wb") as f:
                         async for chunk in resp.content.iter_chunked(64 * 1024):
                             await f.write(chunk)
-            dest_path = f"{self._video_dir_path}/{self._video_name}"
             shutil.move(tmp_path, dest_path)
         except Exception as exc:
-            # normalize aiohttp/client/IO errors into a RuntimeError like the original
             raise RuntimeError(f"failed to download video: {exc}") from exc
