@@ -212,22 +212,24 @@ async def search_flow_events_with_regex(flow_id: int, pattern: str, event_type: 
 
 
 @server_instance.flowlens_mcp.tool
-async def take_screenshot_at_timestamp(flow_id: int, timestamp: int, ctx: Context) -> str:
+async def take_flow_screenshot_at_second(flow_id: int, second: int, ctx: Context) -> str:
     """
-    Save a screenshot at a specific timeline relative timestamp in seconds for a specific flow. 
+    Save a screenshot at a specific timeline relative second for a specific flow. 
     The screenshot is taken from the video recording of the flow. 
     The screenshot is returned as a base64 encoded string of a JPEG image.
     Favour this tool when you need to have a visual look on the state of the application at a specific time.
     this compensate of lacking this information in the timeline events.
+    Important Note: The screenshot the bottom middle contains a recording UI that shows the recording state and the elapsed time. 
+    IGNORE that it is part of recording state UI as it is not relevant to the application state.
     Args:
         flow_id (int): The ID of the flow to take the screenshot for.
-        timestamp (int): The timestamp in seconds to take the screenshot at. 
-                            Use the relative timestamp from the timeline events but converted to seconds.
+        second (int): The second to take the screenshot at. 
+                      Use the relative second from the timeline events.
     Returns:
         str: The path to the saved screenshot JPEG image.
     """
     service: flow_lens.FlowLensService = ctx.get_state("flowlens_service")
-    return await service.save_screenshot(flow_id, timestamp)
+    return await service.save_screenshot(flow_id, second)
 
 
 async def _extract_timeline_service(flow_id: int, ctx: Context) -> timeline.TimelineService:

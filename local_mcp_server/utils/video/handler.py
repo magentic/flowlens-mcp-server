@@ -10,9 +10,13 @@ import tempfile
 from ..settings import settings
 
 class VideoHandlerParams:
-    def __init__(self, flow_id: int, url: Optional[str] = None):
+    def __init__(self, flow_id: int, 
+                 duration_ms: Optional[float] = None,
+                 url: Optional[str] = None):
         self.url = url
         self.flow_id = flow_id
+        self.duration_ms = duration_ms
+        print(url)
 
 class _FrameInfo:
     def __init__(self, index: int, buffer):
@@ -51,9 +55,11 @@ class VideoHandler:
     def _extract_frame_buffer(self, timestamp) -> _FrameInfo:
         video_path = f"{self._video_dir_path}/{self._video_name}"
         cap = cv2.VideoCapture(video_path)
-        fps = cap.get(cv2.CAP_PROP_FPS) or 25
+        fps = self._calculate_fps(cap)
+        print(f"Calculated FPS: {fps}")
         
         frame_index = int(timestamp * fps)
+        print(f"Extracting frame at index: {frame_index} for timestamp: {timestamp}")
         cap.set(cv2.CAP_PROP_POS_FRAMES, frame_index)
         ret, frame = cap.read()
         cap.release()
@@ -63,8 +69,23 @@ class VideoHandler:
         
         _, buffer = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 95])
         return _FrameInfo(frame_index, buffer)
-    
-    
+
+    def _calculate_fps(self, cap):
+        frames_count = cap.get(cv2.CAP_PROP_FRAME_COUNT)
+        print(f"Frames count: {frames_count}")
+        print(f"Duration ms: {self._params.duration_ms}")
+        fps = cap.get(cv2.CAP_PROP_FPS)
+        if fps > 0:
+            return fps
+       
+        duration_sec = (self._params.duration_ms or 0) / 1000
+        if frames_count > 0 and duration_sec > 0:
+            fps = frames_count / duration_sec
+            return fps
+        default_fps = 25
+        return default_fps
+
+
     async def _download_video(self):
         if not self._params.url:
             return

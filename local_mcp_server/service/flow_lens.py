@@ -142,14 +142,14 @@ class FlowLensService:
     async def take_screenshot(self, flow_id: int, timestamp: float) -> str:
     
         flow = await self.get_flow(flow_id)
-        params = VideoHandlerParams(flow.id)
+        params = VideoHandlerParams(flow.id, flow.duration_ms)
         handler = VideoHandler(params)
         image_base64 = await handler.take_screenshot_base64(timestamp)
         return image_base64
     
     async def save_screenshot(self, flow_id: int, timestamp: float) -> str:
         flow = await self.get_flow(flow_id)
-        params = VideoHandlerParams(flow.id)
+        params = VideoHandlerParams(flow.id, flow.duration_ms)
         handler = VideoHandler(params)
         image_path = await handler.save_screenshot(timestamp)
         return image_path
@@ -157,6 +157,6 @@ class FlowLensService:
     async def _load_video(self, flow: dto.FullFlow):
         if not flow.video_url:
             return
-        params = VideoHandlerParams(flow.id, flow.video_url)
+        params = VideoHandlerParams(flow.id, flow.video_duration_ms, flow.video_url)
         handler = VideoHandler(params)
         await handler.load_video()
