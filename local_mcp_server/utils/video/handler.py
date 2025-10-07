@@ -29,27 +29,27 @@ class _FrameInfo:
 class VideoHandler:
     def __init__(self, params: VideoHandlerParams):
         self._params = params
-        self._video_dir_path = f"{settings.save_dir_path}/videos/{self._params.flow_id}"
+        self._video_dir_path = f"{settings.save_dir_path}/flows/{self._params.flow_id}"
         self._video_name = "video.webm"
 
     async def load_video(self):
         await self._download_video()
 
-    async def save_screenshot(self, timestamp: float) -> str:
-        frame_info = await self._extract_frame_async(timestamp)
+    async def save_screenshot(self, video_sec: int) -> str:
+        frame_info = await self._extract_frame_async(video_sec)
         os.makedirs(self._video_dir_path, exist_ok=True)
 
-        output_path = os.path.join(self._video_dir_path, f"screenshot_{frame_info.index}.jpg")
+        output_path = os.path.join(self._video_dir_path, f"screenshot_sec{video_sec}.jpg")
 
         async with aiofiles.open(output_path, "wb") as f:
             await f.write(bytearray(frame_info.buffer))
 
         return os.path.abspath(output_path)
 
-    async def _extract_frame_async(self, timestamp):
-        return await asyncio.to_thread(self._extract_frame_buffer, timestamp)
+    async def _extract_frame_async(self, video_sec):
+        return await asyncio.to_thread(self._extract_frame_buffer, video_sec)
 
-    def _extract_frame_buffer(self, timestamp) -> _FrameInfo:
+    def _extract_frame_buffer(self, video_sec) -> _FrameInfo:
         video_path = os.path.join(self._video_dir_path, self._video_name)
 
         # Load frame timestamps if not cached
@@ -57,7 +57,7 @@ class VideoHandler:
             _FRAME_TIMESTAMP_CACHE[video_path] = self._load_frame_timestamps(video_path)
 
         # Find the best matching frame for the requested timestamp
-        best_frame_index = self._find_closest_frame(timestamp, _FRAME_TIMESTAMP_CACHE[video_path])
+        best_frame_index = self._find_closest_frame(video_sec, _FRAME_TIMESTAMP_CACHE[video_path])
 
         # Extract that specific frame
         cap = cv2.VideoCapture(video_path)
@@ -66,7 +66,7 @@ class VideoHandler:
         cap.release()
 
         if not ret or frame is None:
-            raise RuntimeError(f"Failed to extract frame at index {best_frame_index} (timestamp {timestamp:.3f}s)")
+            raise RuntimeError(f"Failed to extract frame at index {best_frame_index} (video_sec {video_sec}s)")
 
         success, buffer = cv2.imencode(".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, 95])
         if not success:
