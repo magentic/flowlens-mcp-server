@@ -105,7 +105,7 @@ class VideoHandler:
 
         # Validate timestamp is within video duration
         last_timestamp = frame_timestamps[-1][1]
-        if target_timestamp > last_timestamp:
+        if target_timestamp > last_timestamp + 1:
             raise ValueError(f"Requested timestamp {target_timestamp:.3f}s exceeds video duration {last_timestamp:.3f}s")
 
         # Binary search for closest timestamp
