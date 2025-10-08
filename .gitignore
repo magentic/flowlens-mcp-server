@@ -1,0 +1,5 @@
+dist/**
+**/*.pyc
+magentic_flowlens_mcp_data/**
+magentic_mcp_data/**
+.pypirc
