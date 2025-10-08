@@ -37,7 +37,7 @@ async def get_flow(flow_id: int, ctx: Context) -> dto.FlowlensFlow:
 @server_instance.flowlens_mcp.tool
 async def get_flow_full_comments(flow_id: int, ctx: Context) -> List[dto.FlowComment]:
     """
-    Get all comments for a specific flow.
+    Get all comments for a specific flow. It contains the full content of each comment without truncation.
     Args:
         flow_id (int): The ID of the flow to retrieve comments for.
     Returns:

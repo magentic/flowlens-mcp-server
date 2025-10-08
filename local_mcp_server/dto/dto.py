@@ -6,6 +6,14 @@ from ..models import enums
 from ..utils.settings import settings
 from urllib.parse import urlsplit, urlunsplit
 
+class _BaseDTO(BaseModel):
+    @staticmethod
+    def _truncate_string(s: str, max_length: Optional[int] = None) -> str:
+        limit = max_length or settings.max_string_length
+        if isinstance(s, str) and len(s) > limit:
+            return s[:limit] + "...(truncated)"
+        return s
+    
 class RequestParams(BaseModel):
     endpoint: str
     payload: Optional[dict] = None
@@ -108,7 +116,7 @@ class NetworkRequestDomainSummary(BaseModel):
     
 
 
-class FlowlensFlow(BaseModel):
+class FlowlensFlow(_BaseDTO):
     id: int
     title: str
     description: Optional[str] = None
@@ -125,37 +133,26 @@ class FlowlensFlow(BaseModel):
     network_request_domain_summary: List[NetworkRequestDomainSummary]
     
     def truncate(self):
-        copy = self.model_copy()
+        copy = self.model_copy(deep=True)
         if copy.description:
             copy.description = self._truncate_string(copy.description)
         for comment in (copy.comments or []):
             comment.content = self._truncate_string(comment.content)
         return copy
     
-    @staticmethod
-    def _truncate_string(s: str) -> str:
-        if isinstance(s, str) and len(s) > settings.max_string_length:
-            return s[:settings.max_string_length] + "...(truncated)"
-        return s
 
-class BaseNetworkData(BaseModel):
+class BaseNetworkData(_BaseDTO):
     headers: Optional[dict] = None
     body: Optional[str] = None
     
     def truncate(self):
-        copy = self.model_copy()
+        copy = self.model_copy(deep=True)
         copy.body = self._truncate_string(copy.body)
         new_headers = {}
         for key, value in (copy.headers or {}).items():
             new_headers[key] = self._truncate_string(value)
         copy.headers = new_headers
         return copy
-    
-    @staticmethod
-    def _truncate_string(s: str) -> str:
-        if isinstance(s, str) and len(s) > settings.max_string_length:
-            return s[:settings.max_string_length] + "...(truncated)"
-        return s
     
 class NetworkRequestData(BaseNetworkData):
     method: str
@@ -179,11 +176,7 @@ class NetworkRequestData(BaseNetworkData):
         cleaned = urlunsplit((parts.scheme, parts.netloc, parts.path, "", ""))
         values["url"] = cleaned
         return values
-    
-    def _truncate_string(self, s: str) -> str:
-        if isinstance(s, str) and len(s) > settings.max_string_length:
-            return s[:settings.max_string_length] + "...(truncated)"
-        return s    
+      
 
 class NetworkResponseData(BaseNetworkData):
     status: int
@@ -201,11 +194,6 @@ class NetworkResponseData(BaseNetworkData):
         values["url"] = cls._truncate_string(url, 2000)
         return values
     
-    @staticmethod
-    def _truncate_string(s: str, max_length: int=None) -> str:
-        if isinstance(s, str) and len(s) > max_length:
-            return s[:max_length or settings.max_string_length] + "...(truncated)"
-        return s
 
 class DomTarget(BaseModel):
     src: Optional[str] = None
@@ -223,7 +211,7 @@ class NavigationData(BaseModel):
     def reduce_into_one_line(self) -> str:
         return f"{self.url} {self.frame_id} {self.transition_type}"
 
-class LocalStorageData(BaseModel):
+class LocalStorageData(_BaseDTO):
     key: str
     value: Optional[str] = None
     
@@ -236,13 +224,8 @@ class LocalStorageData(BaseModel):
         values["value"] = cls._truncate_string(value)
         return values
     
-    @staticmethod
-    def _truncate_string(s: str) -> str:
-        if isinstance(s, str) and len(s) > settings.max_string_length:
-            return s[:settings.max_string_length] + "...(truncated)"
-        return s
-    
-class BaseTimelineEvent(BaseModel):
+
+class BaseTimelineEvent(_BaseDTO):
     type: enums.TimelineEventType
     action_type: enums.ActionType
     timestamp: datetime
@@ -307,7 +290,7 @@ class NetworkRequestWithResponseEvent(BaseTimelineEvent):
     duration_ms: int
 
     def truncate(self):
-        copy = self.model_copy()
+        copy = self.model_copy(deep=True)
         copy.network_response_data = copy.network_response_data.truncate()
         copy.network_request_data = copy.network_request_data.truncate()
         return copy
@@ -346,11 +329,6 @@ class NetworkRequestWithResponseEvent(BaseTimelineEvent):
             values['correlation_id'] = network_response.get('correlation_id')
         return values
     
-    @staticmethod
-    def _truncate_string(s: str) -> str:
-        if isinstance(s, str) and len(s) > settings.max_string_length:
-            return s[:settings.max_string_length] + "...(truncated)"
-        return s
 
 class DomActionEvent(BaseTimelineEvent):
     page_url: str

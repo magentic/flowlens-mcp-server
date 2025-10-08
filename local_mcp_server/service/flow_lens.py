@@ -22,32 +22,11 @@ class FlowLensService:
         return response
 
     async def get_flow(self, flow_id: int) -> dto.FlowlensFlow:
-        if await flow_registry.is_registered(flow_id):
-            return await flow_registry.get_flow(flow_id)
-        response: dto.FullFlow = await self._request_handler.get(f"flow/{flow_id}", dto.FullFlow)
-        timeline_overview = await timeline_registry.register_timeline(response)
-        await self._load_video(response)
-        flow = dto.FlowlensFlow(
-            id=response.id,
-            title=response.title,
-            description=response.description,
-            created_at=response.created_at,
-            system_id=response.system_id,
-            tags=response.tags,
-            comments=response.comments,
-            reporter=response.reporter,
-            events_count=timeline_overview.events_count,
-            duration_ms=timeline_overview.duration_ms,
-            network_requests_count=timeline_overview.network_requests_count,
-            event_type_summaries=timeline_overview.event_type_summaries,
-            request_status_code_summaries=timeline_overview.request_status_code_summaries,
-            network_request_domain_summary=timeline_overview.network_request_domain_summary,
-        )
-        await flow_registry.register_flow(flow)
+        flow = await self._get_flow(flow_id)
         return flow.truncate()
 
     async def get_flow_full_comments(self, flow_id: int) -> List[dto.FlowComment]:
-        flow = await self.get_flow(flow_id)
+        flow = await self._get_flow(flow_id)
         return flow.comments
 
     async def delete_flow(self, flow_id: int) -> dto.DeleteResponse:
@@ -97,6 +76,31 @@ class FlowLensService:
         handler = VideoHandler(params)
         image_path = await handler.save_screenshot(timestamp)
         return image_path
+    
+    async def _get_flow(self, flow_id: int) -> dto.FlowlensFlow:
+        if await flow_registry.is_registered(flow_id):
+            return await flow_registry.get_flow(flow_id)
+        response: dto.FullFlow = await self._request_handler.get(f"flow/{flow_id}", dto.FullFlow)
+        timeline_overview = await timeline_registry.register_timeline(response)
+        await self._load_video(response)
+        flow = dto.FlowlensFlow(
+            id=response.id,
+            title=response.title,
+            description=response.description,
+            created_at=response.created_at,
+            system_id=response.system_id,
+            tags=response.tags,
+            comments=response.comments,
+            reporter=response.reporter,
+            events_count=timeline_overview.events_count,
+            duration_ms=timeline_overview.duration_ms,
+            network_requests_count=timeline_overview.network_requests_count,
+            event_type_summaries=timeline_overview.event_type_summaries,
+            request_status_code_summaries=timeline_overview.request_status_code_summaries,
+            network_request_domain_summary=timeline_overview.network_request_domain_summary,
+        )
+        await flow_registry.register_flow(flow)
+        return flow
 
     async def _load_video(self, flow: dto.FullFlow):
         if not flow.video_url:

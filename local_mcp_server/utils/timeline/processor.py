@@ -93,7 +93,7 @@ class TimelineProcessor:
                 
         # Add remaining unmatched requests (pending)
         for request_event in (requests_map.values()):
-            pending_request: dto.NetworkRequestEvent = request_event.model_copy()
+            pending_request: dto.NetworkRequestEvent = request_event.model_copy(deep=True)
             pending_request.type = enums.TimelineEventType.NETWORK_REQUEST_PENDING
             pending_request.action_type = enums.ActionType.DEBUGGER_REQUEST_PENDING
             processed_timeline.append(pending_request)
