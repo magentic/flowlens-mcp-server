@@ -82,14 +82,6 @@ class FlowLensService:
     async def create_shareable_link(self, flow_id: int) -> dto.FlowShareLink:
         response = await self._request_handler.post(f"flow/{flow_id}/share", {}, dto.FlowShareLink)
         return response
-
-    async def take_screenshot(self, flow_id: int, timestamp: float) -> str:
-    
-        flow = await self.get_flow(flow_id)
-        params = VideoHandlerParams(flow.id, flow.duration_ms)
-        handler = VideoHandler(params)
-        image_base64 = await handler.take_screenshot_base64(timestamp)
-        return image_base64
     
     async def save_screenshot(self, flow_id: int, timestamp: float) -> str:
         flow = await self.get_flow(flow_id)
@@ -97,6 +89,13 @@ class FlowLensService:
         handler = VideoHandler(params)
         image_path = await handler.save_screenshot(timestamp)
         return image_path
+    
+    async def summarize_video(self, flow_id: int) -> str:
+        flow = await self.get_flow(flow_id)
+        params = VideoHandlerParams(flow.id, flow.duration_ms)
+        handler = VideoHandler(params)
+        summary = await handler.summarize_video()
+        return summary
 
     async def _load_video(self, flow: dto.FullFlow):
         if not flow.video_url:
