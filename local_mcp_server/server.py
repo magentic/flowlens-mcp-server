@@ -20,4 +20,4 @@ def run_http():
     flowlens_mcp.run(transport="http", path="/mcp_stream/mcp/", port=args.port)
 
 if __name__ == "__main__":
-    run_http()
+    run_stdio()
