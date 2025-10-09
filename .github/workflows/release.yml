@@ -47,28 +47,3 @@ jobs:
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
 
-  create-tag-and-release:
-    needs: [bump-version, publish]
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
-
-      - name: Create and push tag
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git tag ${{ needs.bump-version.outputs.tag }}
-          git push origin ${{ needs.bump-version.outputs.tag }}
-
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v1
-        with:
-          tag_name: ${{ needs.bump-version.outputs.tag }}
-          name: Release ${{ needs.bump-version.outputs.version }}
-          generate_release_notes: true
-          draft: false
-          prerelease: false
