@@ -1,4 +1,6 @@
-# Flowlens MCP Server
+# FlowLens MCP Server
+An open-source MCP server that fetches your recorded user flows and bug reports from [FlowLens](https://www.magentic.ai/?utm_source=gh_flowlens) and exposes them to your AI coding agents for *context-aware debugging*.
+
 
 ## Getting Started
 
