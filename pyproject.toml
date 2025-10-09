@@ -1,9 +1,9 @@
 [tool.poetry]
 name = "flowlens-mcp-server"
 version = "0.1.1"
-description = "MCP server for FlowLens created by Magentic"
-authors = ["magentic <devnull@example.com>"]
-license = "MIT"
+description = "FlowLens MCP server for FlowLens created by Magentic"
+authors = ["magentic <flowlens@magentic.ai>"]
+license = "Apache 2.0"
 readme = "README.md"
 packages = [{include = "local_mcp_server"}]
 
