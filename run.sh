@@ -3,7 +3,7 @@
 
 PYTHON_CACHE="$HOME/.cache/pypoetry/virtualenvs"
 source "$PYTHON_CACHE/flowlens-mcp-server-r5o-YNLt-py3.12/bin/activate" && \
-python3 -m local_mcp_server.server --stdio --token "$mcp_token"
+python3 -m flowlens_mcp_server.server --stdio --token "$mcp_token"
 
 
 # For local development usage with claude code:

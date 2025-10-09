@@ -1,7 +1,7 @@
 from typing import List
 from fastmcp import Context
 
-from local_mcp_server.models import enums
+from flowlens_mcp_server.models import enums
 
 from ..dto import dto
 from ..flowlens_mcp import server_instance
