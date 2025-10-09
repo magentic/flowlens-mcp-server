@@ -37,7 +37,7 @@ Add the following configuration to the relevant MCP servers section, or use the 
     "args": [
         "run",
         "--spec",
-        "flowlens-mcp-server==0.2",
+        "flowlens-mcp-server==0.2.0",
         "flowlens-server",
         "<your-token>"
     ],
@@ -48,5 +48,5 @@ Add the following configuration to the relevant MCP servers section, or use the 
 ### Claude Code Shortcut
 
 ```bash
-claude mcp add flowlens-mcp --transport stdio -- pipx run --spec "flowlens-mcp-server==0.2" flowlens-server <your-token>
+claude mcp add flowlens-mcp --transport stdio -- pipx run --spec "flowlens-mcp-server==0.2.0" flowlens-server <your-token>
 ```
