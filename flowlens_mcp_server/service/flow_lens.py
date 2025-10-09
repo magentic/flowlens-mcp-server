@@ -90,7 +90,7 @@ class FlowLensService:
             created_at=response.created_at,
             system_id=response.system_id,
             tags=response.tags,
-            comments=response.comments,
+            comments=response.comments if response.comments else [],
             reporter=response.reporter,
             events_count=timeline_overview.events_count,
             duration_ms=timeline_overview.duration_ms,

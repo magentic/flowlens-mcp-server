@@ -2,7 +2,7 @@ from collections import defaultdict
 from typing import List
 import aiohttp
 
-from local_mcp_server.models import enums
+from flowlens_mcp_server.models import enums
 from ...dto import dto, dto_timeline
 from .loader import TimelineLoader
 

@@ -1,11 +1,11 @@
 [tool.poetry]
 name = "flowlens-mcp-server"
 version = "0.1.1"
-description = "MCP server for FlowLens created by Magentic"
-authors = ["magentic <devnull@example.com>"]
-license = "MIT"
+description = "FlowLens MCP server for FlowLens created by Magentic"
+authors = ["magentic <flowlens@magentic.ai>"]
+license = "Apache 2.0"
 readme = "README.md"
-packages = [{include = "local_mcp_server"}]
+packages = [{include = "flowlens_mcp_server"}]
 
 [tool.poetry.dependencies]
 python = "^3.10"
@@ -19,8 +19,8 @@ aiofiles = "^24.1.0"
 opencv-python = "^4.12.0.88"
 
 [tool.poetry.scripts]
-flowlens-server = "local_mcp_server.server:run_stdio"
-flowlens-http-server = "local_mcp_server.server:run_http"
+flowlens-server = "flowlens_mcp_server.server:run_stdio"
+flowlens-http-server = "flowlens_mcp_server.server:run_http"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

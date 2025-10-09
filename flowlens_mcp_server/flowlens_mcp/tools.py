@@ -1,7 +1,7 @@
 from typing import List
 from fastmcp import Context
 
-from local_mcp_server.models import enums
+from flowlens_mcp_server.models import enums
 
 from ..dto import dto
 from ..flowlens_mcp import server_instance
@@ -212,19 +212,34 @@ async def search_flow_events_with_regex(flow_id: int, pattern: str, event_type: 
 @server_instance.flowlens_mcp.tool
 async def take_flow_screenshot_at_second(flow_id: int, second: int, ctx: Context) -> str:
     """
-    Save a screenshot at a specific timeline relative second for a specific flow. 
-    The screenshot is taken from the video recording of the flow. 
-    The screenshot is returned as a base64 encoded string of a JPEG image.
-    Favour this tool when you need to have a visual look on the state of the application at a specific time.
-    this compensate of lacking this information in the timeline events.
-    Important Note: The screenshot the bottom middle contains a recording UI that shows the recording state and the elapsed time. 
-    IGNORE that it is part of recording state UI as it is not relevant to the application state.
-    Args:
-        flow_id (int): The ID of the flow to take the screenshot for.
-        second (int): The second to take the screenshot at. 
-                      Use the relative second from the timeline events.
-    Returns:
-        str: The path to the saved screenshot JPEG image.
+        Save a screenshot at a specific timeline relative second for a specific flow. 
+        Screenshots are a key tool to capture the visual state of the application at a specific moment in time.
+        The screenshot is taken from the video recording of the flow. 
+
+        BEST PRACTICE: Always analyze timeline events FIRST before taking screenshots.
+        1. Use list_flow_timeline_events_within_range to identify key moments
+        2. Look for specific event types: console warnings, errors, user interactions, network failures
+        3. Take screenshots at the EXACT relative_time_ms (converted to seconds) of interesting events
+        4. For example: if event shows "relative_time_ms:48940", use second=48 or 49
+        NOTE: You can use arbitrary seconds If you don't have specific events to investigate 
+        e.g. when have a flow related to UX so you can take screenshots at multiple intervals to have a visual understanding of the flow.
+
+        WHY: Screenshots are most valuable when tied to specific events rather than arbitrary time intervals.
+        This approach helps you understand the exact application state when issues occurred.
+
+
+        Important Note: The screenshot bottom middle contains a recording UI showing elapsed time. 
+        IGNORE that UI element as it is part of the recording state, not the application state.
+
+        Args:
+            flow_id (int): The ID of the flow to take the screenshot for.
+            second (int): The second to take the screenshot at. 
+                            IMPORTANT: Use the relative_time_ms from timeline events, converted to seconds.
+                            Example: relative_time_ms:48940 -> second=48 or 49
+                            Favour using the exact second of the timeline event you are investigating.
+                            
+        Returns:
+            str: The path to the saved screenshot JPEG image.
     """
     service: flow_lens.FlowLensService = ctx.get_state("flowlens_service")
     return await service.save_screenshot(flow_id, second)

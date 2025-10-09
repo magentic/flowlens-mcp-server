@@ -56,8 +56,8 @@ class Flow(BaseModel):
     video_duration_ms: int
     created_at: datetime = Field(..., description="Native datetime in UTC")
     system_id: int
-    system: Optional[System] = None
-    tags: Optional[List[FlowTag]] = None
+    system: Optional[System] = []
+    tags: Optional[List[FlowTag]] = []
     reporter: Optional[str] = None
     sequence_diagram_status: enums.FlowSequenceDiagramStatus
     is_timeline_uploaded: bool
