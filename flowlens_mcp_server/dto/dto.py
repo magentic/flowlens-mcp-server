@@ -29,12 +29,17 @@ class FlowTagList(BaseModel):
     
 class FlowComment(BaseModel):
     flow_id: int
-    timestamp: int
+    video_second: int
     content: str
     id: Optional[int] = None
     user_id: Optional[int] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
+    
+    @model_validator(mode="before")
+    def validate_timestamp(cls, values:dict):
+        values["video_second"] = max(0, values.get("timestamp"))
+        return values
 
 class System(BaseModel):
     id: int
