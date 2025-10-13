@@ -157,7 +157,6 @@ class TracingData(_BaseDTO):
     
     def reduce_into_one_line(self) -> str:
         line = []
-        print(self.traceparent, self.datadog_trace_id)
         if self.traceparent:
             line.append(f"trace_id={self.traceparent.split('-')[1]}")
         if self.datadog_trace_id:
@@ -182,7 +181,6 @@ class BaseNetworkData(_BaseDTO):
     def reduce_into_one_line(self) -> str:
         line = []
         if self.trace_headers:
-            print(self.trace_headers)
             line.append(self.trace_headers.reduce_into_one_line())
         return " ".join(line)
 
