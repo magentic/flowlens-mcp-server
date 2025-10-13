@@ -29,12 +29,17 @@ class FlowTagList(BaseModel):
     
 class FlowComment(BaseModel):
     flow_id: int
-    timestamp: int
+    video_second: int
     content: str
     id: Optional[int] = None
     user_id: Optional[int] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
+    
+    @model_validator(mode="before")
+    def validate_timestamp(cls, values:dict):
+        values["video_second"] = max(0, values.get("timestamp"))
+        return values
 
 class System(BaseModel):
     id: int
@@ -141,9 +146,28 @@ class FlowlensFlow(_BaseDTO):
         return copy
     
 
+class TracingData(_BaseDTO):
+    traceparent: Optional[str] = None
+    datadog_trace_id: Optional[str] = None
+    
+    @model_validator(mode="before")
+    def validate_traceparent(cls, values:dict):
+        values['datadog_trace_id'] = values.get("x-datadog-trace-id", None)
+        return values
+    
+    def reduce_into_one_line(self) -> str:
+        line = []
+        if self.traceparent:
+            line.append(f"trace_id={self.traceparent.split('-')[1]}")
+        if self.datadog_trace_id:
+            line.append(f"datadog_trace_id={self.datadog_trace_id}")
+        return " ".join(line)
+
+    
 class BaseNetworkData(_BaseDTO):
     headers: Optional[dict] = None
     body: Optional[str] = None
+    trace_headers: Optional[TracingData] = None
     
     def truncate(self):
         copy = self.model_copy(deep=True)
@@ -154,6 +178,13 @@ class BaseNetworkData(_BaseDTO):
         copy.headers = new_headers
         return copy
     
+    def reduce_into_one_line(self) -> str:
+        line = []
+        if self.trace_headers:
+            line.append(self.trace_headers.reduce_into_one_line())
+        return " ".join(line)
+
+
 class NetworkRequestData(BaseNetworkData):
     method: str
     url: str
@@ -166,8 +197,11 @@ class NetworkRequestData(BaseNetworkData):
         return parts.netloc
     
     def reduce_into_one_line(self) -> str:
-        return f"{self.method} {self._truncate_string(self.url)}"
-    
+        line = [self.method, self._truncate_string(self.url)]
+        if self.trace_headers:
+            line.append(self.trace_headers.reduce_into_one_line())
+        return " ".join(line)
+
     @model_validator(mode="before")
     def validate_url_length(cls, values:dict):
         url = values.get("url")

@@ -182,9 +182,9 @@ async def search_flow_events_with_regex(flow_id: int, pattern: str, event_type: 
     It works by searching the oneliner of each event which contains the most important information about the event.
     Oneliners are as below:
     - NetworkRequestWithResponseEvent (network request and response)
-    [index:int] network_request_with_response debugger_request_with_response [relative_timestamp:int]ms [POST|PUT|PATCH|GET|DELETE] [url:string] status_code=[status_code:int] duration=[duration:int]ms
+    [index:int] network_request_with_response debugger_request_with_response [relative_timestamp:int]ms [POST|PUT|PATCH|GET|DELETE] [url:string] {[trace_id=opentelemtry_trace_id:string]:Optional} {[datadog_trace_id=datadog_trace_id:string]:Optional} status_code=[status_code:int] duration=[duration:int]ms
     - NetworkRequestPending (request sent but no response received yet)
-    [index:int] network_request_pending debugger_request_pending [relative_timestamp:int]ms [POST|PUT|PATCH|GET|DELETE] [url:string]
+    [index:int] network_request_pending debugger_request_pending [relative_timestamp:int]ms [POST|PUT|PATCH|GET|DELETE] [url:string] {[trace_id=opentelemtry_trace_id:string]:Optional} {[datadog_trace_id=datadog_trace_id:string]:Optional} 
     - DomActionEvent (click, keydown_session, scroll, etc.)
     [index:int] dom_action [click|keydown_session|scroll|etc.] [relative_timestamp:int]ms [element_text:string or element_src:string]
     - NavigationEvent (page navigation)
