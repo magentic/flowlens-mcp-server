@@ -64,11 +64,13 @@ class Flow(BaseModel):
     system: Optional[System] = []
     tags: Optional[List[FlowTag]] = []
     reporter: Optional[str] = None
-    sequence_diagram_status: enums.FlowSequenceDiagramStatus
+    sequence_diagram_status: enums.ProcessingStatus
     is_timeline_uploaded: bool
     is_video_uploaded: bool
     has_extended_sequence_diagram: bool
     comments: Optional[List[FlowComment]] = None
+    recording_type: enums.RecordingType
+    recording_status: enums.ProcessingStatus
 
 class FlowList(BaseModel):
     flows: List[Flow]
@@ -78,6 +80,12 @@ class FullFlow(Flow):
     video_url: Optional[str] = None
     sequence_diagram_url: Optional[str] = None
     extended_sequence_diagram_url: Optional[str] = None
+    
+    @property
+    def are_screenshots_available(self) -> bool:
+        if self.recording_type == enums.RecordingType.RRWEB:
+            return False
+        return self.video_url is not None
     
 class DeleteResponse(BaseModel):
     id: int
@@ -96,7 +104,7 @@ class FlowTagCreateUpdate(BaseModel):
 
 class FlowSequenceDiagramResponse(BaseModel):
     flow_id: int
-    status: enums.FlowSequenceDiagramStatus
+    status: enums.ProcessingStatus
     url: Optional[str] = None
     has_extended_diagram: bool = False
     extended_diagram_url: Optional[str] = None
@@ -136,6 +144,8 @@ class FlowlensFlow(_BaseDTO):
     event_type_summaries: List[EventTypeSummary]
     request_status_code_summaries: List[RequestStatusCodeSummary]
     network_request_domain_summary: List[NetworkRequestDomainSummary]
+    recording_type: enums.RecordingType
+    are_screenshots_available: bool
     
     def truncate(self):
         copy = self.model_copy(deep=True)

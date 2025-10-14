@@ -26,6 +26,8 @@ async def get_flow(flow_id: int, ctx: Context) -> dto.FlowlensFlow:
     e.g. number of events, status codes distribution, events types distribution, network requests domain distribution, etc.
     It is a very important entry point to start investigating a flow.
     Note: the comments field in the returned flow is truncated to max of 50 characters per comment. If you need full comments use get_flow_full_comments tool.
+    Consider running get_flow again if are_screenshots_available is False and recording type is not RRWEB 
+    because the flow might be still processing and screenshots might become available later.
     Args:
         flow_id (int): The ID of the flow to retrieve.
     Returns:

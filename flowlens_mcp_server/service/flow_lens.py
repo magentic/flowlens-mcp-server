@@ -22,7 +22,7 @@ class FlowLensService:
         return response
 
     async def get_flow(self, flow_id: int) -> dto.FlowlensFlow:
-        flow = await self._get_flow(flow_id)
+        flow = await self._request_flow(flow_id)
         return flow.truncate()
 
     async def get_flow_full_comments(self, flow_id: int) -> List[dto.FlowComment]:
@@ -72,6 +72,10 @@ class FlowLensService:
     async def _get_flow(self, flow_id: int) -> dto.FlowlensFlow:
         if await flow_registry.is_registered(flow_id):
             return await flow_registry.get_flow(flow_id)
+        flow = await self._request_flow(flow_id)
+        return flow
+
+    async def _request_flow(self, flow_id):
         response: dto.FullFlow = await self._request_handler.get(f"flow/{flow_id}", dto.FullFlow)
         timeline_overview = await timeline_registry.register_timeline(response)
         await self._load_video(response)
@@ -90,6 +94,8 @@ class FlowLensService:
             event_type_summaries=timeline_overview.event_type_summaries,
             request_status_code_summaries=timeline_overview.request_status_code_summaries,
             network_request_domain_summary=timeline_overview.network_request_domain_summary,
+            recording_type=response.recording_type,
+            are_screenshots_available=response.are_screenshots_available,
         )
         await flow_registry.register_flow(flow)
         return flow

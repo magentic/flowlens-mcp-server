@@ -7,11 +7,15 @@ class RequestType(Enum):
     PUT = "PUT"
     DELETE = "DELETE"
     
-class FlowSequenceDiagramStatus(Enum):
+class ProcessingStatus(Enum):
     PENDING = "PENDING"
     IN_PROGRESS = "IN_PROGRESS"
     COMPLETED = "COMPLETED"
     FAILED = "FAILED"
+    
+class RecordingType(Enum):
+    WEBM = "WEBM"
+    RRWEB = "RRWEB"
     
 class TimelineEventType(Enum):
     NETWORK_REQUEST = "network_request"
