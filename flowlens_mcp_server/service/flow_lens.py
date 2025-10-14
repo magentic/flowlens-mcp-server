@@ -64,6 +64,8 @@ class FlowLensService:
     
     async def save_screenshot(self, flow_id: int, timestamp: float) -> str:
         flow = await self.get_flow(flow_id)
+        if not flow.are_screenshots_available:
+            raise RuntimeError("Screenshots are not available for this flow")
         params = VideoHandlerParams(flow.id, flow.duration_ms)
         handler = VideoHandler(params)
         image_path = await handler.save_screenshot(timestamp)
@@ -101,7 +103,7 @@ class FlowLensService:
         return flow
 
     async def _load_video(self, flow: dto.FullFlow):
-        if not flow.video_url:
+        if not flow.are_screenshots_available:
             return
         params = VideoHandlerParams(flow.id, flow.video_url)
         handler = VideoHandler(params)
