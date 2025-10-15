@@ -246,7 +246,8 @@ async def take_flow_screenshot_at_second(flow_id: str, second: int, ctx: Context
             str: The path to the saved screenshot JPEG image.
     """
     service: flow_lens.FlowLensService = ctx.get_state("flowlens_service")
-    return await service.save_screenshot(flow_id, second)
+    service.set_flow_id(flow_id)
+    return await service.save_screenshot(second)
 
 
 async def _extract_timeline_service(flow_id: str, ctx: Context) -> timeline.TimelineService:
