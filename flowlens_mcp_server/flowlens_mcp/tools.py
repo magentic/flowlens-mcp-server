@@ -29,7 +29,7 @@ async def get_flow(flow_id: str, ctx: Context) -> dto.FlowlensFlow:
     Consider running get_flow again if are_screenshots_available is False and recording type is not RRWEB 
     because the flow might be still processing and screenshots might become available later.
     Args:
-        flow_id (int): The ID of the flow to retrieve.
+        flow_id (string): The ID of the flow to retrieve.
     Returns:
         dto.FlowlensFlow: The FlowlensFlow dto object.
     """
@@ -42,7 +42,7 @@ async def get_flow_full_comments(flow_id: str, ctx: Context) -> List[dto.FlowCom
     """
     Get all comments for a specific flow. It contains the full content of each comment without truncation.
     Args:
-        flow_id (int): The ID of the flow to retrieve comments for.
+        flow_id (string): The ID of the flow to retrieve comments for.
     Returns:
         List[dto.FlowComment]: A list of FlowComment dto objects.
     """
@@ -57,7 +57,7 @@ async def list_flow_timeline_events_within_range(flow_id: str, start_index: int,
     each line starts with the event index, event_type, action_type, relative_timestamp, and the rest is data depending on the event type.
     If you need full details of an event use get_full_flow_timeline_event_by_index tool using the flow_id and event_index.
     Args:
-        flow_id (int): The ID of the flow to retrieve events for.
+        flow_id (string): The ID of the flow to retrieve events for.
         start_index (int): The starting index of the events to retrieve.
         end_index (int): The ending index of the events to retrieve.
     Returns:
@@ -73,7 +73,7 @@ async def list_flow_timeline_events_within_duration(flow_id: str, start_relative
     each line starts with the event index, event_type, action_type, relative_timestamp, and the rest is data depending on the event type.
     If you need full details of an event use get_full_flow_timeline_event_by_index tool using the flow_id and event_index.
     Args:
-        flow_id (int): The ID of the flow to retrieve events for.
+        flow_id (string): The ID of the flow to retrieve events for.
         start_relative_time_ms (int): The starting time in milliseconds of the events to retrieve. it is relative to the start of the recording.
         end_relative_time_ms (int): The ending time in milliseconds of the events to retrieve. it is relative to the start of the recording.
     Returns:
@@ -89,7 +89,7 @@ async def get_full_flow_timeline_event_by_index(flow_id: str, event_index: int, 
     If you need the full headers and body use get_network_request_full_headers_by_index, get_network_response_full_headers_by_index,
     get_network_request_full_body_by_index, get_network_response_full_body_by_index tools using the flow_id and event_index.
     Args:
-        flow_id (int): The ID of the flow to retrieve the event for.
+        flow_id (string): The ID of the flow to retrieve the event for.
         event_index (int): The index of the event to retrieve.
     Returns:
         dto.TimelineEventType: The TimelineEventType dto object which is union of all possible event types (
@@ -109,7 +109,7 @@ async def list_flow_timeline_events_within_range_of_type(flow_id: str, start_ind
     Favour this tool to get events of a specific type over get_flow_timeline_events_within_range but no tool for that specific type exists e.g. 
     get_flow_timeline_dom_actions_events_within_range, get_flow_timeline_navigation_events_within_range, etc.
     Args:
-        flow_id (int): The ID of the flow to retrieve events for.
+        flow_id (string): The ID of the flow to retrieve events for.
         start_index (int): The starting index of the events to retrieve.
         end_index (int): The ending index of the events to retrieve.
         event_type (enums.TimelineEventType): The type of events to retrieve. must be one of enums.TimelineEventType values.
@@ -128,7 +128,7 @@ async def get_network_request_full_headers_by_index(flow_id: str, event_index: i
     It helps you understand what the client is dealing with the server. and include tracing headers for debugging.
     which is very important for debugging API calls. and can be used to investigate using observability tools like datadog, jaeger, etc.
     Args:
-        flow_id (int): The ID of the flow to retrieve the event for.
+        flow_id (string): The ID of the flow to retrieve the event for.
         event_index (int): The index of the event to retrieve headers for.
     Returns:
         dict: The network request full headers.
@@ -142,7 +142,7 @@ async def get_network_response_full_headers_by_index(flow_id: str, event_index: 
     Get network response full headers for a specific flow by event index. This is important to understand the context of the response.
     so you can see all headers including content-type, content-encoding, set-cookie, etc. It helps you understand how the server responded to the request.
     Args:
-        flow_id (int): The ID of the flow to retrieve the event for.
+        flow_id (string): The ID of the flow to retrieve the event for.
         event_index (int): The index of the event to retrieve headers for.
     Returns:
         dict: The network response full headers.
@@ -157,7 +157,7 @@ async def get_network_request_full_body_by_index(flow_id: str, event_index: int,
     so you can see the full payload sent to the server. This is especially important for POST, PUT, PATCH requests.
     it helps you understand what data is being sent to the server.
     Args:
-        flow_id (int): The ID of the flow to retrieve the event for.
+        flow_id (string): The ID of the flow to retrieve the event for.
         event_index (int): The index of the event to retrieve the request body for.
     Returns:
         str: The network request full body.
@@ -171,7 +171,7 @@ async def get_network_response_full_body_by_index(flow_id: str, event_index: int
     Get network response full body for a specific flow by event index. This is important to understand the context of the response.
     so you can see the full payload sent by the server. which is very important for debugging API calls. and understanding the data sent by the server.
     Args:
-        flow_id (int): The ID of the flow to retrieve the event for.
+        flow_id (string): The ID of the flow to retrieve the event for.
         event_index (int): The index of the event to retrieve the response body for.
     Returns:
         str: The network response full body.
@@ -205,7 +205,7 @@ async def search_flow_events_with_regex(flow_id: str, pattern: str, event_type: 
     [index:int] javascript_error error_captured [relative_timestamp:int]ms [message:string]
 
     Args:
-        flow_id (int): The ID of the flow to retrieve events for.
+        flow_id (string): The ID of the flow to retrieve events for.
         pattern (str): The pattern to search for using regex.
     Returns:
         str: header + A list of matched timeline events in string format one per line.
@@ -236,7 +236,7 @@ async def take_flow_screenshot_at_second(flow_id: str, second: int, ctx: Context
         IGNORE that UI element as it is part of the recording state, not the application state.
 
         Args:
-            flow_id (int): The ID of the flow to take the screenshot for.
+            flow_id (string): The ID of the flow to take the screenshot for.
             second (int): The second to take the screenshot at. 
                             IMPORTANT: Use the relative_time_ms from timeline events, converted to seconds.
                             Example: relative_time_ms:48940 -> second=48 or 49

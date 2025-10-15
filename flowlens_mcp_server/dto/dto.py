@@ -31,8 +31,8 @@ class FlowComment(BaseModel):
     flow_id: str
     video_second: int
     content: str
-    id: Optional[int] = None
-    user_id: Optional[int] = None
+    id: Optional[str] = None
+    user_id: Optional[str] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
     
