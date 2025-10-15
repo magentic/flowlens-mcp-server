@@ -21,14 +21,14 @@ class RequestParams(BaseModel):
     response_model: Optional[Type[BaseModel]] = None
 
 class FlowTag(BaseModel):
-    id: int
+    id: str
     title: str
     
 class FlowTagList(BaseModel):
     tags: List[FlowTag]
     
 class FlowComment(BaseModel):
-    flow_id: int
+    flow_id: str
     video_second: int
     content: str
     id: Optional[int] = None
@@ -42,25 +42,25 @@ class FlowComment(BaseModel):
         return values
 
 class System(BaseModel):
-    id: int
+    id: str
     name: str
     description: Optional[str] = None
     users: Optional[List["User"]] = None
 
 class User(BaseModel):
-    id: int
+    id: str
     username: str
     email: str
     systems: Optional[List[System]] = None
     auth_id: str
 
 class Flow(BaseModel):
-    id: int
+    id: str
     title: str
     description: Optional[str] = None
     video_duration_ms: int
     created_at: datetime = Field(..., description="Native datetime in UTC")
-    system_id: int
+    system_id: str
     system: Optional[System] = []
     tags: Optional[List[FlowTag]] = []
     reporter: Optional[str] = None
@@ -88,29 +88,29 @@ class FullFlow(Flow):
         return self.video_url is not None
     
 class DeleteResponse(BaseModel):
-    id: int
+    id: str
     success: bool
     message: Optional[str] = None
 
 class FlowUpdate(BaseModel):
     title: Optional[str] = None
     description: Optional[str] = None
-    system_id: int
+    system_id: str
     tag_ids: Optional[List[int]] = None
 
 class FlowTagCreateUpdate(BaseModel):
     title: str
-    system_id: int
+    system_id: str
 
 class FlowSequenceDiagramResponse(BaseModel):
-    flow_id: int
+    flow_id: str
     status: enums.ProcessingStatus
     url: Optional[str] = None
     has_extended_diagram: bool = False
     extended_diagram_url: Optional[str] = None
     
 class FlowShareLink(BaseModel):
-    flow_id: int
+    flow_id: str
     token: str
     share_url: str
     expires_at: datetime
@@ -130,11 +130,11 @@ class NetworkRequestDomainSummary(BaseModel):
 
 
 class FlowlensFlow(_BaseDTO):
-    id: int
+    id: str
     title: str
     description: Optional[str] = None
     created_at: datetime = Field(..., description="Native datetime in UTC")
-    system_id: int
+    system_id: str
     tags: Optional[List[FlowTag]] = None
     comments: Optional[List[FlowComment]] = None
     reporter: Optional[str] = None

@@ -14,7 +14,7 @@ _FRAME_TIMESTAMP_CACHE = {}
 
 
 class VideoHandlerParams:
-    def __init__(self, flow_id: int, url: Optional[str] = None):
+    def __init__(self, flow_id: str, url: Optional[str] = None):
         self.url = url
         self.flow_id = flow_id
 

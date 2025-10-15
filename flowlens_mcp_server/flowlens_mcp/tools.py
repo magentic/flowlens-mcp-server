@@ -20,7 +20,7 @@ async def list_flows(ctx: Context) -> dto.FlowList:
     return await service.list_flows()
 
 @server_instance.flowlens_mcp.tool
-async def get_flow(flow_id: int, ctx: Context) -> dto.FlowlensFlow:
+async def get_flow(flow_id: str, ctx: Context) -> dto.FlowlensFlow:
     """
     Get a specific full flow by its ID. It contains all flow data including a summary of timeline events 
     e.g. number of events, status codes distribution, events types distribution, network requests domain distribution, etc.
@@ -34,10 +34,11 @@ async def get_flow(flow_id: int, ctx: Context) -> dto.FlowlensFlow:
         dto.FlowlensFlow: The FlowlensFlow dto object.
     """
     service: flow_lens.FlowLensService = ctx.get_state("flowlens_service")
-    return await service.get_flow(flow_id)
+    service.set_flow_id(flow_id)
+    return await service.get_flow()
 
 @server_instance.flowlens_mcp.tool
-async def get_flow_full_comments(flow_id: int, ctx: Context) -> List[dto.FlowComment]:
+async def get_flow_full_comments(flow_id: str, ctx: Context) -> List[dto.FlowComment]:
     """
     Get all comments for a specific flow. It contains the full content of each comment without truncation.
     Args:
@@ -46,10 +47,11 @@ async def get_flow_full_comments(flow_id: int, ctx: Context) -> List[dto.FlowCom
         List[dto.FlowComment]: A list of FlowComment dto objects.
     """
     service: flow_lens.FlowLensService = ctx.get_state("flowlens_service")
-    return await service.get_flow_full_comments(flow_id)
+    service.set_flow_id(flow_id)
+    return await service.get_flow_full_comments()
 
 @server_instance.flowlens_mcp.tool
-async def list_flow_timeline_events_within_range(flow_id: int, start_index: int, end_index: int, ctx: Context) -> str:
+async def list_flow_timeline_events_within_range(flow_id: str, start_index: int, end_index: int, ctx: Context) -> str:
     """
     List timeline events for a specific flow within a range of indices. this returns a summary of the events in one line each.
     each line starts with the event index, event_type, action_type, relative_timestamp, and the rest is data depending on the event type.
@@ -65,7 +67,7 @@ async def list_flow_timeline_events_within_range(flow_id: int, start_index: int,
     return await timeline_service.list_events_within_range(start_index, end_index)
 
 @server_instance.flowlens_mcp.tool
-async def list_flow_timeline_events_within_duration(flow_id: int, start_relative_time_ms: int, end_relative_time_ms: int, ctx: Context) -> str:
+async def list_flow_timeline_events_within_duration(flow_id: str, start_relative_time_ms: int, end_relative_time_ms: int, ctx: Context) -> str:
     """
     List timeline events for a specific flow within a duration range. this returns a summary of the events in one line each.
     each line starts with the event index, event_type, action_type, relative_timestamp, and the rest is data depending on the event type.
@@ -81,7 +83,7 @@ async def list_flow_timeline_events_within_duration(flow_id: int, start_relative
     return await timeline_service.list_events_within_duration(start_relative_time_ms, end_relative_time_ms)
 
 @server_instance.flowlens_mcp.tool
-async def get_full_flow_timeline_event_by_index(flow_id: int, event_index: int, ctx: Context) -> dto.TimelineEventType:
+async def get_full_flow_timeline_event_by_index(flow_id: str, event_index: int, ctx: Context) -> dto.TimelineEventType:
     """
     Get a full timeline event for a specific flow by its index. headers and body fields are potentially trucated to avoid very large responses (max 50 chars).
     If you need the full headers and body use get_network_request_full_headers_by_index, get_network_response_full_headers_by_index,
@@ -99,7 +101,7 @@ async def get_full_flow_timeline_event_by_index(flow_id: int, event_index: int, 
     return await timeline_service.get_full_event_by_index(event_index)
 
 @server_instance.flowlens_mcp.tool
-async def list_flow_timeline_events_within_range_of_type(flow_id: int, start_index: int, end_index: int, event_type: enums.TimelineEventType, ctx: Context) -> str:
+async def list_flow_timeline_events_within_range_of_type(flow_id: str, start_index: int, end_index: int, event_type: enums.TimelineEventType, ctx: Context) -> str:
     """
     List timeline events for a specific flow within a range of indices and of a specific type. this returns a summary of the events in one line each.
     each line starts with the event index, event_type, action_type, relative_timestamp, and the rest is data depending on the event type.
@@ -119,7 +121,7 @@ async def list_flow_timeline_events_within_range_of_type(flow_id: int, start_ind
     return await timeline_service.list_events_within_range(start_index, end_index, events_type=enums.TimelineEventType(event_type))
 
 @server_instance.flowlens_mcp.tool
-async def get_network_request_full_headers_by_index(flow_id: int, event_index: int, ctx: Context) -> dict:
+async def get_network_request_full_headers_by_index(flow_id: str, event_index: int, ctx: Context) -> dict:
     """
     Get network request full headers for a specific flow by event index. This is important to understand the context of the request.
     so you can see all headers including authentication headers, cookies, user-agent, etc. 
@@ -135,7 +137,7 @@ async def get_network_request_full_headers_by_index(flow_id: int, event_index: i
     return await timeline_service.get_network_request_headers_by_index(event_index)
 
 @server_instance.flowlens_mcp.tool
-async def get_network_response_full_headers_by_index(flow_id: int, event_index: int, ctx: Context) -> dict:
+async def get_network_response_full_headers_by_index(flow_id: str, event_index: int, ctx: Context) -> dict:
     """
     Get network response full headers for a specific flow by event index. This is important to understand the context of the response.
     so you can see all headers including content-type, content-encoding, set-cookie, etc. It helps you understand how the server responded to the request.
@@ -149,7 +151,7 @@ async def get_network_response_full_headers_by_index(flow_id: int, event_index: 
     return await timeline_service.get_network_response_headers_by_index(event_index)
 
 @server_instance.flowlens_mcp.tool
-async def get_network_request_full_body_by_index(flow_id: int, event_index: int, ctx: Context) -> str:
+async def get_network_request_full_body_by_index(flow_id: str, event_index: int, ctx: Context) -> str:
     """
     Get network request full body for a specific flow by event index. This is important to understand the context of the request.
     so you can see the full payload sent to the server. This is especially important for POST, PUT, PATCH requests.
@@ -164,7 +166,7 @@ async def get_network_request_full_body_by_index(flow_id: int, event_index: int,
     return await timeline_service.get_network_request_body(event_index)
 
 @server_instance.flowlens_mcp.tool
-async def get_network_response_full_body_by_index(flow_id: int, event_index: int, ctx: Context) -> str:
+async def get_network_response_full_body_by_index(flow_id: str, event_index: int, ctx: Context) -> str:
     """
     Get network response full body for a specific flow by event index. This is important to understand the context of the response.
     so you can see the full payload sent by the server. which is very important for debugging API calls. and understanding the data sent by the server.
@@ -178,7 +180,7 @@ async def get_network_response_full_body_by_index(flow_id: int, event_index: int
     return await timeline_service.get_network_response_body(event_index)
 
 @server_instance.flowlens_mcp.tool
-async def search_flow_events_with_regex(flow_id: int, pattern: str, event_type: enums.TimelineEventType ,ctx: Context) -> str:
+async def search_flow_events_with_regex(flow_id: str, pattern: str, event_type: enums.TimelineEventType ,ctx: Context) -> str:
     """
     Search timeline events for a specific flow by pattern using regex. 
     It works by searching the oneliner of each event which contains the most important information about the event.
@@ -212,7 +214,7 @@ async def search_flow_events_with_regex(flow_id: int, pattern: str, event_type: 
     return await timeline_service.search_events_with_regex(pattern, event_type)
 
 @server_instance.flowlens_mcp.tool
-async def take_flow_screenshot_at_second(flow_id: int, second: int, ctx: Context) -> str:
+async def take_flow_screenshot_at_second(flow_id: str, second: int, ctx: Context) -> str:
     """
         Save a screenshot at a specific timeline relative second for a specific flow. 
         Screenshots are a key tool to capture the visual state of the application at a specific moment in time.
@@ -247,9 +249,10 @@ async def take_flow_screenshot_at_second(flow_id: int, second: int, ctx: Context
     return await service.save_screenshot(flow_id, second)
 
 
-async def _extract_timeline_service(flow_id: int, ctx: Context) -> timeline.TimelineService:
+async def _extract_timeline_service(flow_id: str, ctx: Context) -> timeline.TimelineService:
     service: flow_lens.FlowLensService = ctx.get_state("flowlens_service")
-    flow: dto.FlowlensFlow = await service.get_flow(flow_id)
+    service.set_flow_id(flow_id)
+    flow: dto.FlowlensFlow = await service.get_flow()
     if not flow:
         raise ValueError(f"Flow with ID {flow_id} not found.")
     timeline_service = timeline.TimelineService(
