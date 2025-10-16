@@ -28,7 +28,7 @@ class _FrameInfo:
 class VideoHandler:
     def __init__(self, params: VideoHandlerParams):
         self._params = params
-        self._video_dir_path = f"{settings.save_dir_path}/flows/{self._params.flow_id}"
+        self._video_dir_path = f"{settings.flowlens_save_dir_path}/flows/{self._params.flow_id}"
         self._video_name = "video.webm"
 
     async def load_video(self):

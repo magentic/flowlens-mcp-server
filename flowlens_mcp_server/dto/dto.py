@@ -9,7 +9,7 @@ from urllib.parse import urlsplit, urlunsplit
 class _BaseDTO(BaseModel):
     @staticmethod
     def _truncate_string(s: str, max_length: Optional[int] = None) -> str:
-        limit = max_length or settings.max_string_length
+        limit = max_length or settings.flowlens_max_string_length
         if isinstance(s, str) and len(s) > limit:
             return s[:limit] + "...(truncated)"
         return s
@@ -456,8 +456,8 @@ class ConsoleWarningEvent(BaseTimelineEvent):
         return values
     
     def _truncate_string(self, s: str) -> str:
-        if isinstance(s, str) and len(s) > settings.max_string_length:
-            return s[:settings.max_string_length] + "...(truncated)"
+        if isinstance(s, str) and len(s) > settings.flowlens_max_string_length:
+            return s[:settings.flowlens_max_string_length] + "...(truncated)"
         return s
 
 class ConsoleErrorEvent(BaseTimelineEvent):
@@ -503,8 +503,8 @@ class JavaScriptErrorEvent(BaseTimelineEvent):
         return values
     
     def _truncate_string(self, s: str) -> str:
-        if isinstance(s, str) and len(s) > settings.max_string_length:
-            return s[:settings.max_string_length] + "...(truncated)"
+        if isinstance(s, str) and len(s) > settings.flowlens_max_string_length:
+            return s[:settings.flowlens_max_string_length] + "...(truncated)"
         return s
 
 class SessionStorageData(BaseModel):
@@ -535,8 +535,8 @@ class SessionStorageEvent(BaseTimelineEvent):
         return values
 
     def _truncate_string(self, s: str) -> str:
-        if isinstance(s, str) and len(s) > settings.max_string_length:
-            return s[:settings.max_string_length] + "...(truncated)"
+        if isinstance(s, str) and len(s) > settings.flowlens_max_string_length:
+            return s[:settings.flowlens_max_string_length] + "...(truncated)"
         return s
 
 TimelineEventType = Union[NetworkRequestEvent, NetworkResponseEvent, NetworkRequestWithResponseEvent,
