@@ -8,7 +8,7 @@ An open-source MCP server that fetches your recorded user flows and bug reports 
 
 1. **Install Chrome Extension**
    - Download and install the extension from
-  <a href="https://magentic.github.io/magentic_tab_recorder/" target="_blank" rel="noopener noreferrer">this page</a>.
+  <a href="https://chromewebstore.google.com/detail/jecmhbndeedjenagcngpdmjgomhjgobf?utm_source=pypi-package">the chrome store</a>.
    - Pin it to your toolbar for quick access.
 
 2. **Set Up Your Account**
