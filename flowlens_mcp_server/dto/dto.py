@@ -523,7 +523,7 @@ class SessionStorageEvent(BaseTimelineEvent):
     def validate_session_storage(cls, values):
         if not isinstance(values, dict):
             return values
-        values['type'] = enums.TimelineEventType.LOCAL_STORAGE
+        values['type'] = enums.TimelineEventType.SESSION_STORAGE
         actions_map = {
             "set": enums.ActionType.SET,
             "get": enums.ActionType.GET,
@@ -539,11 +539,143 @@ class SessionStorageEvent(BaseTimelineEvent):
             return s[:settings.flowlens_max_string_length] + "...(truncated)"
         return s
 
+class WebSocketInitiatorData(BaseModel):
+    columnNumber: str
+    functionName: str
+    lineNumber: str
+    scriptId: str
+    url: str
+
+class WebSocketCreatedData(BaseModel):
+    url: Optional[str] = None
+    initiator_data: Optional[WebSocketInitiatorData] = None
+    
+    def reduce_into_one_line(self) -> str:
+        return f"{self.url or ''}"
+    
+    @model_validator(mode="before")
+    def validate_url_length(cls, values:dict):
+        frames = values.get('initiator', {}).get('stack', {}).get('callFrames', [])
+        values['initiator_data'] = frames[0] if frames else None
+        return values
+
+class WebsocketCreatedEvent(BaseTimelineEvent):
+    correlation_id: str
+    websocket_created_data: WebSocketCreatedData
+    
+    def reduce_into_one_line(self) -> str:
+        base_line = super().reduce_into_one_line()
+        return f"{base_line} socket_id={self.correlation_id} {self.websocket_created_data.reduce_into_one_line()}"
+
+    @model_validator(mode="before")
+    def validate_websocket_created(cls, values):
+        if not isinstance(values, dict):
+            return values
+        values['type'] = enums.TimelineEventType.WEBSOCKET_CREATED
+        values['action_type'] = enums.ActionType.CONNECTION_OPENED
+        return values
+
+class WebSocketHandshakeData(BaseModel):
+    headers: Optional[dict] = None
+    status: Optional[int] = None
+    
+    def reduce_into_one_line(self) -> str:
+        return f"status_code={self.status or ''}"
+    
+class WebSocketHandshakeEvent(BaseTimelineEvent):
+    correlation_id: str
+    websocket_handshake_data: WebSocketHandshakeData
+    
+    def reduce_into_one_line(self) -> str:
+        base_line = super().reduce_into_one_line()
+        return f"{base_line} socket_id={self.correlation_id} {self.websocket_handshake_data.reduce_into_one_line()}"
+
+    @model_validator(mode="before")
+    def validate_websocket_handshake(cls, values):
+        if not isinstance(values, dict):
+            return values
+        values['type'] = enums.TimelineEventType.WEBSOCKET_HANDSHAKE_REQUEST
+        values['action_type'] = enums.ActionType.HANDSHAKE_REQUEST
+        return values
+
+class WebSocketFrameData(_BaseDTO):
+    opcode: int
+    mask: bool
+    payloadData: Optional[str] = None
+    payloadLength: Optional[int] = None
+
+    def reduce_into_one_line(self) -> str:
+        return f"message={self._truncate_string(self.payloadData, 100)}" if self.payloadData else ""
+
+
+class WebSocketFrameEvent(BaseTimelineEvent):
+    correlation_id: str
+    websocket_frame_data: WebSocketFrameData
+    
+    def reduce_into_one_line(self) -> str:
+        base_line = super().reduce_into_one_line()
+        return f"{base_line} socket_id={self.correlation_id} {self.websocket_frame_data.reduce_into_one_line()}"
+    
+
+class WebSocketFrameSentEvent(WebSocketFrameEvent):
+    @model_validator(mode="before")
+    def validate_websocket_frame_sent(cls, values):
+        if not isinstance(values, dict):
+            return values
+        values['type'] = enums.TimelineEventType.WEBSOCKET_FRAME_SENT
+        values['action_type'] = enums.ActionType.MESSAGE_SENT
+        return values
+
+
+class WebSocketFrameReceivedEvent(WebSocketFrameEvent):
+    @model_validator(mode="before")
+    def validate_websocket_frame_received(cls, values):
+        if not isinstance(values, dict):
+            return values
+        values['type'] = enums.TimelineEventType.WEBSOCKET_FRAME_RECEIVED
+        values['action_type'] = enums.ActionType.MESSAGE_RECEIVED
+        return values
+
+class WebSocketClosedData(BaseModel):
+    reason: Optional[str] = None
+
+class WebSocketClosedEvent(BaseTimelineEvent):
+    correlation_id: str
+    websocket_closed_data: WebSocketClosedData
+    
+    def reduce_into_one_line(self) -> str:
+        base_line = super().reduce_into_one_line()
+        return f"{base_line} socket_id={self.correlation_id} reason={self.websocket_closed_data.reason or ''}"
+
+    @model_validator(mode="before")
+    def validate_websocket_closed(cls, values):
+        if not isinstance(values, dict):
+            return values
+        values['type'] = enums.TimelineEventType.WEBSOCKET_CLOSED
+        values['action_type'] = enums.ActionType.CONNECTION_CLOSED
+        return values
+     
 TimelineEventType = Union[NetworkRequestEvent, NetworkResponseEvent, NetworkRequestWithResponseEvent,
                          DomActionEvent, NavigationEvent, LocalStorageEvent, ConsoleWarningEvent, ConsoleErrorEvent,
-                         JavaScriptErrorEvent, SessionStorageEvent]
-
-
+                         JavaScriptErrorEvent, SessionStorageEvent, 
+                         WebsocketCreatedEvent, WebSocketHandshakeEvent, 
+                         WebSocketFrameSentEvent, WebSocketFrameReceivedEvent,
+                         WebSocketClosedEvent]
 
     
-    
+types_dict: dict[str, Type[TimelineEventType]] = {
+        enums.TimelineEventType.NETWORK_REQUEST.value: NetworkRequestEvent,
+        enums.TimelineEventType.NETWORK_RESPONSE.value: NetworkResponseEvent,
+        enums.TimelineEventType.DOM_ACTION.value: DomActionEvent,
+        enums.TimelineEventType.NAVIGATION.value: NavigationEvent,
+        enums.TimelineEventType.LOCAL_STORAGE.value: LocalStorageEvent,
+        enums.TimelineEventType.CONSOLE_WARNING.value: ConsoleWarningEvent,
+        enums.TimelineEventType.CONSOLE_ERROR.value: ConsoleErrorEvent,
+        enums.TimelineEventType.JAVASCRIPT_ERROR.value: JavaScriptErrorEvent,
+        enums.TimelineEventType.SESSION_STORAGE.value: SessionStorageEvent,
+        enums.TimelineEventType.WEBSOCKET_CREATED.value: WebsocketCreatedEvent,
+        enums.TimelineEventType.WEBSOCKET_HANDSHAKE_REQUEST.value: WebSocketHandshakeEvent,
+        enums.TimelineEventType.WEBSOCKET_FRAME_SENT.value: WebSocketFrameSentEvent,
+        enums.TimelineEventType.WEBSOCKET_FRAME_RECEIVED.value: WebSocketFrameReceivedEvent,
+        enums.TimelineEventType.WEBSOCKET_CLOSED.value: WebSocketClosedEvent,
+        }

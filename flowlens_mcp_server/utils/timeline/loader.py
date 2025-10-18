@@ -1,6 +1,6 @@
 import aiohttp
 import json
-from typing import List, Type
+
 from ...dto import dto, dto_timeline
 
 class TimelineLoader:
@@ -22,19 +22,8 @@ class TimelineLoader:
             events=events)
 
     def _create_dto_event(self, event: dict) -> dto_timeline.TimelineEventType:
-        types_dict: dict[str, Type[dto_timeline.TimelineEventType]] = {
-            "network_request": dto.NetworkRequestEvent,
-            "network_response": dto.NetworkResponseEvent,
-            "dom_action": dto.DomActionEvent,
-            "navigation": dto.NavigationEvent,
-            "local_storage": dto.LocalStorageEvent,
-            "console_warn": dto.ConsoleWarningEvent,
-            "console_error": dto.ConsoleErrorEvent,
-            "javascript_error": dto.JavaScriptErrorEvent,
-            "session_storage": dto.SessionStorageEvent
-        }
         event_type = event.get("type")
-        dto_event_class = types_dict.get(event_type)
+        dto_event_class = dto.types_dict.get(event_type)
         if not dto_event_class:
             return None
         return dto_event_class.model_validate(event)
