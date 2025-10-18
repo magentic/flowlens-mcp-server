@@ -14,7 +14,7 @@ _FRAME_TIMESTAMP_CACHE = {}
 
 
 class VideoHandlerParams:
-    def __init__(self, flow_id: int, url: Optional[str] = None):
+    def __init__(self, flow_id: str, url: Optional[str] = None):
         self.url = url
         self.flow_id = flow_id
 
@@ -28,7 +28,7 @@ class _FrameInfo:
 class VideoHandler:
     def __init__(self, params: VideoHandlerParams):
         self._params = params
-        self._video_dir_path = f"{settings.save_dir_path}/flows/{self._params.flow_id}"
+        self._video_dir_path = f"{settings.flowlens_save_dir_path}/flows/{self._params.flow_id}"
         self._video_name = "video.webm"
 
     async def load_video(self):

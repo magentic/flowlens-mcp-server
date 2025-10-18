@@ -9,7 +9,7 @@ from urllib.parse import urlsplit, urlunsplit
 class _BaseDTO(BaseModel):
     @staticmethod
     def _truncate_string(s: str, max_length: Optional[int] = None) -> str:
-        limit = max_length or settings.max_string_length
+        limit = max_length or settings.flowlens_max_string_length
         if isinstance(s, str) and len(s) > limit:
             return s[:limit] + "...(truncated)"
         return s
@@ -21,18 +21,18 @@ class RequestParams(BaseModel):
     response_model: Optional[Type[BaseModel]] = None
 
 class FlowTag(BaseModel):
-    id: int
+    id: str
     title: str
     
 class FlowTagList(BaseModel):
     tags: List[FlowTag]
     
 class FlowComment(BaseModel):
-    flow_id: int
+    flow_id: str
     video_second: int
     content: str
-    id: Optional[int] = None
-    user_id: Optional[int] = None
+    id: Optional[str] = None
+    user_id: Optional[str] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
     
@@ -42,33 +42,35 @@ class FlowComment(BaseModel):
         return values
 
 class System(BaseModel):
-    id: int
+    id: str
     name: str
     description: Optional[str] = None
     users: Optional[List["User"]] = None
 
 class User(BaseModel):
-    id: int
+    id: str
     username: str
     email: str
     systems: Optional[List[System]] = None
     auth_id: str
 
 class Flow(BaseModel):
-    id: int
+    id: str
     title: str
     description: Optional[str] = None
     video_duration_ms: int
     created_at: datetime = Field(..., description="Native datetime in UTC")
-    system_id: int
+    system_id: str
     system: Optional[System] = []
     tags: Optional[List[FlowTag]] = []
     reporter: Optional[str] = None
-    sequence_diagram_status: enums.FlowSequenceDiagramStatus
+    sequence_diagram_status: enums.ProcessingStatus
     is_timeline_uploaded: bool
     is_video_uploaded: bool
     has_extended_sequence_diagram: bool
     comments: Optional[List[FlowComment]] = None
+    recording_type: enums.RecordingType
+    recording_status: enums.ProcessingStatus
 
 class FlowList(BaseModel):
     flows: List[Flow]
@@ -79,30 +81,36 @@ class FullFlow(Flow):
     sequence_diagram_url: Optional[str] = None
     extended_sequence_diagram_url: Optional[str] = None
     
+    @property
+    def are_screenshots_available(self) -> bool:
+        if self.recording_type == enums.RecordingType.RRWEB:
+            return False
+        return self.video_url is not None
+    
 class DeleteResponse(BaseModel):
-    id: int
+    id: str
     success: bool
     message: Optional[str] = None
 
 class FlowUpdate(BaseModel):
     title: Optional[str] = None
     description: Optional[str] = None
-    system_id: int
+    system_id: str
     tag_ids: Optional[List[int]] = None
 
 class FlowTagCreateUpdate(BaseModel):
     title: str
-    system_id: int
+    system_id: str
 
 class FlowSequenceDiagramResponse(BaseModel):
-    flow_id: int
-    status: enums.FlowSequenceDiagramStatus
+    flow_id: str
+    status: enums.ProcessingStatus
     url: Optional[str] = None
     has_extended_diagram: bool = False
     extended_diagram_url: Optional[str] = None
     
 class FlowShareLink(BaseModel):
-    flow_id: int
+    flow_id: str
     token: str
     share_url: str
     expires_at: datetime
@@ -122,11 +130,11 @@ class NetworkRequestDomainSummary(BaseModel):
 
 
 class FlowlensFlow(_BaseDTO):
-    id: int
+    id: str
     title: str
     description: Optional[str] = None
     created_at: datetime = Field(..., description="Native datetime in UTC")
-    system_id: int
+    system_id: str
     tags: Optional[List[FlowTag]] = None
     comments: Optional[List[FlowComment]] = None
     reporter: Optional[str] = None
@@ -136,6 +144,8 @@ class FlowlensFlow(_BaseDTO):
     event_type_summaries: List[EventTypeSummary]
     request_status_code_summaries: List[RequestStatusCodeSummary]
     network_request_domain_summary: List[NetworkRequestDomainSummary]
+    recording_type: enums.RecordingType
+    are_screenshots_available: bool
     
     def truncate(self):
         copy = self.model_copy(deep=True)
@@ -446,8 +456,8 @@ class ConsoleWarningEvent(BaseTimelineEvent):
         return values
     
     def _truncate_string(self, s: str) -> str:
-        if isinstance(s, str) and len(s) > settings.max_string_length:
-            return s[:settings.max_string_length] + "...(truncated)"
+        if isinstance(s, str) and len(s) > settings.flowlens_max_string_length:
+            return s[:settings.flowlens_max_string_length] + "...(truncated)"
         return s
 
 class ConsoleErrorEvent(BaseTimelineEvent):
@@ -493,8 +503,8 @@ class JavaScriptErrorEvent(BaseTimelineEvent):
         return values
     
     def _truncate_string(self, s: str) -> str:
-        if isinstance(s, str) and len(s) > settings.max_string_length:
-            return s[:settings.max_string_length] + "...(truncated)"
+        if isinstance(s, str) and len(s) > settings.flowlens_max_string_length:
+            return s[:settings.flowlens_max_string_length] + "...(truncated)"
         return s
 
 class SessionStorageData(BaseModel):
@@ -525,8 +535,8 @@ class SessionStorageEvent(BaseTimelineEvent):
         return values
 
     def _truncate_string(self, s: str) -> str:
-        if isinstance(s, str) and len(s) > settings.max_string_length:
-            return s[:settings.max_string_length] + "...(truncated)"
+        if isinstance(s, str) and len(s) > settings.flowlens_max_string_length:
+            return s[:settings.flowlens_max_string_length] + "...(truncated)"
         return s
 
 TimelineEventType = Union[NetworkRequestEvent, NetworkResponseEvent, NetworkRequestWithResponseEvent,

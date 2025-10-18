@@ -5,7 +5,7 @@ from ..models import enums
 from ..utils.timeline.registry import timeline_registry
 
 class TimelineServiceParams:
-    def __init__(self, flow_id: int):
+    def __init__(self, flow_id: str):
         self.flow_id = flow_id
 
 def load_timeline(func):
