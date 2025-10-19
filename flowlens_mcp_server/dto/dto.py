@@ -133,8 +133,10 @@ class WebSocketOverview(BaseModel):
     sent_messages_count: Optional[int] = 0
     received_messages_count: Optional[int] = 0
     is_open: Optional[bool] = True
-    started_at_relative_time_ms: Optional[int] = 0
+    opened_at_relative_time_ms: Optional[int] = 0
+    opened_event_index: Optional[int] = None
     closed_at_relative_time_ms: Optional[int] = None
+    closed_event_index: Optional[int] = None
     closure_reason: Optional[str] = None
     handshake_requests_count: Optional[int] = 0
     handshake_responses_count: Optional[int] = 0

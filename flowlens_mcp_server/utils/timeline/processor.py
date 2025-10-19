@@ -75,7 +75,8 @@ class TimelineProcessor:
             sockets[socket_id].socket_id = socket_id
             if event.type == enums.TimelineEventType.WEBSOCKET_CREATED:
                 sockets[socket_id].url = event.websocket_created_data.url
-                sockets[socket_id].started_at_relative_time_ms = event.relative_time_ms
+                sockets[socket_id].opened_at_relative_time_ms = event.relative_time_ms
+                sockets[socket_id].opened_event_index = event.index
             elif event.type == enums.TimelineEventType.WEBSOCKET_FRAME_SENT:
                 sockets[socket_id].sent_messages_count += 1
             elif event.type == enums.TimelineEventType.WEBSOCKET_FRAME_RECEIVED:
@@ -88,6 +89,7 @@ class TimelineProcessor:
                 sockets[socket_id].is_open = False
                 sockets[socket_id].closed_at_relative_time_ms = event.relative_time_ms
                 sockets[socket_id].closure_reason = event.websocket_closed_data.reason
+                sockets[socket_id].closed_event_index = event.index
             
         return list(sockets.values())
 
