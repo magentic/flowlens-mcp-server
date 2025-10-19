@@ -150,10 +150,10 @@ class FlowlensFlow(_BaseDTO):
     reporter: Optional[str] = None
     events_count: int
     duration_ms: int
-    network_requests_count: int
     event_type_summaries: List[EventTypeSummary]
-    request_status_code_summaries: List[RequestStatusCodeSummary]
-    network_request_domain_summary: List[NetworkRequestDomainSummary]
+    http_requests_count: int
+    http_request_status_code_summaries: List[RequestStatusCodeSummary]
+    http_request_domain_summary: List[NetworkRequestDomainSummary]
     recording_type: enums.RecordingType
     are_screenshots_available: bool
     websockets_overview: List[WebSocketOverview]

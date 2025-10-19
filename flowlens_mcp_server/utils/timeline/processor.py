@@ -20,10 +20,10 @@ class TimelineProcessor:
             timeline=self._timeline,
             duration_ms=total_recording_duration_ms,
             events_count=len(self._timeline.events),
-            network_requests_count=self._count_network_requests(),
+            http_requests_count=self._count_network_requests(),
             event_type_summaries=self._summarize_event_types(),
-            request_status_code_summaries=self._summarize_request_status_codes(),
-            network_request_domain_summary=self._summarize_request_domains(),
+            http_request_status_code_summaries=self._summarize_request_status_codes(),
+            http_request_domain_summary=self._summarize_request_domains(),
             websockets_overview=self._summarize_websockets()
         )
 

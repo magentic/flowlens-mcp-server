@@ -98,10 +98,10 @@ class TimelineOverview(BaseModel):
     timeline: Timeline
     events_count: int
     duration_ms: int
-    network_requests_count: int
     event_type_summaries: List[EventTypeSummary]
-    request_status_code_summaries: List[RequestStatusCodeSummary]
-    network_request_domain_summary: List[NetworkRequestDomainSummary]
+    http_requests_count: int
+    http_request_status_code_summaries: List[RequestStatusCodeSummary]
+    http_request_domain_summary: List[NetworkRequestDomainSummary]
     websockets_overview: List[WebSocketOverview]
     
     def __str__(self):
@@ -109,5 +109,5 @@ class TimelineOverview(BaseModel):
                 f"events_count={self.events_count}, \n"
                 f"network_requests_count={self.network_requests_count}, \n"
                 f"event_type_summaries={self.event_type_summaries}, \n"
-                f"request_status_code_summaries={self.request_status_code_summaries}) \n"
-                f"network_request_domain_summary={self.network_request_domain_summary})")
+                f"request_status_code_summaries={self.http_request_status_code_summaries}) \n"
+                f"http_request_domain_summary={self.http_request_domain_summary})")
