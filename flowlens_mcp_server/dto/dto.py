@@ -127,7 +127,17 @@ class NetworkRequestDomainSummary(BaseModel):
     domain: str
     requests_count: int
     
-
+class WebSocketOverview(BaseModel):
+    socket_id: str
+    url: Optional[str] = None
+    sent_messages_count: Optional[int] = 0
+    received_messages_count: Optional[int] = 0
+    is_open: Optional[bool] = True
+    started_at_relative_time_ms: Optional[int] = 0
+    closed_at_relative_time_ms: Optional[int] = None
+    closure_reason: Optional[str] = None
+    handshake_requests_count: Optional[int] = 0
+    handshake_responses_count: Optional[int] = 0
 
 class FlowlensFlow(_BaseDTO):
     id: str
@@ -146,6 +156,7 @@ class FlowlensFlow(_BaseDTO):
     network_request_domain_summary: List[NetworkRequestDomainSummary]
     recording_type: enums.RecordingType
     are_screenshots_available: bool
+    websockets_overview: List[WebSocketOverview]
     
     def truncate(self):
         copy = self.model_copy(deep=True)
@@ -540,9 +551,9 @@ class SessionStorageEvent(BaseTimelineEvent):
         return s
 
 class WebSocketInitiatorData(BaseModel):
-    columnNumber: str
+    columnNumber: int
     functionName: str
-    lineNumber: str
+    lineNumber: int
     scriptId: str
     url: str
 
@@ -590,6 +601,7 @@ class WebSocketHandshakeEvent(BaseTimelineEvent):
         base_line = super().reduce_into_one_line()
         return f"{base_line} socket_id={self.correlation_id} {self.websocket_handshake_data.reduce_into_one_line()}"
 
+class WebSocketHandshakeRequestEvent(WebSocketHandshakeEvent):
     @model_validator(mode="before")
     def validate_websocket_handshake(cls, values):
         if not isinstance(values, dict):
@@ -597,6 +609,16 @@ class WebSocketHandshakeEvent(BaseTimelineEvent):
         values['type'] = enums.TimelineEventType.WEBSOCKET_HANDSHAKE_REQUEST
         values['action_type'] = enums.ActionType.HANDSHAKE_REQUEST
         return values
+
+class WebSocketHandshakeResponseEvent(WebSocketHandshakeEvent):
+    @model_validator(mode="before")
+    def validate_websocket_handshake(cls, values):
+        if not isinstance(values, dict):
+            return values
+        values['type'] = enums.TimelineEventType.WEBSOCKET_HANDSHAKE_RESPONSE
+        values['action_type'] = enums.ActionType.HANDSHAKE_RESPONSE
+        return values
+    
 
 class WebSocketFrameData(_BaseDTO):
     opcode: int
@@ -658,7 +680,7 @@ class WebSocketClosedEvent(BaseTimelineEvent):
 TimelineEventType = Union[NetworkRequestEvent, NetworkResponseEvent, NetworkRequestWithResponseEvent,
                          DomActionEvent, NavigationEvent, LocalStorageEvent, ConsoleWarningEvent, ConsoleErrorEvent,
                          JavaScriptErrorEvent, SessionStorageEvent, 
-                         WebsocketCreatedEvent, WebSocketHandshakeEvent, 
+                         WebsocketCreatedEvent, WebSocketHandshakeRequestEvent, WebSocketHandshakeResponseEvent,
                          WebSocketFrameSentEvent, WebSocketFrameReceivedEvent,
                          WebSocketClosedEvent]
 
@@ -674,7 +696,8 @@ types_dict: dict[str, Type[TimelineEventType]] = {
         enums.TimelineEventType.JAVASCRIPT_ERROR.value: JavaScriptErrorEvent,
         enums.TimelineEventType.SESSION_STORAGE.value: SessionStorageEvent,
         enums.TimelineEventType.WEBSOCKET_CREATED.value: WebsocketCreatedEvent,
-        enums.TimelineEventType.WEBSOCKET_HANDSHAKE_REQUEST.value: WebSocketHandshakeEvent,
+        enums.TimelineEventType.WEBSOCKET_HANDSHAKE_REQUEST.value: WebSocketHandshakeRequestEvent,
+        enums.TimelineEventType.WEBSOCKET_HANDSHAKE_RESPONSE.value: WebSocketHandshakeResponseEvent,
         enums.TimelineEventType.WEBSOCKET_FRAME_SENT.value: WebSocketFrameSentEvent,
         enums.TimelineEventType.WEBSOCKET_FRAME_RECEIVED.value: WebSocketFrameReceivedEvent,
         enums.TimelineEventType.WEBSOCKET_CLOSED.value: WebSocketClosedEvent,

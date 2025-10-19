@@ -23,7 +23,8 @@ class TimelineProcessor:
             network_requests_count=self._count_network_requests(),
             event_type_summaries=self._summarize_event_types(),
             request_status_code_summaries=self._summarize_request_status_codes(),
-            network_request_domain_summary=self._summarize_request_domains()
+            network_request_domain_summary=self._summarize_request_domains(),
+            websockets_overview=self._summarize_websockets()
         )
 
     def _summarize_event_types(self) -> List[dto.EventTypeSummary]:
@@ -64,6 +65,31 @@ class TimelineProcessor:
         return sum(1 for event in self._timeline.events
                    if event.type in {enums.TimelineEventType.NETWORK_REQUEST, 
                                      enums.TimelineEventType.NETWORK_REQUEST_WITH_RESPONSE})
+
+    def _summarize_websockets(self) -> List[dto_timeline.WebSocketOverview]:
+        sockets = defaultdict(lambda: dto_timeline.WebSocketOverview(socket_id=""))
+        for event in self._timeline.events:
+            if not event.type.value.startswith("websocket_"):
+                continue
+            socket_id = event.correlation_id
+            sockets[socket_id].socket_id = socket_id
+            if event.type == enums.TimelineEventType.WEBSOCKET_CREATED:
+                sockets[socket_id].url = event.websocket_created_data.url
+                sockets[socket_id].started_at_relative_time_ms = event.relative_time_ms
+            elif event.type == enums.TimelineEventType.WEBSOCKET_FRAME_SENT:
+                sockets[socket_id].sent_messages_count += 1
+            elif event.type == enums.TimelineEventType.WEBSOCKET_FRAME_RECEIVED:
+                sockets[socket_id].received_messages_count += 1
+            elif event.type == enums.TimelineEventType.WEBSOCKET_HANDSHAKE_REQUEST:
+                sockets[socket_id].handshake_requests_count += 1
+            elif event.type == enums.TimelineEventType.WEBSOCKET_HANDSHAKE_RESPONSE:
+                sockets[socket_id].handshake_responses_count += 1
+            elif event.type == enums.TimelineEventType.WEBSOCKET_CLOSED:
+                sockets[socket_id].is_open = False
+                sockets[socket_id].closed_at_relative_time_ms = event.relative_time_ms
+                sockets[socket_id].closure_reason = event.websocket_closed_data.reason
+            
+        return list(sockets.values())
 
     def _process_timeline_events(self) -> dto_timeline.Timeline:
         requests_map = {}

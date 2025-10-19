@@ -103,6 +103,7 @@ class FlowLensService:
             network_request_domain_summary=timeline_overview.network_request_domain_summary,
             recording_type=response.recording_type,
             are_screenshots_available=response.are_screenshots_available,
+            websockets_overview=timeline_overview.websockets_overview
         )
         await flow_registry.register_flow(flow)
         return flow

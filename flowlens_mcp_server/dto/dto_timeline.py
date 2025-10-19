@@ -92,7 +92,8 @@ class Timeline(BaseModel):
                     matches.append(event.truncate())
         header += f"Total Matches: {len(matches)}\n"
         return header + "\n".join([event.reduce_into_one_line() for event in matches])
-    
+
+  
 class TimelineOverview(BaseModel):
     timeline: Timeline
     events_count: int
@@ -101,6 +102,7 @@ class TimelineOverview(BaseModel):
     event_type_summaries: List[EventTypeSummary]
     request_status_code_summaries: List[RequestStatusCodeSummary]
     network_request_domain_summary: List[NetworkRequestDomainSummary]
+    websockets_overview: List[WebSocketOverview]
     
     def __str__(self):
         return (f"TimelineOverview(duration_ms={self.duration_ms}, \n"
