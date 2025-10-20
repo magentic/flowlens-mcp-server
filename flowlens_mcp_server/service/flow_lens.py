@@ -97,12 +97,13 @@ class FlowLensService:
             reporter=response.reporter,
             events_count=timeline_overview.events_count,
             duration_ms=timeline_overview.duration_ms,
-            network_requests_count=timeline_overview.network_requests_count,
+            http_requests_count=timeline_overview.http_requests_count,
             event_type_summaries=timeline_overview.event_type_summaries,
-            request_status_code_summaries=timeline_overview.request_status_code_summaries,
-            network_request_domain_summary=timeline_overview.network_request_domain_summary,
+            http_request_status_code_summaries=timeline_overview.http_request_status_code_summaries,
+            http_request_domain_summary=timeline_overview.http_request_domain_summary,
             recording_type=response.recording_type,
             are_screenshots_available=response.are_screenshots_available,
+            websockets_overview=timeline_overview.websockets_overview
         )
         await flow_registry.register_flow(flow)
         return flow

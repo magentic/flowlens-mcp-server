@@ -203,7 +203,16 @@ async def search_flow_events_with_regex(flow_id: str, pattern: str, event_type: 
     [index:int] console_error error_logged [relative_timestamp:int]ms [message:string]
     - JavaScriptErrorEvent (javascript error message)
     [index:int] javascript_error error_captured [relative_timestamp:int]ms [message:string]
-
+    - WebSocketCreatedEvent (websocket connection opened)
+    [index:int] websocket_created connection_opened [relative_timestamp:int]ms socket_id=[socket_id:string] [[url:string]:Optional]
+    - WebSocketHandshakeRequestEvent (websocket handshake request)
+    [index:int] websocket_handshake_request handshake_request [relative_timestamp:int]ms socket_id=[socket_id:string] [status_code=[status_code:int]:Optional]
+    - WebSocketFrameSentEvent (websocket frame sent)
+    [index:int] websocket_frame_sent frame_sent [relative_timestamp:int]ms socket_id=[socket_id:string] [message=[message:string]:Optional]
+    - WebSocketFrameReceivedEvent (websocket frame received)
+    [index:int] websocket_frame_received frame_received [relative_timestamp:int]ms socket_id=[socket_id:string] [message=[message:string]:Optional]
+    - WebSocketClosedEvent (websocket connection closed)
+    [index:int] websocket_closed connection_closed [relative_timestamp:int]ms socket_id=[socket_id:string] [reason=[reason:string]:Optional]
     Args:
         flow_id (string): The ID of the flow to retrieve events for.
         pattern (str): The pattern to search for using regex.
