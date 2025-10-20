@@ -1,12 +1,17 @@
 from datetime import datetime
 import re
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 from typing import List, Optional, Type, Union
 from ..models import enums
 from ..utils.settings import settings
 from urllib.parse import urlsplit, urlunsplit
 
 class _BaseDTO(BaseModel):
+    model_config = ConfigDict(
+        json_encoders={datetime: lambda v: v.isoformat()},
+        ser_json_timedelta='iso8601',
+    )
+    
     @staticmethod
     def _truncate_string(s: str, max_length: Optional[int] = None) -> str:
         limit = max_length or settings.flowlens_max_string_length
@@ -28,6 +33,11 @@ class FlowTagList(BaseModel):
     tags: List[FlowTag]
     
 class FlowComment(BaseModel):
+    model_config = ConfigDict(
+        json_encoders={datetime: lambda v: v.isoformat()},
+        ser_json_timedelta='iso8601',
+    )
+    
     flow_id: str
     video_second: int
     content: str
@@ -55,6 +65,11 @@ class User(BaseModel):
     auth_id: str
 
 class Flow(BaseModel):
+    model_config = ConfigDict(
+        json_encoders={datetime: lambda v: v.isoformat()},
+        ser_json_timedelta='iso8601',
+    )
+    
     id: str
     title: str
     description: Optional[str] = None
@@ -110,6 +125,11 @@ class FlowSequenceDiagramResponse(BaseModel):
     extended_diagram_url: Optional[str] = None
     
 class FlowShareLink(BaseModel):
+    model_config = ConfigDict(
+        json_encoders={datetime: lambda v: v.isoformat()},
+        ser_json_timedelta='iso8601',
+    )
+    
     flow_id: str
     token: str
     share_url: str
