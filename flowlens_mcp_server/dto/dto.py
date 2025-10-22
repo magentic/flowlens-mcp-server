@@ -573,11 +573,11 @@ class SessionStorageEvent(BaseTimelineEvent):
         return s
 
 class WebSocketInitiatorData(BaseModel):
-    columnNumber: int
-    functionName: str
-    lineNumber: int
-    scriptId: str
-    url: str
+    columnNumber: Optional[int] = None
+    functionName: Optional[str] = None
+    lineNumber: Optional[int] = None
+    scriptId: Optional[str] = None
+    url: Optional[str] = None
 
 class WebSocketCreatedData(BaseModel):
     url: Optional[str] = None

@@ -3,6 +3,10 @@ import json
 
 from ...dto import dto, dto_timeline
 
+from ..logger_setup import Logger
+
+logger = Logger(__name__)
+
 class TimelineLoader:
     def __init__(self, url: str):
         self._url = url
@@ -22,11 +26,15 @@ class TimelineLoader:
             events=events)
 
     def _create_dto_event(self, event: dict) -> dto_timeline.TimelineEventType:
-        event_type = event.get("type")
-        dto_event_class = dto.types_dict.get(event_type)
-        if not dto_event_class:
+        try:
+            event_type = event.get("type")
+            dto_event_class = dto.types_dict.get(event_type)
+            if not dto_event_class:
+                return None
+            return dto_event_class.model_validate(event)
+        except Exception as e:
+            logger.warning(f"Failed to parse event: {e}, event data: {event}")
             return None
-        return dto_event_class.model_validate(event)
 
     async def _load_timeline_data(self):
         data = await self._load_json_from_url()
