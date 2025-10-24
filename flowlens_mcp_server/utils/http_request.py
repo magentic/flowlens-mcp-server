@@ -1,4 +1,5 @@
 import httpx
+import json
 from ..dto import dto
 from ..models import enums
 from ..utils import logger_setup
@@ -15,11 +16,12 @@ class HttpRequestHandler:
         self.base_url = settings.flowlens_url
         self._token = token
         self._headers = {"Authorization": f"Bearer {self._token}"}
-        
-    async def get(self, endpoint: str, response_model=None):
+
+    async def get(self, endpoint: str, payload=None, response_model=None):
         params = dto.RequestParams(
             endpoint=endpoint,
             request_type=enums.RequestType.GET,
+            payload=payload,
             response_model=response_model
         )
         return await self.send_request(params)
@@ -54,7 +56,7 @@ class HttpRequestHandler:
         url = f"{self.base_url}/{params.endpoint}"
         async with httpx.AsyncClient() as client:
             if params.request_type == enums.RequestType.GET:
-                response = await client.get(url, headers=self._headers)
+                response = await client.request("GET", url, headers=self._headers, json=params.payload)
             elif params.request_type == enums.RequestType.POST:
                 response = await client.post(url, headers=self._headers, json=params.payload)
             elif params.request_type == enums.RequestType.DELETE:
