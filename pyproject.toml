@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "flowlens-mcp-server"
-version = "0.2.8"
-description = "FlowLens MCP server for FlowLens created by Magentic"
+version = "0.2.9"
+description = "FlowLens MCP server for FlowLens created by Magentic AI"
 authors = ["magentic <flowlens@magentic.ai>"]
 license = "Apache 2.0"
 readme = "README.md"
