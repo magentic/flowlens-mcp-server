@@ -8,8 +8,8 @@ flowlens_mcp = server_instance.flowlens_mcp
     
 def run_stdio():
     parser = argparse.ArgumentParser(description="Run the Flowlens MCP server using stdio transport.")
-    parser.add_argument("token", type=str, help="Token for authentication.")
     parser.add_argument("agent", type=str, help="Coding agent name.")
+    parser.add_argument("token", type=str, help="Token for authentication.")
     args = parser.parse_args()
     server_instance.set_token(args.token)
     settings.flowlens_agent_name = args.agent
