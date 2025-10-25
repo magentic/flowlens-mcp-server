@@ -18,13 +18,14 @@ class FlowLensServiceParams:
 class FlowLensService:
     def __init__(self, params: FlowLensServiceParams):
         self.params = params
-        self._request_handler = http_request.HttpClient(params.token)
-        
+        base_url = f"{settings.flowlens_url}/flowlens"
+        self._client = http_request.HttpClient(params.token, base_url)
+
     def set_flow_id(self, flow_id: str):
         self.params.flow_id = flow_id
 
     async def list_flows(self) -> dto.FlowList:
-        response = await self._request_handler.get("flows", response_model=dto.FlowList)
+        response = await self._client.get("flows", response_model=dto.FlowList)
         return response
 
     async def get_flow(self) -> dto.FlowlensFlow:
@@ -52,7 +53,7 @@ class FlowLensService:
 
     async def _request_flow(self):
         payload = {"platform": settings.flowlens_agent_name}
-        response: dto.FullFlow = await self._request_handler.get(f"flow/{self.params.flow_id}", payload=payload, response_model=dto.FullFlow)
+        response: dto.FullFlow = await self._client.get(f"flow/{self.params.flow_id}", payload=payload, response_model=dto.FullFlow)
         timeline_overview = await timeline_registry.register_timeline(response)
         await self._load_video(response)
         flow = dto.FlowlensFlow(

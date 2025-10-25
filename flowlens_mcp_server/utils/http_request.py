@@ -1,5 +1,6 @@
+from typing import Optional
 import httpx
-import json
+import requests
 from ..dto import dto
 from ..models import enums
 from ..utils import logger_setup
@@ -8,8 +9,8 @@ from ..utils.settings import settings
 log = logger_setup.Logger(__name__)
         
 class HttpClient:
-    def __init__(self, token: str):
-        self.base_url = settings.flowlens_url
+    def __init__(self, token: str, base_url: str):
+        self.base_url = base_url
         self._token = token
         self._headers = {"Authorization": f"Bearer {self._token}"}
 
@@ -21,6 +22,14 @@ class HttpClient:
             response_model=response_model
         )
         return await self.send_request(params)
+    
+    def get_sync(self, endpoint: str, payload=None, response_model=None):
+        url = f"{self.base_url}/{endpoint}"
+        response = requests.get(url, headers=self._headers, params=payload)
+        response.raise_for_status()
+        if response.text.strip():
+            return response_model(**response.json())
+        raise Exception(f"Empty response from {url}")
 
     async def post(self, endpoint: str, payload: dict, response_model=None):
         params = dto.RequestParams(
