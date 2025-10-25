@@ -729,4 +729,5 @@ types_dict: dict[str, Type[TimelineEventType]] = {
 class McpVersionResponse(BaseModel):
     version: str
     is_supported: bool
+    session_uuid: str
     recommendation: Optional[str] = None

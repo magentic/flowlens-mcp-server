@@ -19,6 +19,7 @@ class VersionService:
     def check_version(self) -> dto.McpVersionResponse:
         response = self._check_version()
         VersionService._latest_version_check = response
+        settings.flowlens_session_uuid = response.session_uuid
         return response
     
     def assert_supported_version(self):

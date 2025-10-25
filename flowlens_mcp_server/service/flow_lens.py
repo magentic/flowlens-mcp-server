@@ -52,8 +52,12 @@ class FlowLensService:
         return flow
 
     async def _request_flow(self):
-        payload = {"platform": settings.flowlens_agent_name}
-        response: dto.FullFlow = await self._client.get(f"flow/{self.params.flow_id}", qparams=payload, response_model=dto.FullFlow)
+        qparams = {
+            "platform": settings.flowlens_agent_name,
+            "session_uuid": settings.flowlens_session_uuid,
+            "mcp_version": settings.flowlens_mcp_version
+            }
+        response: dto.FullFlow = await self._client.get(f"flow/{self.params.flow_id}", qparams=qparams, response_model=dto.FullFlow)
         timeline_overview = await timeline_registry.register_timeline(response)
         await self._load_video(response)
         flow = dto.FlowlensFlow(

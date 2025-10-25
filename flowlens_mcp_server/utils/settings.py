@@ -9,6 +9,8 @@ class AppSettings(BaseSettings):
     flowlens_api_token: Optional[str] = None
     flowlens_agent_name: Optional[str] = "unknown_agent"
     flowlens_mcp_version: str = "0.2.6"
+    flowlens_session_uuid: str = "unknown_session"
+    
 
 
 settings = AppSettings()
