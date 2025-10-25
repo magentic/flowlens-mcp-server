@@ -1,5 +1,5 @@
 # FlowLens MCP Server
-An open-source MCP server that fetches your recorded user flows and bug reports from the <a href="https://www.magentic.ai/?utm_source=gh_flowlens" target="_blank" rel="noopener noreferrer">FlowLens platform</a> and exposes them to your AI coding agents for *context-aware debugging*.
+A local MCP server that fetches your recorded user flows and bug reports from the <a href="https://www.magentic.ai/?utm_source=gh_flowlens" target="_blank" rel="noopener noreferrer">FlowLens platform</a> and exposes them to your AI coding agents for *context-aware debugging*.
 
 
 ## Getting Started
@@ -8,7 +8,7 @@ An open-source MCP server that fetches your recorded user flows and bug reports 
 pipx install flowlens-mcp-server
 ```
 
-**IMPORTANT NOTE: If your version is not supported anymore, please, upgrade to latest version**
+**IMPORTANT NOTE: If your version is not supported anymore, please, upgrade to the latest version**
 ```bash
 pipx upgrade flowlens-mcp-server
 ```
