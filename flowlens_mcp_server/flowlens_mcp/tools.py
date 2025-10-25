@@ -5,7 +5,7 @@ from flowlens_mcp_server.models import enums
 
 from ..dto import dto
 from ..flowlens_mcp import server_instance
-from ..service import flow_lens, timeline
+from ..service import flow_lens, timeline, version
 
 
 @server_instance.flowlens_mcp.tool
@@ -33,6 +33,7 @@ async def get_flow(flow_id: str, ctx: Context) -> dto.FlowlensFlow:
     Returns:
         dto.FlowlensFlow: The FlowlensFlow dto object.
     """
+    version.VersionService().assert_supported_version()
     service: flow_lens.FlowLensService = ctx.get_state("flowlens_service")
     service.set_flow_id(flow_id)
     return await service.get_flow()

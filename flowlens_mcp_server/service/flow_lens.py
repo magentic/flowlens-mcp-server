@@ -18,7 +18,7 @@ class FlowLensServiceParams:
 class FlowLensService:
     def __init__(self, params: FlowLensServiceParams):
         self.params = params
-        self._request_handler = http_request.HttpRequestHandler(params.token)
+        self._request_handler = http_request.HttpClient(params.token)
         
     def set_flow_id(self, flow_id: str):
         self.params.flow_id = flow_id

@@ -6,12 +6,8 @@ from ..utils import logger_setup
 from ..utils.settings import settings
 
 log = logger_setup.Logger(__name__)
-
-class _RequestParameters:
-    def __init__(self, token: str):
-        self.end = token
         
-class HttpRequestHandler:
+class HttpClient:
     def __init__(self, token: str):
         self.base_url = settings.flowlens_url
         self._token = token
@@ -56,7 +52,7 @@ class HttpRequestHandler:
         url = f"{self.base_url}/{params.endpoint}"
         async with httpx.AsyncClient() as client:
             if params.request_type == enums.RequestType.GET:
-                response = await client.get(url, headers=self._headers, json=params.payload)
+                response = await client.get(url, headers=self._headers, params=params.payload)
             elif params.request_type == enums.RequestType.POST:
                 response = await client.post(url, headers=self._headers, json=params.payload)
             elif params.request_type == enums.RequestType.DELETE:
