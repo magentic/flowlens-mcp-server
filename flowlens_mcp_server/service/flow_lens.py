@@ -11,7 +11,7 @@ log = logger_setup.Logger(__name__)
 
 class FlowLensServiceParams:
     def __init__(self, flow_id: Optional[str] = None):
-        self.token = settings.flowlens_api_token
+        self.token = settings.flowlens_mcp_token
         self.flow_id = flow_id
 
 

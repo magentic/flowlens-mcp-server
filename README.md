@@ -26,18 +26,15 @@ pipx upgrade flowlens-mcp-server
     ],
     "type": "stdio",
     "env" : {
-        "FLOWLENS_API_TOKEN" : "<YOUR_FLOWLENS_MCP_TOKEN>"
+        "FLOWLENS_MCP_TOKEN" : "<YOUR_FLOWLENS_MCP_TOKEN>"
     }
 }
 ```
-*Replace `<YOUR_FLOWLENS_MCP_TOKEN>` with the MCP access token generated in step 3.*
-
 
 ### Claude Code Shortcut
 ```bash
-claude mcp add flowlens-mcp --transport stdio --env FLOWLENS_API_TOKEN=<YOUR_FLOWLENS_MCP_TOKEN> -- pipx run "flowlens-mcp-server"
+claude mcp add flowlens-mcp --transport stdio --env FLOWLENS_MCP_TOKEN=<YOUR_FLOWLENS_MCP_TOKEN> -- pipx run "flowlens-mcp-server"
 ```
-*Replace `<YOUR_FLOWLENS_MCP_TOKEN>` with the MCP access token generated in step 3.*
 
 
 
