@@ -14,18 +14,18 @@ class HttpClient:
         self._token = token
         self._headers = {"Authorization": f"Bearer {self._token}"}
 
-    async def get(self, endpoint: str, payload=None, response_model=None):
+    async def get(self, endpoint: str, qparams=None, response_model=None):
         params = dto.RequestParams(
             endpoint=endpoint,
             request_type=enums.RequestType.GET,
-            payload=payload,
+            qparams=qparams,
             response_model=response_model
         )
         return await self.send_request(params)
     
-    def get_sync(self, endpoint: str, payload=None, response_model=None):
+    def get_sync(self, endpoint: str, qparams=None, response_model=None):
         url = f"{self.base_url}/{endpoint}"
-        response = requests.get(url, headers=self._headers, params=payload)
+        response = requests.get(url, headers=self._headers, params=qparams)
         response.raise_for_status()
         if response.text.strip():
             return response_model(**response.json())
@@ -61,7 +61,7 @@ class HttpClient:
         url = f"{self.base_url}/{params.endpoint}"
         async with httpx.AsyncClient() as client:
             if params.request_type == enums.RequestType.GET:
-                response = await client.get(url, headers=self._headers, params=params.payload)
+                response = await client.get(url, headers=self._headers, params=params.qparams)
             elif params.request_type == enums.RequestType.POST:
                 response = await client.post(url, headers=self._headers, json=params.payload)
             elif params.request_type == enums.RequestType.DELETE:

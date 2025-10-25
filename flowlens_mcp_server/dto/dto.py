@@ -22,6 +22,7 @@ class _BaseDTO(BaseModel):
 class RequestParams(BaseModel):
     endpoint: str
     payload: Optional[dict] = None
+    qparams: Optional[dict] = None
     request_type: enums.RequestType
     response_model: Optional[Type[BaseModel]] = None
 
