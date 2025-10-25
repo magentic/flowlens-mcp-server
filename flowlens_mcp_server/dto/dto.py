@@ -22,6 +22,7 @@ class _BaseDTO(BaseModel):
 class RequestParams(BaseModel):
     endpoint: str
     payload: Optional[dict] = None
+    qparams: Optional[dict] = None
     request_type: enums.RequestType
     response_model: Optional[Type[BaseModel]] = None
 
@@ -187,7 +188,7 @@ class FlowlensFlow(_BaseDTO):
         for comment in (copy.comments or []):
             comment.content = self._truncate_string(comment.content)
         return copy
-    
+
 
 class TracingData(_BaseDTO):
     traceparent: Optional[str] = None
@@ -724,3 +725,9 @@ types_dict: dict[str, Type[TimelineEventType]] = {
         enums.TimelineEventType.WEBSOCKET_FRAME_RECEIVED.value: WebSocketFrameReceivedEvent,
         enums.TimelineEventType.WEBSOCKET_CLOSED.value: WebSocketClosedEvent,
         }
+
+class McpVersionResponse(BaseModel):
+    version: str
+    is_supported: bool
+    session_uuid: str
+    recommendation: Optional[str] = None

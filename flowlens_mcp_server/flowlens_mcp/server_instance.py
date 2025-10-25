@@ -25,7 +25,7 @@ class UserAuthMiddleware(Middleware):
             token = auth_header.split(" ")[1]
         elif not token:
             raise Exception("Authorization header missing")
-            
+        settings.flowlens_api_token = token
         service = flow_lens.FlowLensService(flow_lens.FlowLensServiceParams(token))
         context.fastmcp_context.set_state("flowlens_service", service)
         return await call_next(context=context)

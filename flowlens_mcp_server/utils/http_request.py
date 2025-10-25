@@ -1,28 +1,35 @@
+from typing import Optional
 import httpx
+import requests
 from ..dto import dto
 from ..models import enums
 from ..utils import logger_setup
 from ..utils.settings import settings
 
 log = logger_setup.Logger(__name__)
-
-class _RequestParameters:
-    def __init__(self, token: str):
-        self.end = token
         
-class HttpRequestHandler:
-    def __init__(self, token: str):
-        self.base_url = settings.flowlens_url
+class HttpClient:
+    def __init__(self, token: str, base_url: str):
+        self.base_url = base_url
         self._token = token
         self._headers = {"Authorization": f"Bearer {self._token}"}
-        
-    async def get(self, endpoint: str, response_model=None):
+
+    async def get(self, endpoint: str, qparams=None, response_model=None):
         params = dto.RequestParams(
             endpoint=endpoint,
             request_type=enums.RequestType.GET,
+            qparams=qparams,
             response_model=response_model
         )
         return await self.send_request(params)
+    
+    def get_sync(self, endpoint: str, qparams=None, response_model=None):
+        url = f"{self.base_url}/{endpoint}"
+        response = requests.get(url, headers=self._headers, params=qparams)
+        response.raise_for_status()
+        if response.text.strip():
+            return response_model(**response.json())
+        raise Exception(f"Empty response from {url}")
 
     async def post(self, endpoint: str, payload: dict, response_model=None):
         params = dto.RequestParams(
@@ -54,7 +61,7 @@ class HttpRequestHandler:
         url = f"{self.base_url}/{params.endpoint}"
         async with httpx.AsyncClient() as client:
             if params.request_type == enums.RequestType.GET:
-                response = await client.get(url, headers=self._headers)
+                response = await client.get(url, headers=self._headers, params=params.qparams)
             elif params.request_type == enums.RequestType.POST:
                 response = await client.post(url, headers=self._headers, json=params.payload)
             elif params.request_type == enums.RequestType.DELETE:
