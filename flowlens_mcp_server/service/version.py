@@ -8,7 +8,7 @@ class VersionService:
     _latest_version_check: dto.McpVersionResponse = None
     def __init__(self):
         base_url = f"{settings.flowlens_url}/mcp"
-        self._client = HttpClient(settings.flowlens_api_token, base_url)
+        self._client = HttpClient(settings.flowlens_mcp_token, base_url)
 
     @property
     def latest_version_check(self) -> dto.McpVersionResponse:
