@@ -1,5 +1,5 @@
 # FlowLens MCP Server
-A local MCP server that fetches your recorded user flows and bug reports from the <a href="https://www.magentic.ai/?utm_source=gh_flowlens" target="_blank" rel="noopener noreferrer">FlowLens platform</a> and exposes them to your AI coding agents for *context-aware debugging*.
+A local MCP server that fetches your recorded user flows and bug reports from the <a href="https://www.magentic.ai/?utm_source=pypi-pkg_flowlens" target="_blank" rel="noopener noreferrer">FlowLens platform</a> and exposes them to your AI coding agents for *context-aware debugging*.
 
 
 ## Getting Started
@@ -22,10 +22,12 @@ pipx upgrade flowlens-mcp-server
     "command": "pipx",
     "args": [
         "run",
-        "flowlens-mcp-server",
-        "<YOUR_FLOWLENS_MCP_TOKEN>"
+        "flowlens-mcp-server"
     ],
-    "type": "stdio"
+    "type": "stdio",
+    "env" : {
+        "FLOWLENS_API_TOKEN" : "<YOUR_FLOWLENS_MCP_TOKEN>"
+    }
 }
 ```
 *Replace `<YOUR_FLOWLENS_MCP_TOKEN>` with the MCP access token generated in step 3.*
@@ -33,7 +35,7 @@ pipx upgrade flowlens-mcp-server
 
 ### Claude Code Shortcut
 ```bash
-claude mcp add flowlens-mcp --transport stdio -- pipx run "flowlens-mcp-server" <YOUR_FLOWLENS_MCP_TOKEN> 
+claude mcp add flowlens-mcp --transport stdio --env FLOWLENS_API_TOKEN=<YOUR_FLOWLENS_MCP_TOKEN> -- pipx run "flowlens-mcp-server"
 ```
 *Replace `<YOUR_FLOWLENS_MCP_TOKEN>` with the MCP access token generated in step 3.*
 
