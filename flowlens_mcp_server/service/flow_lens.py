@@ -10,8 +10,8 @@ log = logger_setup.Logger(__name__)
 
 
 class FlowLensServiceParams:
-    def __init__(self, token: str, flow_id: Optional[str] = None):
-        self.token = token
+    def __init__(self, flow_id: Optional[str] = None):
+        self.token = settings.flowlens_api_token
         self.flow_id = flow_id
 
 
@@ -53,7 +53,6 @@ class FlowLensService:
 
     async def _request_flow(self):
         qparams = {
-            "platform": settings.flowlens_agent_name,
             "session_uuid": settings.flowlens_session_uuid,
             "mcp_version": settings.flowlens_mcp_version
             }

@@ -23,19 +23,17 @@ pipx upgrade flowlens-mcp-server
     "args": [
         "run",
         "flowlens-mcp-server",
-        "<YOUR_CODING_AGENT>",
         "<YOUR_FLOWLENS_MCP_TOKEN>"
     ],
     "type": "stdio"
 }
 ```
-*Replace `<YOUR_CODING_AGENT>` with your agen common name e.g. Claude Code, GitHub Copilot, Cursor, etc.*
 *Replace `<YOUR_FLOWLENS_MCP_TOKEN>` with the MCP access token generated in step 3.*
 
 
 ### Claude Code Shortcut
 ```bash
-claude mcp add flowlens-mcp --transport stdio -- pipx run "flowlens-mcp-server" "Claude Code" <YOUR_FLOWLENS_MCP_TOKEN> 
+claude mcp add flowlens-mcp --transport stdio -- pipx run "flowlens-mcp-server" <YOUR_FLOWLENS_MCP_TOKEN> 
 ```
 *Replace `<YOUR_FLOWLENS_MCP_TOKEN>` with the MCP access token generated in step 3.*
 

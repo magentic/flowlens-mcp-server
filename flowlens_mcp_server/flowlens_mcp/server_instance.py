@@ -7,26 +7,10 @@ from ..utils.settings import settings
 
 flowlens_mcp = FastMCP("Flowlens MCP")
 
-_TOKEN = None
-
-def set_token(token: str):
-    global _TOKEN
-    _TOKEN = token
-
-def get_token() -> str:
-    return _TOKEN or settings.flowlens_api_token
 
 class UserAuthMiddleware(Middleware):
     async def on_call_tool(self, context: MiddlewareContext, call_next):
-        token = get_token()
-        
-        auth_header = self._extract_auth_header()
-        if auth_header:
-            token = auth_header.split(" ")[1]
-        elif not token:
-            raise Exception("Authorization header missing")
-        settings.flowlens_api_token = token
-        service = flow_lens.FlowLensService(flow_lens.FlowLensServiceParams(token))
+        service = flow_lens.FlowLensService(flow_lens.FlowLensServiceParams())
         context.fastmcp_context.set_state("flowlens_service", service)
         return await call_next(context=context)
 
