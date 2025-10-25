@@ -56,7 +56,7 @@ class HttpRequestHandler:
         url = f"{self.base_url}/{params.endpoint}"
         async with httpx.AsyncClient() as client:
             if params.request_type == enums.RequestType.GET:
-                response = await client.request("GET", url, headers=self._headers, json=params.payload)
+                response = await client.get(url, headers=self._headers, json=params.payload)
             elif params.request_type == enums.RequestType.POST:
                 response = await client.post(url, headers=self._headers, json=params.payload)
             elif params.request_type == enums.RequestType.DELETE:
