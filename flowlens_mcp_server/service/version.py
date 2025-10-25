@@ -25,7 +25,7 @@ class VersionService:
         if self.latest_version_check.is_supported:
             return
         raise Exception(
-            self.latest_version_check.message
+            self.latest_version_check.recommendation
         )
 
     def _check_version(self) -> dto.McpVersionResponse:
