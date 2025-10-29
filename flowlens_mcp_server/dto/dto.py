@@ -433,7 +433,10 @@ class DomActionEvent(BaseTimelineEvent):
         values['type'] = enums.TimelineEventType.DOM_ACTION
         action_map = {
             "click": enums.ActionType.CLICK,
-            "keydown_session": enums.ActionType.KEYDOWN_SESSION
+            "keydown_session": enums.ActionType.KEYDOWN_SESSION,
+            "submit": enums.ActionType.SUBMIT,
+            "scroll": enums.ActionType.SCROLL,
+            "input": enums.ActionType.INPUT
         }
         action = values.get("action_type")
         values["action_type"] = action_map.get(action, enums.ActionType.UNKNOWN)
@@ -452,7 +455,13 @@ class NavigationEvent(BaseTimelineEvent):
         if not isinstance(values, dict):
             return values
         values['type'] = enums.TimelineEventType.NAVIGATION
-        values['action_type'] = enums.ActionType.HISTORY_CHANGE
+        action_map = {
+            "history_change": enums.ActionType.HISTORY_CHANGE,
+            "page_navigation": enums.ActionType.PAGE_NAVIGATION,
+            "hash_change": enums.ActionType.HASH_CHANGE
+        }
+        action = values.get("action_type")
+        values["action_type"] = action_map.get(action, enums.ActionType.UNKNOWN)
         return values
 
 class LocalStorageEvent(BaseTimelineEvent):
