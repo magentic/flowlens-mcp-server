@@ -35,6 +35,7 @@ class TimelineEventType(Enum):
     WEBSOCKET_FRAME_SENT = "websocket_frame_sent"
     WEBSOCKET_FRAME_RECEIVED = "websocket_frame_received"
     WEBSOCKET_CLOSED = "websocket_closed"
+    NETWORK_LEVEL_FAILED_REQUEST = "network_level_failed_request"
     
 
 class ActionType(Enum):
@@ -58,4 +59,6 @@ class ActionType(Enum):
     MESSAGE_SENT = "message_sent"
     MESSAGE_RECEIVED = "message_received"
     CONNECTION_CLOSED = "connection_closed"
+    NETWORK_LEVEL_FAILED_REQUEST = "network_level_failed_request"
     UNKNOWN = "unknown"
+

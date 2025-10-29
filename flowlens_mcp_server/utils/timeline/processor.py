@@ -122,8 +122,12 @@ class TimelineProcessor:
         # Add remaining unmatched requests (pending)
         for request_event in (requests_map.values()):
             pending_request: dto.NetworkRequestEvent = request_event.model_copy(deep=True)
-            pending_request.type = enums.TimelineEventType.NETWORK_REQUEST_PENDING
-            pending_request.action_type = enums.ActionType.DEBUGGER_REQUEST_PENDING
+            if pending_request.is_network_level_failed_request:
+                pending_request.type = enums.TimelineEventType.NETWORK_LEVEL_FAILED_REQUEST
+                pending_request.action_type = enums.ActionType.NETWORK_LEVEL_FAILED_REQUEST
+            else:
+                pending_request.type = enums.TimelineEventType.NETWORK_REQUEST_PENDING
+                pending_request.action_type = enums.ActionType.DEBUGGER_REQUEST_PENDING
             processed_timeline.append(pending_request)
 
         # Sort by relative_time_ms to maintain chronological order

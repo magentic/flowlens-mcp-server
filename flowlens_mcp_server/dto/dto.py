@@ -233,7 +233,7 @@ class NetworkRequestData(BaseNetworkData):
     method: str
     url: str
     resource_type: Optional[str] = None
-    
+    network_level_err_text: Optional[str] = None
     
     @property
     def domain_name(self) -> str:
@@ -323,6 +323,10 @@ class BaseTimelineEvent(_BaseDTO):
 class NetworkRequestEvent(BaseTimelineEvent):
     correlation_id: str
     network_request_data: NetworkRequestData
+    
+    @property
+    def is_network_level_failed_request(self) -> bool:
+        return self.network_request_data.network_level_err_text is not None
 
     def search_url_with_regex(self, pattern: str) -> bool:
         is_url_match = re.search(pattern, self.network_request_data.url or "")
@@ -334,8 +338,14 @@ class NetworkRequestEvent(BaseTimelineEvent):
         return match_obj is not None
 
     def reduce_into_one_line(self) -> str:
-        base_line = super().reduce_into_one_line()
-        return (f"{base_line} {self.correlation_id} {self.network_request_data.reduce_into_one_line()}")
+        items = [
+            super().reduce_into_one_line(),
+            self.correlation_id,
+            self.network_request_data.reduce_into_one_line()
+        ]
+        if self.is_network_level_failed_request:
+            items.append(f"network_error={self.network_request_data.network_level_err_text}")
+        return " ".join(items)
 
     @model_validator(mode="before")
     def validate_request_data(cls, values):
