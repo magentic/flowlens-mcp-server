@@ -45,6 +45,8 @@ class TimelineProcessor:
                     count_dict[status_code] += 1
             if event.type == enums.TimelineEventType.NETWORK_REQUEST_PENDING:
                 count_dict["no_response"] += 1
+            elif event.type == enums.TimelineEventType.NETWORK_LEVEL_FAILED_REQUEST:
+                count_dict["network_failed"] += 1
         return [dto.RequestStatusCodeSummary(status_code=str(status_code), requests_count=count) 
                 for status_code, count in count_dict.items()]
     
