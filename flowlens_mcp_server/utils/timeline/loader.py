@@ -42,12 +42,10 @@ class TimelineLoader:
         self._metadata = data.get("metadata", {})
         
     async def _load_json_from_url(self) -> dict:
-        # aiohttp automatically decompresses gzip content when Accept-Encoding header is set
         headers = {'Accept-Encoding': 'gzip'}
         async with aiohttp.ClientSession() as session:
             async with session.get(self._url, headers=headers) as response:
                 response.raise_for_status()
-                # response.json() and response.text() automatically decompress gzip content
                 try:
                     return await response.json(content_type=None)
                 except (aiohttp.ContentTypeError, json.JSONDecodeError):
