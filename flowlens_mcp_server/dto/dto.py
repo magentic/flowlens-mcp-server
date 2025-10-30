@@ -14,6 +14,8 @@ class _BaseDTO(BaseModel):
     
     @staticmethod
     def _truncate_string(s: str, max_length: Optional[int] = None) -> str:
+        if not s:
+            return s
         limit = max_length or settings.flowlens_max_string_length
         if isinstance(s, str) and len(s) > limit:
             return s[:limit] + "...(truncated)"
@@ -273,7 +275,7 @@ class NetworkResponseData(BaseNetworkData):
         return values
     
 
-class DomTarget(BaseModel):
+class DomTarget(_BaseDTO):
     src: Optional[str] = None
     textContent: Optional[str] = None
     xpath: str
@@ -281,7 +283,11 @@ class DomTarget(BaseModel):
     
 
     def reduce_into_one_line(self) -> str:
-        return f"{self.textContent or self.src or ''}"
+        items = [
+            f"type={self.type or 'unknown'}",
+            f"content={self._truncate_string(self.textContent or self.src or '')}"
+        ]
+        return " ".join(items)
 
 class NavigationData(BaseModel):
     url: str

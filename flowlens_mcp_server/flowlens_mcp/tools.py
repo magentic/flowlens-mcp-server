@@ -193,7 +193,7 @@ async def search_flow_events_with_regex(flow_id: str, pattern: str, event_type: 
     - NetworkRequestFailedAtNetworkLevel (request failed at network level e.g. DNS failure, connection timeout, etc.)
     [index:int] network_level_failed_request network_level_failed_request [relative_timestamp:int]ms [POST|PUT|PATCH|GET|DELETE] [url:string] {[trace_id=opentelemtry_trace_id:string]:Optional} {[datadog_trace_id=datadog_trace_id:string]:Optional} network_error=[error_text:string]
     - DomActionEvent (click, keydown_session, scroll, etc.)
-    [index:int] dom_action [click|keydown_session|scroll|etc.] [relative_timestamp:int]ms [element_text:string or element_src:string]
+    [index:int] dom_action [click|keydown_session|scroll|etc.] [relative_timestamp:int]ms type=[element_type:string] content=[element_text:string or element_src:string] 
     - NavigationEvent (page navigation)
     [index:int] navigation history_change [relative_timestamp:int]ms [url:string] [frame_id:string] [transition_type:string]
     - LocalStorageEvent (local storage set or get)
