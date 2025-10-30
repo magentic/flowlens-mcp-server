@@ -277,6 +277,8 @@ class DomTarget(BaseModel):
     src: Optional[str] = None
     textContent: Optional[str] = None
     xpath: str
+    type: Optional[str] = None
+    
 
     def reduce_into_one_line(self) -> str:
         return f"{self.textContent or self.src or ''}"
@@ -465,7 +467,7 @@ class NavigationEvent(BaseTimelineEvent):
         return values
 
 class LocalStorageEvent(BaseTimelineEvent):
-    page_url: str
+    page_url: Optional[str] = None
     local_storage_data: LocalStorageData
     
     def reduce_into_one_line(self) -> str:
