@@ -495,7 +495,7 @@ class ConsoleData(BaseModel):
     userAgent: Optional[str] = None
     
 class ConsoleWarningEvent(BaseTimelineEvent):
-    page_url: str = None
+    page_url: Optional[str] = None
     console_warn_data: ConsoleData
     
     def reduce_into_one_line(self) -> str:
@@ -516,7 +516,7 @@ class ConsoleWarningEvent(BaseTimelineEvent):
         return s
 
 class ConsoleErrorEvent(BaseTimelineEvent):
-    page_url: str = None
+    page_url: Optional[str] = None
     console_error_data: ConsoleData
     
     def reduce_into_one_line(self) -> str:
@@ -542,7 +542,7 @@ class JavaScriptErrorData(BaseModel):
     userAgent: Optional[str] = None
 
 class JavaScriptErrorEvent(BaseTimelineEvent):
-    page_url: str = None
+    page_url: Optional[str] = None
     javascript_error_data: JavaScriptErrorData
     
     def reduce_into_one_line(self) -> str:
@@ -567,7 +567,7 @@ class SessionStorageData(BaseModel):
     value: Optional[str] = None
 
 class SessionStorageEvent(BaseTimelineEvent):
-    page_url: str = None
+    page_url: Optional[str] = None
     session_storage_data: SessionStorageData
     
     def reduce_into_one_line(self) -> str:
