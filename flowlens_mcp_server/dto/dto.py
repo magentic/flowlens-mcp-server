@@ -14,6 +14,8 @@ class _BaseDTO(BaseModel):
     
     @staticmethod
     def _truncate_string(s: str, max_length: Optional[int] = None) -> str:
+        if not isinstance(s, (str,)):
+            s = str(s)
         if not s:
             return s
         limit = max_length or settings.flowlens_max_string_length
@@ -299,12 +301,17 @@ class NavigationData(BaseModel):
         return f"{self.url} {self.frame_id} {self.transition_type}"
 
 class LocalStorageData(_BaseDTO):
-    key: str
+    key: Optional[str] = None
     value: Optional[str] = None
     
     def reduce_into_one_line(self) -> str:
-        return f"{self.key} {self.value or ''}"
-    
+        items = []
+        if self.key:
+            items.append(f"key={self._truncate_string(self.key)}")
+        if self.value:
+            items.append(f"value={self._truncate_string(self.value)}")
+        return " ".join(items)
+
     @model_validator(mode="before")
     def validate_value_length(cls, values:dict):
         value = values.get("value")
@@ -570,7 +577,7 @@ class JavaScriptErrorEvent(BaseTimelineEvent):
         return s
 
 class SessionStorageData(BaseModel):
-    key: str
+    key: Optional[str] = None
     value: Optional[str] = None
 
 class SessionStorageEvent(BaseTimelineEvent):
@@ -579,7 +586,14 @@ class SessionStorageEvent(BaseTimelineEvent):
     
     def reduce_into_one_line(self) -> str:
         base_line = super().reduce_into_one_line()
-        return (f"{base_line} {self._truncate_string(self.session_storage_data.key)} {self._truncate_string(self.session_storage_data.value) or ''} ")
+        items = [
+            base_line
+        ]
+        if self.session_storage_data.key:
+            items.append(f"key={self._truncate_string(self.session_storage_data.key)}")
+        if self.session_storage_data.value:
+            items.append(f"value={self._truncate_string(self.session_storage_data.value)}")
+        return ' '.join(items)
 
     @model_validator(mode="before")
     def validate_session_storage(cls, values):

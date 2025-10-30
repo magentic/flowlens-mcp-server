@@ -197,9 +197,9 @@ async def search_flow_events_with_regex(flow_id: str, pattern: str, event_type: 
     - NavigationEvent (page navigation)
     [index:int] navigation history_change [relative_timestamp:int]ms [url:string] [frame_id:string] [transition_type:string]
     - LocalStorageEvent (local storage set or get)
-    [index:int] local_storage [set|get] [relative_timestamp:int]ms [key:string] [value:string or empty if get]
+    [index:int] local_storage [set|get] [relative_timestamp:int]ms key=[key:string:optional] value=[value:string:optional]
     - SessionStorageEvent (session storage set or get)
-    [index:int] session_storage [set|get] [relative_timestamp:int]ms [key:string] [value:string or empty if get]
+    [index:int] session_storage [set|get] [relative_timestamp:int]ms key=[key:string:optional] value=[value:string:optional]
     - ConsoleWarningEvent (console warning message)
     [index:int] console_warn warning_logged [relative_timestamp:int]ms [message:string]
     - ConsoleErrorEvent (console error message)
