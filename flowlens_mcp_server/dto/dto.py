@@ -287,7 +287,7 @@ class DomTarget(_BaseDTO):
             f"type={self.type or 'unknown'}"
         ]
         if self.textContent or self.src:
-            items.append(f"text={self._truncate_string(self.textContent or self.src)}")
+            items.append(f"text_content={self._truncate_string(self.textContent or self.src)}")
         return " ".join(items)
 
 class NavigationData(BaseModel):
