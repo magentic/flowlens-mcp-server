@@ -284,9 +284,10 @@ class DomTarget(_BaseDTO):
 
     def reduce_into_one_line(self) -> str:
         items = [
-            f"type={self.type or 'unknown'}",
-            f"content={self._truncate_string(self.textContent or self.src or '')}"
+            f"type={self.type or 'unknown'}"
         ]
+        if self.textContent or self.src:
+            items.append(f"text={self._truncate_string(self.textContent or self.src)}")
         return " ".join(items)
 
 class NavigationData(BaseModel):
