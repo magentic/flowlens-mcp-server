@@ -579,6 +579,12 @@ class JavaScriptErrorEvent(BaseTimelineEvent):
 class SessionStorageData(BaseModel):
     key: Optional[str] = None
     value: Optional[str] = None
+    
+    @model_validator(mode="before")
+    def validate_value_length(cls, values:dict):
+        value = values.get("value")
+        values["value"] = str(value) if value else None
+        return values
 
 class SessionStorageEvent(BaseTimelineEvent):
     page_url: Optional[str] = None
