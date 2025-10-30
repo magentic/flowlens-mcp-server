@@ -610,11 +610,6 @@ class SessionStorageEvent(BaseTimelineEvent):
         values["action_type"] = actions_map.get(action, None)
         return values
 
-    def _truncate_string(self, s: str) -> str:
-        if isinstance(s, str) and len(s) > settings.flowlens_max_string_length:
-            return s[:settings.flowlens_max_string_length] + "...(truncated)"
-        return s
-
 class WebSocketInitiatorData(BaseModel):
     columnNumber: Optional[int] = None
     functionName: Optional[str] = None
