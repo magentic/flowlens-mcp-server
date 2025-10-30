@@ -14,12 +14,4 @@ class UserAuthMiddleware(Middleware):
         context.fastmcp_context.set_state("flowlens_service", service)
         return await call_next(context=context)
 
-    def _extract_auth_header(self):
-        try:
-            request: Request = get_http_request()
-            auth_header = request.headers.get("Authorization", None)
-            return auth_header
-        except Exception as e:
-            return None
-
 flowlens_mcp.add_middleware(UserAuthMiddleware())

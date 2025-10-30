@@ -190,14 +190,16 @@ async def search_flow_events_with_regex(flow_id: str, pattern: str, event_type: 
     [index:int] network_request_with_response debugger_request_with_response [relative_timestamp:int]ms [POST|PUT|PATCH|GET|DELETE] [url:string] {[trace_id=opentelemtry_trace_id:string]:Optional} {[datadog_trace_id=datadog_trace_id:string]:Optional} status_code=[status_code:int] duration=[duration:int]ms
     - NetworkRequestPending (request sent but no response received yet)
     [index:int] network_request_pending debugger_request_pending [relative_timestamp:int]ms [POST|PUT|PATCH|GET|DELETE] [url:string] {[trace_id=opentelemtry_trace_id:string]:Optional} {[datadog_trace_id=datadog_trace_id:string]:Optional} 
+    - NetworkRequestFailedAtNetworkLevel (request failed at network level e.g. DNS failure, connection timeout, etc.)
+    [index:int] network_level_failed_request network_level_failed_request [relative_timestamp:int]ms [POST|PUT|PATCH|GET|DELETE] [url:string] {[trace_id=opentelemtry_trace_id:string]:Optional} {[datadog_trace_id=datadog_trace_id:string]:Optional} network_error=[error_text:string]
     - DomActionEvent (click, keydown_session, scroll, etc.)
-    [index:int] dom_action [click|keydown_session|scroll|etc.] [relative_timestamp:int]ms [element_text:string or element_src:string]
+    [index:int] dom_action [click|keydown_session|scroll|etc.] [relative_timestamp:int]ms type=[element_type:string] text_content=[element_text:string or element_src:string:optional] 
     - NavigationEvent (page navigation)
     [index:int] navigation history_change [relative_timestamp:int]ms [url:string] [frame_id:string] [transition_type:string]
     - LocalStorageEvent (local storage set or get)
-    [index:int] local_storage [set|get] [relative_timestamp:int]ms [key:string] [value:string or empty if get]
+    [index:int] local_storage [set|get] [relative_timestamp:int]ms key=[key:string:optional] value=[value:string:optional]
     - SessionStorageEvent (session storage set or get)
-    [index:int] session_storage [set|get] [relative_timestamp:int]ms [key:string] [value:string or empty if get]
+    [index:int] session_storage [set|get] [relative_timestamp:int]ms key=[key:string:optional] value=[value:string:optional]
     - ConsoleWarningEvent (console warning message)
     [index:int] console_warn warning_logged [relative_timestamp:int]ms [message:string]
     - ConsoleErrorEvent (console error message)

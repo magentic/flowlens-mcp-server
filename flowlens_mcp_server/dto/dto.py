@@ -14,6 +14,10 @@ class _BaseDTO(BaseModel):
     
     @staticmethod
     def _truncate_string(s: str, max_length: Optional[int] = None) -> str:
+        if not isinstance(s, (str,)):
+            s = str(s)
+        if not s:
+            return s
         limit = max_length or settings.flowlens_max_string_length
         if isinstance(s, str) and len(s) > limit:
             return s[:limit] + "...(truncated)"
@@ -233,7 +237,7 @@ class NetworkRequestData(BaseNetworkData):
     method: str
     url: str
     resource_type: Optional[str] = None
-    
+    network_level_err_text: Optional[str] = None
     
     @property
     def domain_name(self) -> str:
@@ -273,13 +277,20 @@ class NetworkResponseData(BaseNetworkData):
         return values
     
 
-class DomTarget(BaseModel):
+class DomTarget(_BaseDTO):
     src: Optional[str] = None
     textContent: Optional[str] = None
     xpath: str
+    type: Optional[str] = None
+    
 
     def reduce_into_one_line(self) -> str:
-        return f"{self.textContent or self.src or ''}"
+        items = [
+            f"type={self.type or 'unknown'}"
+        ]
+        if self.textContent or self.src:
+            items.append(f"text_content={self._truncate_string(self.textContent or self.src)}")
+        return " ".join(items)
 
 class NavigationData(BaseModel):
     url: str
@@ -290,12 +301,17 @@ class NavigationData(BaseModel):
         return f"{self.url} {self.frame_id} {self.transition_type}"
 
 class LocalStorageData(_BaseDTO):
-    key: str
+    key: Optional[str] = None
     value: Optional[str] = None
     
     def reduce_into_one_line(self) -> str:
-        return f"{self.key} {self.value or ''}"
-    
+        items = []
+        if self.key:
+            items.append(f"key={self._truncate_string(self.key)}")
+        if self.value:
+            items.append(f"value={self._truncate_string(self.value)}")
+        return " ".join(items)
+
     @model_validator(mode="before")
     def validate_value_length(cls, values:dict):
         value = values.get("value")
@@ -323,6 +339,10 @@ class BaseTimelineEvent(_BaseDTO):
 class NetworkRequestEvent(BaseTimelineEvent):
     correlation_id: str
     network_request_data: NetworkRequestData
+    
+    @property
+    def is_network_level_failed_request(self) -> bool:
+        return self.network_request_data.network_level_err_text is not None
 
     def search_url_with_regex(self, pattern: str) -> bool:
         is_url_match = re.search(pattern, self.network_request_data.url or "")
@@ -334,8 +354,14 @@ class NetworkRequestEvent(BaseTimelineEvent):
         return match_obj is not None
 
     def reduce_into_one_line(self) -> str:
-        base_line = super().reduce_into_one_line()
-        return (f"{base_line} {self.correlation_id} {self.network_request_data.reduce_into_one_line()}")
+        items = [
+            super().reduce_into_one_line(),
+            self.correlation_id,
+            self.network_request_data.reduce_into_one_line()
+        ]
+        if self.is_network_level_failed_request:
+            items.append(f"network_error={self.network_request_data.network_level_err_text}")
+        return " ".join(items)
 
     @model_validator(mode="before")
     def validate_request_data(cls, values):
@@ -423,7 +449,10 @@ class DomActionEvent(BaseTimelineEvent):
         values['type'] = enums.TimelineEventType.DOM_ACTION
         action_map = {
             "click": enums.ActionType.CLICK,
-            "keydown_session": enums.ActionType.KEYDOWN_SESSION
+            "keydown_session": enums.ActionType.KEYDOWN_SESSION,
+            "submit": enums.ActionType.SUBMIT,
+            "scroll": enums.ActionType.SCROLL,
+            "input": enums.ActionType.INPUT
         }
         action = values.get("action_type")
         values["action_type"] = action_map.get(action, enums.ActionType.UNKNOWN)
@@ -442,11 +471,17 @@ class NavigationEvent(BaseTimelineEvent):
         if not isinstance(values, dict):
             return values
         values['type'] = enums.TimelineEventType.NAVIGATION
-        values['action_type'] = enums.ActionType.HISTORY_CHANGE
+        action_map = {
+            "history_change": enums.ActionType.HISTORY_CHANGE,
+            "page_navigation": enums.ActionType.PAGE_NAVIGATION,
+            "hash_change": enums.ActionType.HASH_CHANGE
+        }
+        action = values.get("action_type")
+        values["action_type"] = action_map.get(action, enums.ActionType.UNKNOWN)
         return values
 
 class LocalStorageEvent(BaseTimelineEvent):
-    page_url: str
+    page_url: Optional[str] = None
     local_storage_data: LocalStorageData
     
     def reduce_into_one_line(self) -> str:
@@ -474,7 +509,7 @@ class ConsoleData(BaseModel):
     userAgent: Optional[str] = None
     
 class ConsoleWarningEvent(BaseTimelineEvent):
-    page_url: str = None
+    page_url: Optional[str] = None
     console_warn_data: ConsoleData
     
     def reduce_into_one_line(self) -> str:
@@ -495,7 +530,7 @@ class ConsoleWarningEvent(BaseTimelineEvent):
         return s
 
 class ConsoleErrorEvent(BaseTimelineEvent):
-    page_url: str = None
+    page_url: Optional[str] = None
     console_error_data: ConsoleData
     
     def reduce_into_one_line(self) -> str:
@@ -521,7 +556,7 @@ class JavaScriptErrorData(BaseModel):
     userAgent: Optional[str] = None
 
 class JavaScriptErrorEvent(BaseTimelineEvent):
-    page_url: str = None
+    page_url: Optional[str] = None
     javascript_error_data: JavaScriptErrorData
     
     def reduce_into_one_line(self) -> str:
@@ -542,16 +577,29 @@ class JavaScriptErrorEvent(BaseTimelineEvent):
         return s
 
 class SessionStorageData(BaseModel):
-    key: str
+    key: Optional[str] = None
     value: Optional[str] = None
+    
+    @model_validator(mode="before")
+    def validate_value_length(cls, values:dict):
+        value = values.get("value")
+        values["value"] = str(value) if value else None
+        return values
 
 class SessionStorageEvent(BaseTimelineEvent):
-    page_url: str = None
+    page_url: Optional[str] = None
     session_storage_data: SessionStorageData
     
     def reduce_into_one_line(self) -> str:
         base_line = super().reduce_into_one_line()
-        return (f"{base_line} {self._truncate_string(self.session_storage_data.key)} {self._truncate_string(self.session_storage_data.value) or ''} ")
+        items = [
+            base_line
+        ]
+        if self.session_storage_data.key:
+            items.append(f"key={self._truncate_string(self.session_storage_data.key)}")
+        if self.session_storage_data.value:
+            items.append(f"value={self._truncate_string(self.session_storage_data.value)}")
+        return ' '.join(items)
 
     @model_validator(mode="before")
     def validate_session_storage(cls, values):
@@ -567,11 +615,6 @@ class SessionStorageEvent(BaseTimelineEvent):
         action = values.get("action_type")
         values["action_type"] = actions_map.get(action, None)
         return values
-
-    def _truncate_string(self, s: str) -> str:
-        if isinstance(s, str) and len(s) > settings.flowlens_max_string_length:
-            return s[:settings.flowlens_max_string_length] + "...(truncated)"
-        return s
 
 class WebSocketInitiatorData(BaseModel):
     columnNumber: Optional[int] = None

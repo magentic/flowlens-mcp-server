@@ -35,6 +35,7 @@ class TimelineEventType(Enum):
     WEBSOCKET_FRAME_SENT = "websocket_frame_sent"
     WEBSOCKET_FRAME_RECEIVED = "websocket_frame_received"
     WEBSOCKET_CLOSED = "websocket_closed"
+    NETWORK_LEVEL_FAILED_REQUEST = "network_level_failed_request"
     
 
 class ActionType(Enum):
@@ -44,11 +45,16 @@ class ActionType(Enum):
     DEBUGGER_REQUEST_PENDING = "debugger_request_pending"
     CLICK = "click"
     KEYDOWN_SESSION = "keydown_session"
+    INPUT = "input"
+    SCROLL = "scroll"
+    SUBMIT = "submit"
     GET = "get"
     SET = "set"
     CLEAR = "clear"
     REMOVE = "remove"
     HISTORY_CHANGE = "history_change"
+    PAGE_NAVIGATION = "page_navigation"
+    HASH_CHANGE = "hash_change"
     WARNING_LOGGED = "warning_logged"
     ERROR_LOGGED = "error_logged"
     ERROR_CAPTURED = "error_captured"
@@ -58,4 +64,6 @@ class ActionType(Enum):
     MESSAGE_SENT = "message_sent"
     MESSAGE_RECEIVED = "message_received"
     CONNECTION_CLOSED = "connection_closed"
+    NETWORK_LEVEL_FAILED_REQUEST = "network_level_failed_request"
     UNKNOWN = "unknown"
+
