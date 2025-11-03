@@ -74,7 +74,6 @@ class Flow(BaseModel):
         json_encoders={datetime: lambda v: v.isoformat()},
         ser_json_timedelta='iso8601',
     )
-    
     id: str
     title: str
     description: Optional[str] = None
@@ -187,8 +186,8 @@ class FlowlensFlow(_BaseDTO):
     
     def truncate(self):
         copy = self.model_copy(deep=True)
-        if copy.description:
-            copy.description = self._truncate_string(copy.description)
+        # if copy.description:
+        #     copy.description = self._truncate_string(copy.description)
         for comment in (copy.comments or []):
             comment.content = self._truncate_string(comment.content)
         return copy
@@ -339,6 +338,7 @@ class BaseTimelineEvent(_BaseDTO):
 class NetworkRequestEvent(BaseTimelineEvent):
     correlation_id: str
     network_request_data: NetworkRequestData
+    latency_ms: Optional[int] = None
     
     @property
     def is_network_level_failed_request(self) -> bool:
@@ -359,6 +359,8 @@ class NetworkRequestEvent(BaseTimelineEvent):
             self.correlation_id,
             self.network_request_data.reduce_into_one_line()
         ]
+        if self.latency_ms is not None:
+            items.append(f"latency={self.latency_ms}ms")
         if self.is_network_level_failed_request:
             items.append(f"network_error={self.network_request_data.network_level_err_text}")
         return " ".join(items)
