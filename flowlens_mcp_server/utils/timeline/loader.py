@@ -42,9 +42,8 @@ class TimelineLoader:
         self._metadata = data.get("metadata", {})
         
     async def _load_json_from_url(self) -> dict:
-        headers = {'Accept-Encoding': 'gzip'}
         async with aiohttp.ClientSession() as session:
-            async with session.get(self._url, headers=headers) as response:
+            async with session.get(self._url) as response:
                 response.raise_for_status()
                 try:
                     return await response.json(content_type=None)
