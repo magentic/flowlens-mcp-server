@@ -10,9 +10,10 @@ log = logger_setup.Logger(__name__)
 
 
 class FlowLensServiceParams:
-    def __init__(self, flow_uuid: Optional[str] = None):
+    def __init__(self, flow_uuid: Optional[str] = None, local_flow_zip_path: Optional[str] = None):
         self.token = settings.flowlens_mcp_token
         self.flow_uuid = flow_uuid
+        self.local_flow_zip_path = local_flow_zip_path
 
 class FlowLensService:
     def __init__(self, params: FlowLensServiceParams):
@@ -20,15 +21,13 @@ class FlowLensService:
         base_url = f"{settings.flowlens_url}/flowlens"
         self._client = http_request.HttpClient(params.token, base_url)
 
-    def get_cached_flow(self) -> Optional[dto.FlowlensFlow]:
-        cached_flow = flow_registry.get_flow(self.params.flow_uuid)
+    async def get_cached_flow(self) -> Optional[dto.FlowlensFlow]:
+        cached_flow = await flow_registry.get_flow(self.params.flow_uuid)
+        if not cached_flow:
+            raise RuntimeError(f"Flow with id {self.params.flow_uuid} not found in cache. Must get the flow first before accessing its timeline.")
         return cached_flow
     
     async def get_flow(self) -> dto.FlowlensFlow:
-        cached_flow = self.get_cached_flow()
-        if cached_flow:
-            return cached_flow
-        
         flow = await self._request_flow()
 
         if not flow:
@@ -41,11 +40,11 @@ class FlowLensService:
 
 
     async def get_flow_full_comments(self) -> List[dto.FlowComment]:
-        flow = await self.get_flow()
+        flow = await self.get_cached_flow()
         return flow.comments
 
     async def save_screenshot(self, timestamp: float) -> str:
-        flow = await self.get_flow()
+        flow = await self.get_cached_flow()
         if not flow.are_screenshots_available:
             raise RuntimeError("Screenshots are not available for this flow")
         params = VideoHandlerParams(flow.uuid, flow.duration_ms)
