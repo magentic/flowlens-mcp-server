@@ -10,10 +10,9 @@ log = logger_setup.Logger(__name__)
 
 
 class FlowLensServiceParams:
-    def __init__(self, flow_id: Optional[str] = None):
+    def __init__(self, flow_uuid: Optional[str] = None):
         self.token = settings.flowlens_mcp_token
-        self.flow_id = flow_id
-
+        self.flow_uuid = flow_uuid
 
 class FlowLensService:
     def __init__(self, params: FlowLensServiceParams):
@@ -21,46 +20,49 @@ class FlowLensService:
         base_url = f"{settings.flowlens_url}/flowlens"
         self._client = http_request.HttpClient(params.token, base_url)
 
-    def set_flow_id(self, flow_id: str):
-        self.params.flow_id = flow_id
-
-    async def list_flows(self) -> dto.FlowList:
-        response = await self._client.get("flows", response_model=dto.FlowList)
-        return response
-
+    def get_cached_flow(self) -> Optional[dto.FlowlensFlow]:
+        cached_flow = flow_registry.get_flow(self.params.flow_uuid)
+        return cached_flow
+    
     async def get_flow(self) -> dto.FlowlensFlow:
+        cached_flow = self.get_cached_flow()
+        if cached_flow:
+            return cached_flow
+        
         flow = await self._request_flow()
+
+        if not flow:
+            raise RuntimeError(f"Flow with id {self.params.flow_uuid} not found")
+        return flow
+    
+    async def get_truncated_flow(self) -> dto.FlowlensFlow:
+        flow = await self.get_flow()
         return flow.truncate()
 
+
     async def get_flow_full_comments(self) -> List[dto.FlowComment]:
-        flow = await self._get_flow()
+        flow = await self.get_flow()
         return flow.comments
 
     async def save_screenshot(self, timestamp: float) -> str:
         flow = await self.get_flow()
         if not flow.are_screenshots_available:
             raise RuntimeError("Screenshots are not available for this flow")
-        params = VideoHandlerParams(flow.id, flow.duration_ms)
+        params = VideoHandlerParams(flow.uuid, flow.duration_ms)
         handler = VideoHandler(params)
         image_path = await handler.save_screenshot(timestamp)
         return image_path
-    
-    async def _get_flow(self) -> dto.FlowlensFlow:
-        if await flow_registry.is_registered(self.params.flow_id):
-            return await flow_registry.get_flow(self.params.flow_id)
-        flow = await self._request_flow()
-        return flow
 
     async def _request_flow(self):
         qparams = {
             "session_uuid": settings.flowlens_session_uuid,
             "mcp_version": settings.flowlens_mcp_version
             }
-        response: dto.FullFlow = await self._client.get(f"flow/{self.params.flow_id}", qparams=qparams, response_model=dto.FullFlow)
+        response: dto.FullFlow = await self._client.get(f"flow/{self.params.flow_uuid}", qparams=qparams, response_model=dto.FullFlow)
         timeline_overview = await timeline_registry.register_timeline(response)
         await self._load_video(response)
         flow = dto.FlowlensFlow(
-            id=response.id,
+            uuid=response.id,
             title=response.title,
             description=response.description,
             created_at=response.created_at,

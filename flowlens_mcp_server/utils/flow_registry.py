@@ -8,7 +8,7 @@ class FlowRegistry:
 
     async def register_flow(self, flow: dto.FlowlensFlow):
         async with self._lock:
-            self._flows[flow.id] = flow
+            self._flows[flow.uuid] = flow
 
     async def get_flow(self, flow_id: str) -> dto.FlowlensFlow:
         async with self._lock:

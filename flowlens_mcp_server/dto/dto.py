@@ -166,7 +166,7 @@ class WebSocketOverview(BaseModel):
     handshake_responses_count: Optional[int] = 0
 
 class FlowlensFlow(_BaseDTO):
-    id: str
+    uuid: str
     title: str
     description: Optional[str] = None
     created_at: datetime = Field(..., description="Native datetime in UTC")
