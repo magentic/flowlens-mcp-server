@@ -32,7 +32,7 @@ class LocalZipClient:
         flow = dto.FullFlow.model_validate(flow_dict)
         return flow
     
-    def _create_local_files_data(self, recording_type: enums.RecordingType) -> dto.LocalFilesData:
+    def _create_local_files_data(self) -> dto.LocalFilesData:
         timeline_file_path = self._extracted_path / self._timeline_filename
         video_file_path = None
         rrweb_file_path = None

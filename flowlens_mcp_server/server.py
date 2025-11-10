@@ -19,4 +19,4 @@ def run_http():
 
 if __name__ == "__main__":
     
-    run_stdio()
+    run_http()
