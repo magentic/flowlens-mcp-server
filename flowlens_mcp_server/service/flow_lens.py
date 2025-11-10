@@ -66,6 +66,7 @@ class FlowLensService:
             "mcp_version": settings.flowlens_mcp_version
             }
         response: dto.FullFlow = await self._client.get(f"flow/{self.params.flow_uuid}", qparams=qparams, response_model=dto.FullFlow)
+        await self._load_video(response)
         return await self._create_flow(response)
     
     async def _request_flow_by_zip(self) -> dto.FlowlensFlow:
@@ -74,7 +75,6 @@ class FlowLensService:
     
     async def _create_flow(self, base_flow: dto.FullFlow) -> dto.FlowlensFlow:
         timeline_overview = await timeline_registry.register_timeline(base_flow)
-        await self._load_video(base_flow)
         flow = dto.FlowlensFlow(
             uuid=base_flow.id,
             title=base_flow.title,
@@ -92,7 +92,9 @@ class FlowLensService:
             http_request_domain_summary=timeline_overview.http_request_domain_summary,
             recording_type=base_flow.recording_type,
             are_screenshots_available=base_flow.are_screenshots_available,
-            websockets_overview=timeline_overview.websockets_overview
+            websockets_overview=timeline_overview.websockets_overview,
+            is_local=bool(self.params.local_flow_zip_path),
+            local_files_data=base_flow.local_files_data,
         )
         await flow_registry.register_flow(flow)
         return flow

@@ -203,6 +203,8 @@ class FlowlensFlow(_BaseDTO):
     recording_type: enums.RecordingType
     are_screenshots_available: bool
     websockets_overview: List[WebSocketOverview]
+    is_local: bool
+    local_files_data: Optional[LocalFilesData] = Field(None, exclude=True)
     
     def truncate(self):
         copy = self.model_copy(deep=True)
