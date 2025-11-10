@@ -1,9 +1,7 @@
 
 
+import asyncio
 import json
-import os
-import shutil
-import tempfile
 import aiofiles
 from typing import List
 from playwright.async_api import async_playwright, Page
@@ -20,15 +18,15 @@ class RrwebRenderer:
         rrweb_events = await self._extract_events(video_extract_events_sec)
         if not rrweb_events:
             raise ValueError("No rrweb events found for the specified time range.")
-        html_path = self._generate_html_with_embedded_events(rrweb_events)
-        session_duration = self._calculate_recording_duration(rrweb_events)
-        video_path = await self._record_rrweb_to_video(html_path, session_duration)
-        # os.remove(html_path)
-        shutil.move(html_path, "data/rrweb_temp2.html")
+        html_content = self._generate_html_with_embedded_events(rrweb_events)
+        video_path = await self._record_rrweb_to_video(html_content)
         return video_path
         
     
     async def _extract_events(self, video_relative_sec: int):
+        # work around showing white screen with a cursor
+        if video_relative_sec == 0:
+            video_relative_sec = 1
         async with aiofiles.open(self.rrweb_json_path, mode='r') as f:
             content = await f.read()
         rrweb_events = json.loads(content)['rrwebEvents']
@@ -39,15 +37,20 @@ class RrwebRenderer:
             if event['type'] == 2:  # Full snapshot
                 full_snapshot_index = i
             event_relative_sec = (event['timestamp'] - first_event_ts) / 1000.0
-            if event_relative_sec >= video_relative_sec:
+            if event_relative_sec > video_relative_sec:
                 end_event_index = i
                 break
-        if end_event_index == full_snapshot_index:
-            end_event_index += 1
+
+        # Ensure we have at least 2 events (rrweb requirement)
+        if end_event_index is None:
+            end_event_index = len(rrweb_events)
+        if end_event_index <= full_snapshot_index + 1:
+            end_event_index = min(full_snapshot_index + 2, len(rrweb_events))
+
         print(f"Full snapshot index: {full_snapshot_index}, End event index: {end_event_index}")
-        return rrweb_events[full_snapshot_index:end_event_index]
+        return rrweb_events[0:end_event_index]
     
-    async def _record_rrweb_to_video(self, html_path: str, video_duration: float) -> str:
+    async def _record_rrweb_to_video(self, html_content: str) -> str:
         async with async_playwright() as p:
             browser = await p.chromium.launch(headless=True)
             context = await browser.new_context(
@@ -57,17 +60,35 @@ class RrwebRenderer:
             )
             page = await context.new_page()
 
-            # Navigate to the HTML file
-            await page.goto(f"file://{html_path}", wait_until="networkidle")
+            # Create event to signal when replay is finished
+            replay_finished = asyncio.Event()
 
-            # Wait for player to be ready
-            await self._wait_for_player_ready(page)
-            
-            await page.wait_for_timeout(int(video_duration * 1000))
-            
+            # Navigate to blank page first
+            await page.goto("about:blank")
+
+            # Expose callback functions to the page BEFORE setting content
+            await page.expose_function("onReplayFinish", lambda: replay_finished.set())
+            await page.expose_function(
+                "onReplayProgressUpdate",
+                lambda payload: print(f"⏳ Replay progress: {payload.get('payload', 0) if isinstance(payload, dict) else payload}")
+            )
+
+            # Set HTML content (matching rrvideo approach)
+            await page.set_content(html_content, wait_until="networkidle")
+
+
+            # Wait for the replay to finish (event-driven instead of fixed duration)
+            print("⏳ Waiting for replay to finish...")
+            await replay_finished.wait()
+            print("✓ Replay finished")
+
+            # Add a small buffer to ensure video encoding completes
+            await page.wait_for_timeout(500)
+
             # Finalize recording
             await page.close()
-            video_path = page.video.path()
+            video_path = await page.video.path()
+            print("Local video path", video_path)
             await context.close()
             await browser.close()
 
@@ -78,15 +99,19 @@ class RrwebRenderer:
         """Wait for rrweb player to load and be ready"""
         print("⏳ Waiting for rrweb player to load...")
 
-        # Wait for the player container
-        await page.wait_for_selector("#player", timeout=self._selector_timeout_ms)
+        # Wait for the replayer wrapper to be created
+        await page.wait_for_selector(".replayer-wrapper", timeout=self._selector_timeout_ms)
 
         # Wait for rrweb player component to be attached
-        await page.wait_for_selector("#player .rr-player", timeout=self._selector_timeout_ms)
+        await page.wait_for_selector(".rr-player", timeout=self._selector_timeout_ms)
+
+        # Wait for window.replayer to be defined
+        await page.wait_for_function("typeof window.replayer !== 'undefined'", timeout=self._selector_timeout_ms)
+        print("✓ window.replayer is ready")
 
         # Wait for the iframe to be present (rrweb uses iframe for replay)
         try:
-            await page.wait_for_selector("#player iframe", timeout=self._selector_timeout_ms)
+            await page.wait_for_selector("iframe.replayer-iframe", timeout=self._selector_timeout_ms)
             print("✓ Player iframe detected")
         except Exception:
             print("⚠ Warning: No iframe detected, but continuing...")
@@ -98,52 +123,44 @@ class RrwebRenderer:
         
     def _generate_html_with_embedded_events(self, events: List) -> str:
         """
-        Generate an HTML file with rrweb events embedded directly.
-        This avoids CORS issues with file:// protocol.
+        Generate HTML content with rrweb events embedded directly.
+        HTML structure matches rrvideo reference implementation.
+        Returns the HTML string (not a file path).
         """
+        # Escape </script> tags in JSON to prevent premature script closing
+        events_json = json.dumps(events).replace('</script>', '<\\/script>')
+
         html_content = f"""<!DOCTYPE html>
-    <html>
-    <head>
+<html>
+  <head>
     <meta charset="utf-8">
-    <script src="https://cdn.jsdelivr.net/npm/rrweb-player@latest/dist/index.js"></script>
     <link href="https://cdn.jsdelivr.net/npm/rrweb-player@latest/dist/style.css" rel="stylesheet" />
-    <style>
-        html, body {{
-        margin: 0;
-        height: 100%;
-        background: #fff;
-        }}
-        #player {{
-        width: {self._video_width}px;
-        height: {self._video_height}px;
-        }}
-    </style>
-    </head>
-    <body>
-    <div id="player"></div>
+    <script src="https://cdn.jsdelivr.net/npm/rrweb-player@latest/dist/index.js"></script>
+    <style>html, body {{padding: 0; border: none; margin: 0;}}</style>
+  </head>
+  <body>
     <script>
-        const events = {json.dumps(events)};
-        new rrwebPlayer({{
-        target: document.getElementById('player'),
-        props: {{ events, width: {self._video_width}, height: {self._video_height}, autoPlay: true }}
-        }});
+      /*<!--*/
+      const events = {events_json};
+      /*-->*/
+      const userConfig = {{width: {self._video_width}, height: {self._video_height}}};
+      window.replayer = new rrwebPlayer({{
+        events,
+        target: document.body,
+        width: userConfig.width,
+        height: userConfig.height,
+        props: {{
+          ...userConfig,
+          events,
+          showController: false,
+          autoPlay: true
+        }}
+      }});
+      window.replayer.addEventListener('finish', () => window.onReplayFinish());
+      window.replayer.addEventListener('ui-update-progress', (payload) => window.onReplayProgressUpdate(payload));
     </script>
-    </body>
-    </html>"""
-        
-        print(f"📝 Creating temporary HTML file...")
-        tmp_fd, tmp_path = tempfile.mkstemp(suffix=".html")
-        os.close(tmp_fd)
-        with open(tmp_path, 'w') as f:
-            f.write(html_content)
-        
-        return tmp_path
-    
-    
-    def _calculate_recording_duration(self, events: List) -> float:
-        first_timestamp = events[0].get("timestamp", 0)
-        last_timestamp = events[-1].get("timestamp", 0)
-        
-        duration_ms = last_timestamp - first_timestamp
-        duration_seconds = duration_ms / 1000
-        return duration_seconds
+  </body>
+</html>"""
+
+        print("📝 Generated HTML content for rrweb replay")
+        return html_content
