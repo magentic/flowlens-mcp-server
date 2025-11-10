@@ -16,7 +16,6 @@ class RrwebRenderer:
         self._flow = flow
         self._video_width = 1280
         self._video_height = 720
-        self._selector_timeout_ms = 5000 # 5 seconds
         if self._flow.is_local:
             self._rrweb_file_path = self._flow.local_files_data.rrweb_file_path
             self._video_path = self._flow.local_files_data.video_file_path
@@ -43,15 +42,14 @@ class RrwebRenderer:
     
     async def _record_rrweb_to_video(self, html_content: str) -> str:
         async with async_playwright() as p:
-            browser = await p.chromium.launch(headless=True)
+            browser = await p.chromium.launch()
             context = await browser.new_context(
                 viewport={"width": self._video_width, "height": self._video_height},
                 record_video_dir="data/",
                 record_video_size={"width": self._video_width, "height": self._video_height}
             )
             page = await context.new_page()
-            page_recoding_start_time = time.time()
-
+            page_recording_start_time = time.time()
             # Create event to signal when replay is finished
             replay_finished = asyncio.Event()
             
@@ -63,31 +61,26 @@ class RrwebRenderer:
             await page.expose_function("onReplayFinish", lambda: replay_finished.set())
             
             differences_cache = []
-            def _onReplayCurrentTimeUpdate(payload):
+            def _on_replay_current_time_update(payload):
                 payload_time = payload.get('payload', 0) if isinstance(payload, dict) else payload
                 payload_time /= 1000.0  # Convert msec to sec
-                recording_time = time.time() - page_recoding_start_time
+                recording_time = time.time() - page_recording_start_time
                 difference = abs(payload_time - recording_time)
                 differences_cache.append(difference)
                 
             await page.expose_function(
                 "onReplayCurrentTimeUpdate",
-                _onReplayCurrentTimeUpdate)
-
-            # Set HTML content (matching rrvideo approach)
+                _on_replay_current_time_update)
+            
             await page.set_content(html_content, wait_until="networkidle")
-
-            # Wait for the replay to finish (event-driven instead of fixed duration)
-            print("⏳ Waiting for replay to finish...")
             await replay_finished.wait()
-            print("✓ Replay finished")
-
-            # Finalize recording
+            
             await page.close()
             await page.video.save_as(self._video_path)
             await context.close()
             await browser.close()
-            avg_differnce_sec = int(sum(differences_cache) / len(differences_cache) if differences_cache else 0)
+            avg_differnce_sec = round(sum(differences_cache) / len(differences_cache) if differences_cache else 0)
+            print(f"Min : {min(differences_cache)} Max : {max(differences_cache)} Avg: {avg_differnce_sec}")
             return avg_differnce_sec
         
         
@@ -122,7 +115,7 @@ class RrwebRenderer:
         props: {{
           ...userConfig,
           events,
-          showController: true,
+          showController: false,
           autoPlay: true
         }}
       }});

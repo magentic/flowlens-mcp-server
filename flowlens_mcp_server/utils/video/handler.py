@@ -8,7 +8,6 @@ from typing import Optional, Union
 import aiohttp
 from ..settings import settings
 from ...dto import dto
-from .rrweb_renderer import RrwebRenderer
 
 class _FrameInfo:
     def __init__(self, buffer):
