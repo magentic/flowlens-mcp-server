@@ -4,51 +4,39 @@ import asyncio
 import json
 import aiofiles
 from typing import List
-from playwright.async_api import async_playwright, Page
+from playwright.async_api import async_playwright
 
+from ...utils.settings import settings
+from ...dto import dto
 
 class RrwebRenderer:
-    def __init__(self, rrweb_json_path: str):
-        self.rrweb_json_path = rrweb_json_path
+    def __init__(self, flow: dto.FullFlow):
+        self._flow = flow
         self._video_width = 1280
         self._video_height = 720
         self._selector_timeout_ms = 5000 # 5 seconds
+        if self._flow.is_local:
+            self._rrweb_file_path = self._flow.local_files_data.rrweb_file_path
+            self._video_path = self._flow.local_files_data.video_file_path
+        else:
+            self._rrweb_file_path = f"{settings.flowlens_save_dir_path}/flows/{self._flow.id}/rrweb_video.json"
+            self._video_path = f"{settings.flowlens_save_dir_path}/flows/{self._flow.id}/video.webm"
     
-    async def render_second(self, video_extract_events_sec: int) -> str:
-        rrweb_events = await self._extract_events(video_extract_events_sec)
+    def render_rrweb(self):
+        asyncio.create_task(self._render_rrweb())
+        
+    async def _render_rrweb(self):
+        rrweb_events = await self._extract_events()
         if not rrweb_events:
             raise ValueError("No rrweb events found for the specified time range.")
         html_content = self._generate_html_with_embedded_events(rrweb_events)
-        video_path = await self._record_rrweb_to_video(html_content)
-        return video_path
+        await self._record_rrweb_to_video(html_content)
         
-    
-    async def _extract_events(self, video_relative_sec: int):
-        # work around showing white screen with a cursor
-        if video_relative_sec == 0:
-            video_relative_sec = 1
-        async with aiofiles.open(self.rrweb_json_path, mode='r') as f:
+    async def _extract_events(self):
+        async with aiofiles.open(self._rrweb_file_path, mode='r') as f:
             content = await f.read()
         rrweb_events = json.loads(content)['rrwebEvents']
-        first_event_ts = rrweb_events[0]['timestamp']
-        full_snapshot_index = None
-        end_event_index = None
-        for i, event in enumerate(rrweb_events):
-            if event['type'] == 2:  # Full snapshot
-                full_snapshot_index = i
-            event_relative_sec = (event['timestamp'] - first_event_ts) / 1000.0
-            if event_relative_sec > video_relative_sec:
-                end_event_index = i
-                break
-
-        # Ensure we have at least 2 events (rrweb requirement)
-        if end_event_index is None:
-            end_event_index = len(rrweb_events)
-        if end_event_index <= full_snapshot_index + 1:
-            end_event_index = min(full_snapshot_index + 2, len(rrweb_events))
-
-        print(f"Full snapshot index: {full_snapshot_index}, End event index: {end_event_index}")
-        return rrweb_events[0:end_event_index]
+        return rrweb_events
     
     async def _record_rrweb_to_video(self, html_content: str) -> str:
         async with async_playwright() as p:
@@ -76,7 +64,6 @@ class RrwebRenderer:
             # Set HTML content (matching rrvideo approach)
             await page.set_content(html_content, wait_until="networkidle")
 
-
             # Wait for the replay to finish (event-driven instead of fixed duration)
             print("⏳ Waiting for replay to finish...")
             await replay_finished.wait()
@@ -87,39 +74,10 @@ class RrwebRenderer:
 
             # Finalize recording
             await page.close()
-            video_path = await page.video.path()
-            print("Local video path", video_path)
+            await page.video.save_as(self._video_path)
             await context.close()
             await browser.close()
-
-            return str(video_path)
         
-    
-    async def _wait_for_player_ready(self, page: Page) -> None:
-        """Wait for rrweb player to load and be ready"""
-        print("⏳ Waiting for rrweb player to load...")
-
-        # Wait for the replayer wrapper to be created
-        await page.wait_for_selector(".replayer-wrapper", timeout=self._selector_timeout_ms)
-
-        # Wait for rrweb player component to be attached
-        await page.wait_for_selector(".rr-player", timeout=self._selector_timeout_ms)
-
-        # Wait for window.replayer to be defined
-        await page.wait_for_function("typeof window.replayer !== 'undefined'", timeout=self._selector_timeout_ms)
-        print("✓ window.replayer is ready")
-
-        # Wait for the iframe to be present (rrweb uses iframe for replay)
-        try:
-            await page.wait_for_selector("iframe.replayer-iframe", timeout=self._selector_timeout_ms)
-            print("✓ Player iframe detected")
-        except Exception:
-            print("⚠ Warning: No iframe detected, but continuing...")
-
-        # Wait for any network activity to settle
-        await page.wait_for_load_state("networkidle", timeout=self._selector_timeout_ms)
-
-        print("✓ Player loaded successfully")
         
     def _generate_html_with_embedded_events(self, events: List) -> str:
         """

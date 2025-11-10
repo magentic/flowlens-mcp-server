@@ -1,4 +1,7 @@
+import asyncio
 from typing import List, Optional
+
+from flowlens_mcp_server.utils.video.rrweb_renderer import RrwebRenderer
 from ..dto import dto
 from ..utils import http_request, logger_setup, local_zip
 from ..utils.flow_registry import flow_registry
@@ -66,10 +69,15 @@ class FlowLensService:
             }
         response: dto.FullFlow = await self._client.get(f"flow/{self.params.flow_uuid}", qparams=qparams, response_model=dto.FullFlow)
         await self._load_video(response)
+        if response.recording_type == dto.enums.RecordingType.RRWEB:
+            self._render_rrweb(response)
+        
         return await self._create_flow(response)
     
     async def _request_flow_by_zip(self) -> dto.FlowlensFlow:
         response: dto.FullFlow = await self._zip_client.get()
+        if response.recording_type == dto.enums.RecordingType.RRWEB:
+            self._render_rrweb(response)
         return await self._create_flow(response)
     
     async def _create_flow(self, base_flow: dto.FullFlow) -> dto.FlowlensFlow:
@@ -104,3 +112,7 @@ class FlowLensService:
             return
         handler = VideoHandler(flow)
         await handler.load_video()
+        
+    def _render_rrweb(self, flow: dto.FullFlow):
+        renderer = RrwebRenderer(flow)
+        renderer.render_rrweb()

@@ -18,7 +18,7 @@ class LocalZipClient:
     async def get(self) -> dto.FullFlow:
         self._extracted_path = await self._extract_zip()
         flow = await self._load_flow_from_timeline_json()
-        local_files_data = self._create_local_files_data(flow.recording_type)
+        local_files_data = self._create_local_files_data()
         flow.local_files_data = local_files_data
         return flow
     
@@ -37,18 +37,15 @@ class LocalZipClient:
         video_file_path = None
         rrweb_file_path = None
         
-        if recording_type == enums.RecordingType.WEBM:
-            video_file_path = self._extracted_path / self._video_filename
-        
-        if recording_type == enums.RecordingType.RRWEB:
-            rrweb_file_path = self._extracted_path / self._rrweb_filename
+        video_file_path = self._extracted_path / self._video_filename
+        rrweb_file_path = self._extracted_path / self._rrweb_filename
         
         return dto.LocalFilesData(
             zip_file_path=self.zip_file_path,
             extracted_dir_path=str(self._extracted_path),
             timeline_file_path=str(timeline_file_path),
-            video_file_path=str(video_file_path) if video_file_path else None,
-            rrweb_file_path=str(rrweb_file_path) if rrweb_file_path else None
+            video_file_path=str(video_file_path),
+            rrweb_file_path=str(rrweb_file_path)
         )
     
     async def _extract_zip(self) -> Path:

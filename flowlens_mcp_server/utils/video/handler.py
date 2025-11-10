@@ -22,22 +22,17 @@ class VideoHandler:
             self._video_dir_path = self._flow.local_files_data.extracted_dir_path
         else:
             self._video_dir_path = f"{settings.flowlens_save_dir_path}/flows/{self._flow.uuid}"
-        if flow.recording_type == dto.enums.RecordingType.WEBM:
-            self._video_name = "video.webm"
-        else:
-            self._video_name = "rrweb_video.json"
+        self._video_name = "video.webm"
 
     async def load_video(self):
         await self._download_video()
 
     async def save_screenshot(self, video_sec: int) -> str:
         if self._flow.recording_type == dto.enums.RecordingType.RRWEB:
-            video_path = await self._render_rrweb(video_sec)
-            frame_info = await asyncio.to_thread(self._extract_last_frame_buffer, video_sec, video_path)
+            video_path = self._flow.local_files_data.video_file_path
         else:
             video_path = os.path.join(self._video_dir_path, self._video_name)
-            frame_info = await asyncio.to_thread(self._extract_frame_buffer, video_path, video_sec)
-        
+        frame_info = await asyncio.to_thread(self._extract_frame_buffer, video_path, video_sec)
         os.makedirs(self._video_dir_path, exist_ok=True)
         output_path = os.path.join(self._video_dir_path, f"screenshot_sec{video_sec}.jpg")
 
@@ -45,17 +40,6 @@ class VideoHandler:
             await f.write(bytearray(frame_info.buffer))
         return os.path.abspath(output_path)
     
-    def _extract_last_frame_buffer(self, video_second, video_path:str) -> _FrameInfo:
-        cap = cv2.VideoCapture(video_path)
-        last_frame = None
-        while True:
-            ret, frame = cap.read()
-            if not ret:
-                break
-            last_frame = frame
-        cap.release()
-        return self._extract_frame_image(video_second, last_frame)
-        
     def _extract_frame_buffer(self, video_path:str, video_sec:int) -> _FrameInfo:
         cap = cv2.VideoCapture(video_path)
         frame = None
@@ -80,18 +64,16 @@ class VideoHandler:
             raise RuntimeError("Failed to encode frame as JPEG")
 
         return _FrameInfo(buffer)
-    
-    async def _render_rrweb(self, video_sec: int) -> str:
-        rrweb_json_path = os.path.join(self._video_dir_path, self._video_name)
-        renderer = RrwebRenderer(rrweb_json_path)
-        video_path = await renderer.render_second(video_sec)
-        return video_path
-
    
     async def _download_video(self):
         if not self._flow.video_url:
             return
-        dest_path = os.path.join(self._video_dir_path, self._video_name)
+        if self._flow.recording_type == dto.enums.RecordingType.WEBM:
+            video_name = "video.webm"
+        else:
+            video_name = "rrweb_video.json"
+            
+        dest_path = os.path.join(self._video_dir_path, video_name)
         if os.path.exists(dest_path):
             return
         try:
