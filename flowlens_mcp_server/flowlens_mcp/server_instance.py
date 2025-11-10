@@ -6,7 +6,7 @@ flowlens_mcp = FastMCP("Flowlens MCP")
 
 
 class UserAuthMiddleware(Middleware):
-    async def on_call_tool(self, context: MiddlewareContext, call_next):
+    async def on_call_tool(self, call_next):
         version.VersionService().assert_supported_version()
         return await call_next()
 

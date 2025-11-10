@@ -4,7 +4,7 @@ from ..utils import http_request, logger_setup, local_zip
 from ..utils.flow_registry import flow_registry
 from ..utils.settings import settings
 from ..utils.timeline.registry import timeline_registry
-from ..utils.video.handler import VideoHandler, VideoHandlerParams
+from ..utils.video.handler import VideoHandler
 
 log = logger_setup.Logger(__name__)
 
@@ -95,7 +95,6 @@ class FlowLensService:
             is_local=bool(self.params.local_flow_zip_path),
             local_files_data=base_flow.local_files_data,
             video_url=base_flow.video_url,
-            recording_type=base_flow.recording_type
         )
         await flow_registry.register_flow(flow)
         return flow
