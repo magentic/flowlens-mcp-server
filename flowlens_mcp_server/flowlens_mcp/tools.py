@@ -22,7 +22,7 @@ async def get_flow_by_uuid(flow_uuid: str) -> dto.FlowlensFlow:
     Returns:
         dto.FlowlensFlow: The FlowlensFlow dto object.
     """
-    service: FlowLensService = _get_flow_service(flow_uuid)
+    service: FlowLensService = _get_flow_service(flow_uuid=flow_uuid)
     return await service.get_truncated_flow()
 
 @server_instance.flowlens_mcp.tool

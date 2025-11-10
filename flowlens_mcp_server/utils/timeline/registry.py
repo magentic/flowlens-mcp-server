@@ -12,7 +12,7 @@ class TimelineRegistry:
         if await self.is_registered(flow.id):
             return await self.get_timeline(flow.id)
         
-        processor = TimelineProcessor(flow.timeline_url)
+        processor = TimelineProcessor(flow)
         timeline = await processor.process()
 
         async with self._lock:

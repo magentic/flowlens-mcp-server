@@ -1,3 +1,4 @@
+import aiofiles
 import aiohttp
 import json
 
@@ -8,8 +9,8 @@ from ..logger_setup import Logger
 logger = Logger(__name__)
 
 class TimelineLoader:
-    def __init__(self, url: str):
-        self._url = url
+    def __init__(self, flow: dto.FullFlow):
+        self._flow = flow
         self._raw_timeline: list = None
         self._metadata: dict = None
         
@@ -37,7 +38,13 @@ class TimelineLoader:
             return None
 
     async def _load_timeline_data(self):
-        data = await self._load_json_from_url()
+        if self._flow.is_local:
+            timeline_file_path = self._flow.local_files_data.timeline_file_path
+            async with aiofiles.open(timeline_file_path, mode='r') as f:
+                content = await f.read()
+            data = json.loads(content)
+        else:
+            data = await self._load_json_from_url()
         self._raw_timeline = data.get("timeline", [])
         self._metadata = data.get("metadata", {})
         

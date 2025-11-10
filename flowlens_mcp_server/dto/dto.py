@@ -43,7 +43,7 @@ class FlowComment(BaseModel):
         ser_json_timedelta='iso8601',
     )
     
-    flow_id: str
+    flow_id: Optional[str] = None
     video_second: int
     content: str
     id: Optional[str] = None
@@ -69,6 +69,13 @@ class User(BaseModel):
     systems: Optional[List[System]] = None
     auth_id: str
 
+class LocalFilesData(BaseModel):
+    zip_file_path: str
+    extracted_dir_path: str
+    timeline_file_path: str
+    video_file_path: Optional[str] = None
+    rrweb_file_path: Optional[str] = None
+    
 class Flow(BaseModel):
     model_config = ConfigDict(
         json_encoders={datetime: lambda v: v.isoformat()},
@@ -80,6 +87,7 @@ class Flow(BaseModel):
     video_duration_ms: int
     created_at: datetime = Field(..., description="Native datetime in UTC")
     system_id: str
+    is_local: bool
     system: Optional[System] = []
     tags: Optional[List[FlowTag]] = []
     reporter: Optional[str] = None
@@ -90,6 +98,18 @@ class Flow(BaseModel):
     comments: Optional[List[FlowComment]] = None
     recording_type: enums.RecordingType
     recording_status: enums.ProcessingStatus
+    local_files_data: Optional[LocalFilesData] = Field(None, exclude=True)
+    
+    @model_validator(mode="before")
+    def validate_timestamp(cls, values:dict):
+        values["id"] = values.get("flow_id")
+        values["video_duration_ms"] = values.get("recording_duration_ms")
+        recording_type_dict = {
+            "RRWEB": enums.RecordingType.RRWEB,
+            "WEBM": enums.RecordingType.WEBM
+        }
+        values["recording_type"] = recording_type_dict.get(values.get("recording_type"))
+        return values
 
 class FlowList(BaseModel):
     flows: List[Flow]
