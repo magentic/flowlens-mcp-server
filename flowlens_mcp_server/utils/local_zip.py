@@ -13,7 +13,7 @@ class LocalZipClient:
         self._extracted_path = None
         self._timeline_filename = 'timeline.json'
         self._video_filename = 'video.webm'
-        self._rrweb_filename = 'rrweb.json'
+        self._rrweb_filename = 'rrweb_video.json'
         
     async def get(self) -> dto.FullFlow:
         self._extracted_path = await self._extract_zip()

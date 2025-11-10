@@ -2,6 +2,7 @@
 
 import json
 import os
+import shutil
 import tempfile
 import aiofiles
 from typing import List
@@ -22,19 +23,20 @@ class RrwebRenderer:
         html_path = self._generate_html_with_embedded_events(rrweb_events)
         session_duration = self._calculate_recording_duration(rrweb_events)
         video_path = await self._record_rrweb_to_video(html_path, session_duration)
-        os.remove(html_path)
+        # os.remove(html_path)
+        shutil.move(html_path, "data/rrweb_temp2.html")
         return video_path
         
     
     async def _extract_events(self, video_relative_sec: int):
         async with aiofiles.open(self.rrweb_json_path, mode='r') as f:
             content = await f.read()
-        rrweb_events = json.loads(content)
+        rrweb_events = json.loads(content)['rrwebEvents']
         first_event_ts = rrweb_events[0]['timestamp']
         full_snapshot_index = None
         end_event_index = None
         for i, event in enumerate(rrweb_events):
-            if event['type'] == 2:  # Full snapshot
+            if event['type'] == 2 and event_relative_sec <= video_relative_sec:  # Full snapshot
                 full_snapshot_index = i
             event_relative_sec = (event['timestamp'] - first_event_ts) / 1000.0
             if event_relative_sec >= video_relative_sec:
@@ -42,6 +44,7 @@ class RrwebRenderer:
                 break
         if end_event_index == full_snapshot_index:
             end_event_index += 1
+        print(f"Full snapshot index: {full_snapshot_index}, End event index: {end_event_index}")
         return rrweb_events[full_snapshot_index:end_event_index]
     
     async def _record_rrweb_to_video(self, html_path: str, video_duration: float) -> str:
@@ -68,7 +71,7 @@ class RrwebRenderer:
             await context.close()
             await browser.close()
 
-            return video_path
+            return str(video_path)
         
     
     async def _wait_for_player_ready(self, page: Page) -> None:

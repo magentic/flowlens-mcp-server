@@ -25,7 +25,7 @@ class VideoHandler:
         if flow.recording_type == dto.enums.RecordingType.WEBM:
             self._video_name = "video.webm"
         else:
-            self._video_name = "rrweb.json"
+            self._video_name = "rrweb_video.json"
 
     async def load_video(self):
         await self._download_video()

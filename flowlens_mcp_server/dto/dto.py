@@ -91,13 +91,13 @@ class Flow(BaseModel):
     system: Optional[System] = []
     tags: Optional[List[FlowTag]] = []
     reporter: Optional[str] = None
-    sequence_diagram_status: enums.ProcessingStatus
-    is_timeline_uploaded: bool
-    is_video_uploaded: bool
-    has_extended_sequence_diagram: bool
+    sequence_diagram_status: Optional[enums.ProcessingStatus] = enums.ProcessingStatus.COMPLETED
+    is_timeline_uploaded: Optional[bool] = True
+    is_video_uploaded: Optional[bool] = True
+    has_extended_sequence_diagram: Optional[bool] = False
     comments: Optional[List[FlowComment]] = None
     recording_type: enums.RecordingType
-    recording_status: enums.ProcessingStatus
+    recording_status: Optional[enums.ProcessingStatus] = enums.ProcessingStatus.COMPLETED
     local_files_data: Optional[LocalFilesData] = Field(None, exclude=True)
     
     @model_validator(mode="before")
@@ -122,9 +122,9 @@ class FullFlow(Flow):
     
     @property
     def are_screenshots_available(self) -> bool:
-        if self.recording_type == enums.RecordingType.RRWEB:
-            return False
-        return self.video_url is not None
+        if self.video_url:
+            return True
+        return self.is_local
     
 class DeleteResponse(BaseModel):
     id: str
