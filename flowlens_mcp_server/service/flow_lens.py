@@ -47,8 +47,7 @@ class FlowLensService:
         flow = await self.get_cached_flow()
         if not flow.are_screenshots_available:
             raise RuntimeError("Screenshots are not available for this flow")
-        params = VideoHandlerParams(flow.uuid, flow.duration_ms)
-        handler = VideoHandler(params)
+        handler = VideoHandler(flow)
         image_path = await handler.save_screenshot(timestamp)
         return image_path
 
@@ -95,6 +94,7 @@ class FlowLensService:
             websockets_overview=timeline_overview.websockets_overview,
             is_local=bool(self.params.local_flow_zip_path),
             local_files_data=base_flow.local_files_data,
+            video_url=base_flow.video_url
         )
         await flow_registry.register_flow(flow)
         return flow
@@ -102,6 +102,5 @@ class FlowLensService:
     async def _load_video(self, flow: dto.FullFlow):
         if not flow.are_screenshots_available:
             return
-        params = VideoHandlerParams(flow.id, flow.video_url)
-        handler = VideoHandler(params)
+        handler = VideoHandler(flow)
         await handler.load_video()

@@ -4,17 +4,10 @@ import cv2
 import os
 import shutil
 import tempfile
-from typing import Optional
+from typing import Optional, Union
 import aiohttp
 from ..settings import settings
-
-
-
-class VideoHandlerParams:
-    def __init__(self, flow_id: str, url: Optional[str] = None):
-        self.url = url
-        self.flow_id = flow_id
-
+from ...dto import dto
 
 class _FrameInfo:
     def __init__(self, buffer):
@@ -22,9 +15,12 @@ class _FrameInfo:
 
 
 class VideoHandler:
-    def __init__(self, params: VideoHandlerParams):
-        self._params = params
-        self._video_dir_path = f"{settings.flowlens_save_dir_path}/flows/{self._params.flow_id}"
+    def __init__(self, flow: Union[dto.FlowlensFlow, dto.FullFlow]):
+        self._flow = flow
+        if self._flow.is_local:
+            self._video_dir_path = self._flow.local_files_data.extracted_dir_path
+        else:
+            self._video_dir_path = f"{settings.flowlens_save_dir_path}/flows/{self._flow.uuid}"
         self._video_name = "video.webm"
 
     async def load_video(self):
@@ -65,7 +61,7 @@ class VideoHandler:
 
    
     async def _download_video(self):
-        if not self._params.url:
+        if not self._flow.video_url:
             return
         dest_path = os.path.join(self._video_dir_path, self._video_name)
         if os.path.exists(dest_path):
@@ -76,7 +72,7 @@ class VideoHandler:
             os.close(tmp_fd)
             timeout = aiohttp.ClientTimeout(connect=5, sock_read=60)
             async with aiohttp.ClientSession(timeout=timeout) as session:
-                async with session.get(self._params.url) as resp:
+                async with session.get(self._flow.video_url) as resp:
                     resp.raise_for_status()
                     async with aiofiles.open(tmp_path, "wb") as f:
                         async for chunk in resp.content.iter_chunked(64 * 1024):

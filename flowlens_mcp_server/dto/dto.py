@@ -205,6 +205,7 @@ class FlowlensFlow(_BaseDTO):
     websockets_overview: List[WebSocketOverview]
     is_local: bool
     local_files_data: Optional[LocalFilesData] = Field(None, exclude=True)
+    video_url: Optional[str] = Field(None, exclude=True)
     
     def truncate(self):
         copy = self.model_copy(deep=True)
