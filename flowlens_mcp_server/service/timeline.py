@@ -5,13 +5,13 @@ from ..models import enums
 from ..utils.timeline.registry import timeline_registry
 
 class TimelineServiceParams:
-    def __init__(self, flow_id: str):
-        self.flow_id = flow_id
+    def __init__(self, flow_uuid: str):
+        self.flow_uuid = flow_uuid
 
 def load_timeline(func):
     async def wrapper(self, *args, **kwargs):
         if not self._overview:
-            self._overview = await timeline_registry.get_timeline(self.params.flow_id)
+            self._overview = await timeline_registry.get_timeline(self.params.flow_uuid)
             self._timeline = self._overview.timeline
         return await func(self, *args, **kwargs)
     return wrapper
