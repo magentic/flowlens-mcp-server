@@ -32,6 +32,10 @@ class VideoHandler:
             video_path = self._flow.local_files_data.video_file_path
         else:
             video_path = os.path.join(self._video_dir_path, self._video_name)
+        if not os.path.exists(video_path):
+            rrweb_message = "Wait for 20 seconds and try again as the video is still being processed."
+            message = rrweb_message if self._flow.recording_type == dto.enums.RecordingType.RRWEB else "RRWEB video not found, we cannot extract screenshot."
+            raise RuntimeError(f"Video file not found at {video_path}. {message}")
         frame_info = await asyncio.to_thread(self._extract_frame_buffer, video_path, video_sec)
         os.makedirs(self._video_dir_path, exist_ok=True)
         output_path = os.path.join(self._video_dir_path, f"screenshot_sec{video_sec}.jpg")
@@ -41,6 +45,9 @@ class VideoHandler:
         return os.path.abspath(output_path)
     
     def _extract_frame_buffer(self, video_path:str, video_sec:int) -> _FrameInfo:
+        if self._flow.shift_seconds:
+            video_sec += self._flow.shift_seconds
+            print(f"⏱ Adjusted video_sec with shift_seconds: {self._flow.shift_seconds}, new video_sec: {video_sec}")
         cap = cv2.VideoCapture(video_path)
         frame = None
         ts = -1

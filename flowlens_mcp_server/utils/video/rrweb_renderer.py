@@ -3,10 +3,12 @@
 import asyncio
 import json
 import aiofiles
+import time
 from typing import List
 from playwright.async_api import async_playwright
 
 from ...utils.settings import settings
+from ...utils.flow_registry import flow_registry
 from ...dto import dto
 
 class RrwebRenderer:
@@ -30,7 +32,8 @@ class RrwebRenderer:
         if not rrweb_events:
             raise ValueError("No rrweb events found for the specified time range.")
         html_content = self._generate_html_with_embedded_events(rrweb_events)
-        await self._record_rrweb_to_video(html_content)
+        avg_shift_secs = await self._record_rrweb_to_video(html_content)
+        await flow_registry.set_flow_shift_seconds(self._flow.id, avg_shift_secs)
         
     async def _extract_events(self):
         async with aiofiles.open(self._rrweb_file_path, mode='r') as f:
@@ -47,19 +50,29 @@ class RrwebRenderer:
                 record_video_size={"width": self._video_width, "height": self._video_height}
             )
             page = await context.new_page()
+            page_recoding_start_time = time.time()
 
             # Create event to signal when replay is finished
             replay_finished = asyncio.Event()
+            
 
             # Navigate to blank page first
             await page.goto("about:blank")
 
             # Expose callback functions to the page BEFORE setting content
             await page.expose_function("onReplayFinish", lambda: replay_finished.set())
+            
+            differences_cache = []
+            def _onReplayCurrentTimeUpdate(payload):
+                payload_time = payload.get('payload', 0) if isinstance(payload, dict) else payload
+                payload_time /= 1000.0  # Convert msec to sec
+                recording_time = time.time() - page_recoding_start_time
+                difference = abs(payload_time - recording_time)
+                differences_cache.append(difference)
+                
             await page.expose_function(
-                "onReplayProgressUpdate",
-                lambda payload: print(f"⏳ Replay progress: {payload.get('payload', 0) if isinstance(payload, dict) else payload}")
-            )
+                "onReplayCurrentTimeUpdate",
+                _onReplayCurrentTimeUpdate)
 
             # Set HTML content (matching rrvideo approach)
             await page.set_content(html_content, wait_until="networkidle")
@@ -69,14 +82,13 @@ class RrwebRenderer:
             await replay_finished.wait()
             print("✓ Replay finished")
 
-            # Add a small buffer to ensure video encoding completes
-            await page.wait_for_timeout(500)
-
             # Finalize recording
             await page.close()
             await page.video.save_as(self._video_path)
             await context.close()
             await browser.close()
+            avg_differnce_sec = int(sum(differences_cache) / len(differences_cache) if differences_cache else 0)
+            return avg_differnce_sec
         
         
     def _generate_html_with_embedded_events(self, events: List) -> str:
@@ -110,12 +122,13 @@ class RrwebRenderer:
         props: {{
           ...userConfig,
           events,
-          showController: false,
+          showController: true,
           autoPlay: true
         }}
       }});
+      window.replayer.addEventListener('start', () => window.onReplayStart());
       window.replayer.addEventListener('finish', () => window.onReplayFinish());
-      window.replayer.addEventListener('ui-update-progress', (payload) => window.onReplayProgressUpdate(payload));
+      window.replayer.addEventListener('ui-update-current-time', (payload) => window.onReplayCurrentTimeUpdate(payload));
     </script>
   </body>
 </html>"""
