@@ -36,7 +36,7 @@ class RrwebRenderer:
         full_snapshot_index = None
         end_event_index = None
         for i, event in enumerate(rrweb_events):
-            if event['type'] == 2 and event_relative_sec <= video_relative_sec:  # Full snapshot
+            if event['type'] == 2:  # Full snapshot
                 full_snapshot_index = i
             event_relative_sec = (event['timestamp'] - first_event_ts) / 1000.0
             if event_relative_sec >= video_relative_sec:
