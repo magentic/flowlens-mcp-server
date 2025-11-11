@@ -206,7 +206,7 @@ class FlowlensFlow(_BaseDTO):
     is_local: bool
     local_files_data: Optional[LocalFilesData] = Field(None, exclude=True)
     video_url: Optional[str] = Field(None, exclude=True)
-    shift_seconds: Optional[int] = Field(None, exclude=True)
+    is_rendering_finished: Optional[bool] = Field(None, exclude=True)
     
     def truncate(self):
         copy = self.model_copy(deep=True)

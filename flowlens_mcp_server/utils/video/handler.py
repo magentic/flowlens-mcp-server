@@ -27,8 +27,10 @@ class VideoHandler:
         await self._download_video()
 
     async def save_screenshot(self, video_sec: int) -> str:
-        if self._flow.recording_type == dto.enums.RecordingType.RRWEB:
-            video_path = self._flow.local_files_data.video_file_path
+        if self._flow.recording_type == dto.enums.RecordingType.RRWEB and self._flow.is_rendering_finished:
+            return f"{self._video_dir_path}/screenshot_sec{video_sec}.jpg"
+        elif self._flow.recording_type == dto.enums.RecordingType.RRWEB and not self._flow.is_rendering_finished:
+            raise RuntimeError("RRWEB video is still being processed, cannot extract screenshot yet. Please try again in 20 seconds.")
         else:
             video_path = os.path.join(self._video_dir_path, self._video_name)
         if not os.path.exists(video_path):
@@ -44,9 +46,6 @@ class VideoHandler:
         return os.path.abspath(output_path)
     
     def _extract_frame_buffer(self, video_path:str, video_sec:int) -> _FrameInfo:
-        if self._flow.shift_seconds:
-            video_sec += self._flow.shift_seconds
-            print(f"⏱ Adjusted video_sec with shift_seconds: {self._flow.shift_seconds}, new video_sec: {video_sec}")
         cap = cv2.VideoCapture(video_path)
         frame = None
         ts = -1

@@ -72,8 +72,8 @@ class RrwebRenderer:
         duration_secs = duration_ms / 1000.0
         print(f"📊 Total recording duration: {duration_secs:.2f}s")
         html_content = self._generate_html_with_embedded_events(rrweb_events)
-        avg_shift_secs = await self._record_rrweb_to_video(html_content, exact_seconds)
-        await flow_registry.set_flow_shift_seconds(self._flow.id, avg_shift_secs)
+        is_rendering_finished = await self._record_rrweb_to_video(html_content, exact_seconds)
+        await flow_registry.set_finished_rendering(self._flow.id, is_rendering_finished)
         
     async def _extract_events(self):
         async with aiofiles.open(self._rrweb_file_path, mode='r') as f:
@@ -198,7 +198,7 @@ class RrwebRenderer:
             print(f"✅ Total seconds processed: {total_seconds}")
             # No timing offset needed with sequential screenshot approach
 
-            return 0
+            return True
         
         
     def _generate_html_with_embedded_events(self, events: List) -> str:
