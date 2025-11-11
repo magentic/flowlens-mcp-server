@@ -24,8 +24,7 @@ class RrwebRenderer:
         else:
             self._rrweb_file_path = f"{settings.flowlens_save_dir_path}/flows/{self._flow.id}/rrweb_video.json"
             self._video_path = f"{settings.flowlens_save_dir_path}/flows/{self._flow.id}/video.webm"
-            self._screenshot_dir = f"{settings.flowlens_save_dir_path}/flows/{self._flow.id}/extracted"
-            os.makedirs(self._screenshot_dir, exist_ok=True)
+            self._screenshot_dir = f"{settings.flowlens_save_dir_path}/flows/{self._flow.id}"
     
     def render_rrweb(self):
         asyncio.create_task(self._render_rrweb())
@@ -76,6 +75,8 @@ class RrwebRenderer:
         await flow_registry.set_finished_rendering(self._flow.id, is_rendering_finished)
         
     async def _extract_events(self):
+        if not os.path.exists(self._rrweb_file_path):
+            raise FileNotFoundError(f"RRWEB file not found at {self._rrweb_file_path}")
         async with aiofiles.open(self._rrweb_file_path, mode='r') as f:
             content = await f.read()
         rrweb_events = json.loads(content)['rrwebEvents']
@@ -116,10 +117,12 @@ class RrwebRenderer:
             await page.expose_function("onTimeUpdate", on_time_update)
 
             # Set the HTML content with rrweb player
+            print("⏳ Setting up rrweb player...")
             await page.set_content(html_content, wait_until="networkidle")
-
+            print("⏳ Waiting for replay to start...")
             # Wait for the replay to start (signals that player is ready)
             await replay_started.wait()
+            print("✅ Replay started, player is ready.")
 
             # Immediately pause the player to take manual control
             await page.evaluate("window.replayer.pause()")

@@ -102,8 +102,8 @@ class Flow(BaseModel):
     
     @model_validator(mode="before")
     def validate_timestamp(cls, values:dict):
-        values["id"] = values.get("flow_id")
-        values["video_duration_ms"] = values.get("recording_duration_ms")
+        values["id"] = values.get("flow_id", values.get("id"))
+        values["video_duration_ms"] = values.get("recording_duration_ms", values.get("video_duration_ms"))
         recording_type_dict = {
             "RRWEB": enums.RecordingType.RRWEB,
             "WEBM": enums.RecordingType.WEBM
@@ -125,6 +125,10 @@ class FullFlow(Flow):
         if self.video_url:
             return True
         return self.is_local
+    
+    @property
+    def uuid(self) -> str:
+        return self.id
     
 class DeleteResponse(BaseModel):
     id: str
