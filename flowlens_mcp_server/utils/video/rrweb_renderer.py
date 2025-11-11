@@ -71,7 +71,8 @@ class RrwebRenderer:
         duration_secs = duration_ms / 1000.0
         print(f"📊 Total recording duration: {duration_secs:.2f}s")
         html_content = self._generate_html_with_embedded_events(rrweb_events)
-        is_rendering_finished = await self._record_rrweb_to_video(html_content, exact_seconds)
+        html_file_path = self._create_html_file(html_content)
+        is_rendering_finished = await self._record_rrweb_to_video(html_file_path, exact_seconds)
         await flow_registry.set_finished_rendering(self._flow.id, is_rendering_finished)
         
     async def _extract_events(self):
@@ -82,7 +83,7 @@ class RrwebRenderer:
         rrweb_events = json.loads(content)['rrwebEvents']
         return rrweb_events
     
-    async def _record_rrweb_to_video(self, html_content: str, exact_seconds: dict) -> str:
+    async def _record_rrweb_to_video(self, html_file_path: str, exact_seconds: dict) -> str:
         start = time.time()
         async with async_playwright() as p:
             browser = await p.chromium.launch()
@@ -116,9 +117,11 @@ class RrwebRenderer:
             await page.expose_function("onReplayFinish", lambda: replay_finished.set())
             await page.expose_function("onTimeUpdate", on_time_update)
 
-            # Set the HTML content with rrweb player
-            print("⏳ Setting up rrweb player...")
-            await page.set_content(html_content, wait_until="networkidle")
+            # Load the HTML file with rrweb player
+            print("⏳ Loading rrweb player...")
+            await page.goto(f"file://{html_file_path}", wait_until="domcontentloaded")
+            print("⏳ Waiting for rrweb player to initialize...")
+            await page.wait_for_function("typeof window.replayer !== 'undefined'", timeout=5000)
             print("⏳ Waiting for replay to start...")
             # Wait for the replay to start (signals that player is ready)
             await replay_started.wait()
@@ -202,6 +205,18 @@ class RrwebRenderer:
             # No timing offset needed with sequential screenshot approach
 
             return True
+        
+    def _create_html_file(self, html_content: str) -> str:
+        """
+        Create a temporary HTML file with the given content.
+        Returns the file path.
+        """
+        file_path = os.path.join(self._screenshot_dir, "temp_rrweb_player.html")
+        with open(file_path, "w", encoding="utf-8") as f:
+            f.write(html_content)
+
+        print(f"📝 Created temporary HTML file at {file_path}")
+        return file_path
         
         
     def _generate_html_with_embedded_events(self, events: List) -> str:
