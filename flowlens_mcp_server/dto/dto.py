@@ -553,11 +553,6 @@ class ConsoleWarningEvent(BaseTimelineEvent):
         values['type'] = enums.TimelineEventType.CONSOLE_WARNING
         values['action_type'] = enums.ActionType.WARNING_LOGGED
         return values
-    
-    def _truncate_string(self, s: str) -> str:
-        if isinstance(s, str) and len(s) > settings.flowlens_max_string_length:
-            return s[:settings.flowlens_max_string_length] + "...(truncated)"
-        return s
 
 class ConsoleErrorEvent(BaseTimelineEvent):
     page_url: Optional[str] = None
@@ -573,6 +568,55 @@ class ConsoleErrorEvent(BaseTimelineEvent):
             return values
         values['type'] = enums.TimelineEventType.CONSOLE_ERROR
         values['action_type'] = enums.ActionType.ERROR_LOGGED
+        return values
+    
+
+class ConsoleInfoEvent(BaseTimelineEvent):
+    page_url: Optional[str] = None
+    console_info_data: ConsoleData
+    
+    def reduce_into_one_line(self) -> str:
+        base_line = super().reduce_into_one_line()
+        return (f"{base_line} {self._truncate_string(self.console_info_data.message)} ")
+
+    @model_validator(mode="before")
+    def validate_console_info(cls, values):
+        if not isinstance(values, dict):
+            return values
+        values['type'] = enums.TimelineEventType.CONSOLE_INFO
+        values['action_type'] = enums.ActionType.INFO_LOGGED
+        return values
+
+class ConsoleDebugEvent(BaseTimelineEvent):
+    page_url: Optional[str] = None
+    console_debug_data: ConsoleData
+    
+    def reduce_into_one_line(self) -> str:
+        base_line = super().reduce_into_one_line()
+        return (f"{base_line} {self._truncate_string(self.console_debug_data.message)} ")
+
+    @model_validator(mode="before")
+    def validate_console_debug(cls, values):
+        if not isinstance(values, dict):
+            return values
+        values['type'] = enums.TimelineEventType.CONSOLE_DEBUG
+        values['action_type'] = enums.ActionType.DEBUG_LOGGED
+        return values
+
+class ConsoleLogEvent(BaseTimelineEvent):
+    page_url: Optional[str] = None
+    console_log_data: ConsoleData
+    
+    def reduce_into_one_line(self) -> str:
+        base_line = super().reduce_into_one_line()
+        return (f"{base_line} {self._truncate_string(self.console_log_data.message)} ")
+
+    @model_validator(mode="before")
+    def validate_console_log(cls, values):
+        if not isinstance(values, dict):
+            return values
+        values['type'] = enums.TimelineEventType.CONSOLE_LOG
+        values['action_type'] = enums.ActionType.LOG_LOGGED
         return values
 
 class JavaScriptErrorData(BaseModel):
@@ -778,7 +822,7 @@ TimelineEventType = Union[NetworkRequestEvent, NetworkResponseEvent, NetworkRequ
                          JavaScriptErrorEvent, SessionStorageEvent, 
                          WebsocketCreatedEvent, WebSocketHandshakeRequestEvent, WebSocketHandshakeResponseEvent,
                          WebSocketFrameSentEvent, WebSocketFrameReceivedEvent,
-                         WebSocketClosedEvent]
+                         WebSocketClosedEvent, ConsoleDebugEvent, ConsoleLogEvent, ConsoleInfoEvent]
 
     
 types_dict: dict[str, Type[TimelineEventType]] = {
@@ -797,6 +841,9 @@ types_dict: dict[str, Type[TimelineEventType]] = {
         enums.TimelineEventType.WEBSOCKET_FRAME_SENT.value: WebSocketFrameSentEvent,
         enums.TimelineEventType.WEBSOCKET_FRAME_RECEIVED.value: WebSocketFrameReceivedEvent,
         enums.TimelineEventType.WEBSOCKET_CLOSED.value: WebSocketClosedEvent,
+        enums.TimelineEventType.CONSOLE_DEBUG.value: ConsoleDebugEvent,
+        enums.TimelineEventType.CONSOLE_LOG.value: ConsoleLogEvent,
+        enums.TimelineEventType.CONSOLE_INFO.value: ConsoleInfoEvent,
         }
 
 class McpVersionResponse(BaseModel):

@@ -205,6 +205,12 @@ async def search_flow_events_with_regex(flow_uuid: str, pattern: str, event_type
     [index:int] local_storage [set|get] [relative_timestamp:int]ms key=[key:string:optional] value=[value:string:optional]
     - SessionStorageEvent (session storage set or get)
     [index:int] session_storage [set|get] [relative_timestamp:int]ms key=[key:string:optional] value=[value:string:optional]
+    - ConsoleDebugEvent (console debug message)
+    [index:int] console_debug debug_logged [relative_timestamp:int]ms [message:string]
+    - ConsoleLogEvent (console log message) 
+    [index:int] console_log log_logged [relative_timestamp:int]ms [message:string]
+    - ConsoleInfoEvent (console info message)
+    [index:int] console_info info_logged [relative_timestamp:int]ms [message:string]
     - ConsoleWarningEvent (console warning message)
     [index:int] console_warn warning_logged [relative_timestamp:int]ms [message:string]
     - ConsoleErrorEvent (console error message)
