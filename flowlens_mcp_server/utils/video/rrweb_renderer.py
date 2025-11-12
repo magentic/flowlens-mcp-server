@@ -204,6 +204,13 @@ class RrwebRenderer:
         await page.screenshot(path=screenshot_path)
         return screenshot_path
 
+    async def _try_screenshot(self, page, second: int, current_timestamp: int) -> bool:
+        """Try to take a screenshot at the given timestamp with timeout.
+        Returns True on success."""
+        await self._seek_to_timestamp(page, current_timestamp)
+        await self._take_screenshot_at_second(page, second)
+        return True
+
     async def _seek_to_timestamp(self, page, timestamp: int) -> bool:
         """Seek to a specific timestamp and wait for stability.
         Returns True on success, raises exception on failure."""
@@ -240,7 +247,7 @@ class RrwebRenderer:
             page.evaluate(f"window.replayer.goto({nearest_snapshot})"),
             timeout=self._seek_timeout
         )
-        await asyncio.sleep(self._snapshot_stabilization_wait)  # Allow DOM to stabilize
+        await page.evaluate("window.waitForDOMStability()")  # Allow DOM to stabilize
 
         # Now try to seek to target again
         await asyncio.wait_for(
@@ -305,14 +312,11 @@ class RrwebRenderer:
             self._log_attempt(attempt, len(self._retry_offsets), current_timestamp, offset)
 
             try:
-                # Wrap entire attempt in a timeout
-                async def try_screenshot():
-                    await self._seek_to_timestamp(page, current_timestamp)
-                    await self._take_screenshot_at_second(page, second)
-                    return True
-
                 # Overall timeout for entire attempt
-                success = await asyncio.wait_for(try_screenshot(), timeout=self._screenshot_attempt_timeout)
+                success = await asyncio.wait_for(
+                    self._try_screenshot(page, second, current_timestamp),
+                    timeout=self._screenshot_attempt_timeout
+                )
                 if success:
                     self._log_capture_result(second, current_timestamp, True, "direct")
                     screenshot_taken = True
@@ -329,13 +333,9 @@ class RrwebRenderer:
                 error_msg = str(e)
                 print(f"⚠️  Error for {current_timestamp}ms: {error_msg}")
 
-                # Check if this is a DOM error (insertBefore, Node type errors)
-                is_dom_error = any(keyword in error_msg for keyword in ['insertBefore', 'Node', 'appendChild', 'removeChild'])
-
-                if is_dom_error and not used_snapshot_recovery and attempt < len(self._retry_offsets) - 1:
+                if not used_snapshot_recovery and attempt < len(self._retry_offsets) - 1:
                     print(f"   🔄 DOM error detected, attempting snapshot recovery...")
                     used_snapshot_recovery = True
-
                     try:
                         await self._attempt_snapshot_recovery(page, second, current_timestamp)
                         self._log_capture_result(second, current_timestamp, True, "snapshot_recovery")
