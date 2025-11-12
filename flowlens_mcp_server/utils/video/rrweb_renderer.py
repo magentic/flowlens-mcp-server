@@ -5,7 +5,6 @@ import os
 import json
 import aiofiles
 import time
-from typing import List
 from playwright.async_api import async_playwright
 
 from ...utils.settings import settings
@@ -21,12 +20,34 @@ class RrwebRenderer:
         self._video_height = 720
         if self._flow.is_local:
             self._rrweb_file_path = self._flow.local_files_data.rrweb_file_path
-            self._video_path = self._flow.local_files_data.video_file_path
             self._screenshot_dir = self._flow.local_files_data.extracted_dir_path
         else:
             self._rrweb_file_path = f"{settings.flowlens_save_dir_path}/flows/{self._flow.id}/rrweb_video.json"
-            self._video_path = f"{settings.flowlens_save_dir_path}/flows/{self._flow.id}/video.webm"
             self._screenshot_dir = f"{settings.flowlens_save_dir_path}/flows/{self._flow.id}"
+
+        # Timing configurations
+        self._seek_timeout = 1.5
+        self._time_sync_timeout = 2.0
+        self._dom_stability_timeout = 1.0
+        self._dom_stability_wait_ms = 150
+        self._screenshot_attempt_timeout = 5.0
+        self._time_matching_tolerance_ms = 50
+        self._snapshot_stabilization_wait = 0.3
+
+        # Retry configurations
+        self._retry_offsets = [0, 100, -100, 200, -200, 300, -300, 500, -500]
+        self._fallback_search_distances = [1, 2, 3]
+
+        # Computed state (to be set during rendering)
+        self._video_duration_secs = None
+        self._type2_timestamps = None
+        self._html_file_path = None
+
+        # Replay synchronization state
+        self._replay_started = None
+        self._replay_finished = None
+        self._target_timestamp = None
+        self._time_reached = None
     
     def render_rrweb(self):
         asyncio.create_task(self._render_rrweb())
@@ -36,56 +57,14 @@ class RrwebRenderer:
         if not rrweb_events:
             raise ValueError("No rrweb events found for the specified time range.")
 
-        # Get first event timestamp for calculating relative time
-        first_event_timestamp = rrweb_events[0]['timestamp']
+        # Prepare rendering data and store in member variables
+        self._prepare_rendering_data(rrweb_events)
 
-        # Filter for type 2 (FullSnapshot) events
-        type2_events = [event for event in rrweb_events if event.get('type') == 2]
+        # Generate HTML and store path
+        self._html_file_path = self._create_html_file_with_events(rrweb_events)
 
-        if not type2_events:
-            raise ValueError("No type 2 (FullSnapshot) events found in rrweb recording.")
-
-        # Get the first type 2 event timestamp as the base (video start time)
-        base_timestamp = type2_events[0]['timestamp']
-
-        print(f"📊 Found {len(type2_events)} type 2 (FullSnapshot) events")
-        print(f"📍 First event timestamp: {first_event_timestamp}ms")
-        print(f"📍 Base timestamp (first type 2): {base_timestamp}ms")
-
-        # Calculate video duration from base timestamp
-        video_duration_ms = rrweb_events[-1]['timestamp'] - base_timestamp
-        video_duration_secs = video_duration_ms / 1000.0
-
-        # Calculate exact second timestamps relative to first event (for goto())
-        # Structure: {second: exact_relative_timestamp_ms}
-        exact_seconds = {}
-        for second in range(int(video_duration_secs) + 1):
-            # Exact timestamp for this second mark
-            abs_timestamp = base_timestamp + (second * 1000)
-            relative_timestamp = int(abs_timestamp - first_event_timestamp)
-            exact_seconds[second] = relative_timestamp
-
-        print(f"📍 Using exact second timestamps")
-        print(f"📍 Video duration: {video_duration_secs:.2f}s")
-        print(f"📍 Total seconds to capture: {len(exact_seconds)}")
-
-        duration_ms = rrweb_events[-1]['timestamp'] - rrweb_events[0]['timestamp']
-        duration_secs = duration_ms / 1000.0
-        print(f"📊 Total recording duration: {duration_secs:.2f}s")
-
-        # Store type2 events for snapshot recovery
-        type2_relative_timestamps = [event['timestamp'] - first_event_timestamp for event in type2_events]
-
-        # Generate HTML with or without controller based on flag
-        builder_params = BuilderParams(
-            events=rrweb_events,
-            video_width=self._video_width,
-            video_height=self._video_height
-        )
-        html_builder = HtmlBuilder(builder_params)
-        html_content = html_builder.build(self._show_controller)
-        html_file_path = self._create_html_file(html_content)
-        is_rendering_finished = await self._record_rrweb_to_video(html_file_path, exact_seconds, type2_relative_timestamps)
+        # Record video (uses member variables)
+        is_rendering_finished = await self._record_rrweb_to_video()
         await flow_registry.set_finished_rendering(self._flow.id, is_rendering_finished)
         
     async def _extract_events(self):
@@ -95,220 +74,311 @@ class RrwebRenderer:
             content = await f.read()
         rrweb_events = json.loads(content)['rrwebEvents']
         return rrweb_events
-    
-    async def _record_rrweb_to_video(self, html_file_path: str, exact_seconds: dict, type2_timestamps: List[int]) -> str:
-        start = time.time()
-        async with async_playwright() as p:
-            browser = await p.chromium.launch()
-            context = await browser.new_context(
-                viewport={"width": self._video_width, "height": self._video_height},
-            )
-            page = await context.new_page()
-            page.set_default_timeout(0)
 
-            # Create events to signal when replay has started and finished
-            replay_started = asyncio.Event()
-            replay_finished = asyncio.Event()
+    def _prepare_rendering_data(self, rrweb_events):
+        """Calculate and store rendering data: type2 timestamps and video duration."""
+        first_event_timestamp = rrweb_events[0]['timestamp']
 
-            # Time synchronization for seeking
-            target_timestamp = {"value": 0}  # Using dict to allow modification in closure
-            time_reached = asyncio.Event()
+        # Filter for type 2 (FullSnapshot) events
+        type2_events = [event for event in rrweb_events if event.get('type') == 2]
+        if not type2_events:
+            raise ValueError("No type 2 (FullSnapshot) events found in rrweb recording.")
 
-            def on_time_update(current_time):
-                """Called when player time updates. Checks if we've reached the target timestamp."""
-                # Allow small tolerance (50ms) for time matching
-                if abs(current_time - target_timestamp["value"]) < 50:
-                    time_reached.set()
+        # Calculate video duration from base timestamp
+        base_timestamp = type2_events[0]['timestamp']
+        video_duration_ms = rrweb_events[-1]['timestamp'] - base_timestamp
+        self._video_duration_secs = video_duration_ms / 1000.0
 
-            # Navigate to blank page first
-            await page.goto("about:blank")
+        # Store type2 relative timestamps for snapshot recovery
+        self._type2_timestamps = [event['timestamp'] - first_event_timestamp for event in type2_events]
 
-            # Expose callback functions to the page BEFORE setting content
-            await page.expose_function("onReplayStart", lambda: replay_started.set())
-            await page.expose_function("onReplayFinish", lambda: replay_finished.set())
-            await page.expose_function("onTimeUpdate", on_time_update)
+    def _create_html_file_with_events(self, rrweb_events) -> str:
+        """Generate HTML content with rrweb events and create file."""
+        builder_params = BuilderParams(
+            events=rrweb_events,
+            video_width=self._video_width,
+            video_height=self._video_height
+        )
+        html_builder = HtmlBuilder(builder_params)
+        html_content = html_builder.build(self._show_controller)
+        return self._create_html_file(html_content)
 
-            # Load the HTML file with rrweb player
-            print("⏳ Loading rrweb player...")
-            await page.goto(f"file://{html_file_path}", wait_until="domcontentloaded")
-            print("⏳ Waiting for rrweb player to initialize...")
-            await page.wait_for_function("typeof window.replayer !== 'undefined'", timeout=5000)
-            print("⏳ Waiting for replay to start...")
-            await replay_started.wait()
-            print("✅ Replay started, player is ready.")
+    def _find_nearest_snapshot(self, timestamp: int) -> int:
+        """Find the nearest Type 2 snapshot before the given timestamp."""
+        candidates = [ts for ts in self._type2_timestamps if ts <= timestamp]
+        return candidates[-1] if candidates else self._type2_timestamps[0]
 
-            # Immediately pause the player to take manual control
-            await page.evaluate("window.replayer.pause()")
+    def _calculate_exact_timestamp(self, second: int) -> int:
+        """Calculate the exact timestamp for a given second."""
+        return second * 1000
 
-            # Inject simple wait function for DOM settling
-            await page.evaluate("window.waitForDOMStability = function() { return new Promise(resolve => setTimeout(resolve, 150)); }")
-            print("✅ DOM wait function injected.")
+    def _log_attempt(self, attempt: int, total_attempts: int, timestamp: int, offset: int = 0):
+        """Log screenshot capture attempt with formatted output."""
+        timestamp_secs = timestamp / 1000.0
+        if attempt == 0:
+            print(f"⏱ Attempt {attempt + 1}/{total_attempts}: Seeking to {timestamp_secs:.2f}s (relative: {timestamp}ms)")
+        else:
+            offset_str = f"{offset:+d}ms" if offset != 0 else "0ms"
+            print(f"⏱ Retry {attempt}/{total_attempts - 1}: Seeking to {timestamp_secs:.2f}s (relative: {timestamp}ms, {offset_str} offset)")
 
-            # Helper function to find nearest snapshot
-            def find_nearest_snapshot(timestamp: int) -> int:
-                """Find the nearest Type 2 snapshot before the given timestamp."""
-                candidates = [ts for ts in type2_timestamps if ts <= timestamp]
-                return candidates[-1] if candidates else type2_timestamps[0]
+    def _log_capture_result(self, second: int, timestamp: int, success: bool, method: str = "direct"):
+        """Log the result of a screenshot capture attempt."""
+        if success:
+            if method == "direct":
+                print(f"✅ Player reached {timestamp}ms")
+                print(f"📸 Captured screenshot for second {second} at {timestamp}ms")
+            elif method == "snapshot_recovery":
+                print(f"✅ Snapshot recovery successful!")
+                print(f"📸 Captured screenshot for second {second} at {timestamp}ms")
+            elif method == "fallback":
+                print(f"📸 Using fallback screenshot from second {timestamp}")
+        else:
+            print(f"❌ Failed to capture screenshot for second {second}")
 
-            # Track successful screenshots for fallback
-            successful_screenshots = {}
+    def _print_session_statistics(self, start_time: float, total_seconds: int, successful_count: int):
+        """Print final statistics about the rendering session."""
+        session_duration = time.time() - start_time
+        print(f"\n✅ Session Duration: {session_duration:.2f} seconds")
+        print(f"✅ Total seconds processed: {total_seconds}")
+        print(f"✅ Successful screenshots: {successful_count}/{total_seconds}")
 
-            # Sequential screenshot capture: loop through each second
-            total_seconds = len(exact_seconds)
+    async def _setup_browser_context(self, playwright):
+        """Initialize browser, context, and page with proper configuration."""
+        browser = await playwright.chromium.launch()
+        context = await browser.new_context(
+            viewport={"width": self._video_width, "height": self._video_height},
+        )
+        page = await context.new_page()
+        page.set_default_timeout(0)
+        return browser, context, page
 
-            # Bidirectional retry offsets: try original, then ±100ms, ±200ms, ±300ms, ±500ms
-            retry_offsets = [0, 100, -100, 200, -200, 300, -300, 500, -500]
+    async def _setup_replay_synchronization(self, page):
+        """Setup event listeners and callbacks for replay coordination."""
+        # Create events to signal when replay has started and finished
+        self._replay_started = asyncio.Event()
+        self._replay_finished = asyncio.Event()
 
-            for second in sorted(exact_seconds.keys()):
-                exact_timestamp = exact_seconds[second]
-                print(f"\n📍 Second {second}: Starting at exact timestamp {exact_timestamp}ms")
+        # Time synchronization for seeking
+        self._target_timestamp = {"value": 0}  # Using dict to allow modification in closure
+        self._time_reached = asyncio.Event()
 
-                screenshot_taken = False
-                used_snapshot_recovery = False
+        def on_time_update(current_time):
+            """Called when player time updates. Checks if we've reached the target timestamp."""
+            if abs(current_time - self._target_timestamp["value"]) < self._time_matching_tolerance_ms:
+                self._time_reached.set()
 
-                # Try each offset
-                for attempt, offset in enumerate(retry_offsets):
-                    current_timestamp = exact_timestamp + offset
-                    timestamp_secs = current_timestamp / 1000.0
+        # Navigate to blank page first
+        await page.goto("about:blank")
 
-                    # Set target timestamp and reset the event
-                    target_timestamp["value"] = current_timestamp
-                    time_reached.clear()
+        # Expose callback functions to the page BEFORE setting content
+        await page.expose_function("onReplayStart", lambda: self._replay_started.set())
+        await page.expose_function("onReplayFinish", lambda: self._replay_finished.set())
+        await page.expose_function("onTimeUpdate", on_time_update)
 
-                    # Log attempt
-                    if attempt == 0:
-                        print(f"⏱ Attempt {attempt + 1}/{len(retry_offsets)}: Seeking to {timestamp_secs:.2f}s (relative: {current_timestamp}ms)")
-                    else:
-                        offset_str = f"{offset:+d}ms" if offset != 0 else "0ms"
-                        print(f"⏱ Retry {attempt}/{len(retry_offsets) - 1}: Seeking to {timestamp_secs:.2f}s (relative: {current_timestamp}ms, {offset_str} offset)")
+    async def _initialize_replay_page(self, page):
+        """Load HTML, wait for player, and inject helper functions."""
+        print("⏳ Loading rrweb player...")
+        await page.goto(f"file://{self._html_file_path}", wait_until="domcontentloaded")
+        print("⏳ Waiting for rrweb player to initialize...")
+        await page.wait_for_function("typeof window.replayer !== 'undefined'", timeout=5000)
+        print("⏳ Waiting for replay to start...")
+        await self._replay_started.wait()
+        print("✅ Replay started, player is ready.")
+
+        # Immediately pause the player to take manual control
+        await page.evaluate("window.replayer.pause()")
+
+        # Inject simple wait function for DOM settling
+        await page.evaluate(f"window.waitForDOMStability = function() {{ return new Promise(resolve => setTimeout(resolve, {self._dom_stability_wait_ms})); }}")
+        print("✅ DOM wait function injected.")
+
+    async def _cleanup_browser(self, page, context, browser):
+        """Close page, context, and browser."""
+        await page.close()
+        await context.close()
+        await browser.close()
+
+    async def _take_screenshot_at_second(self, page, second: int) -> str:
+        """Take a screenshot and return the file path."""
+        screenshot_path = f"{self._screenshot_dir}/screenshot_sec{second}.jpg"
+        await page.screenshot(path=screenshot_path)
+        return screenshot_path
+
+    async def _seek_to_timestamp(self, page, timestamp: int) -> bool:
+        """Seek to a specific timestamp and wait for stability.
+        Returns True on success, raises exception on failure."""
+        # Set target timestamp and reset the event
+        self._target_timestamp["value"] = timestamp
+        self._time_reached.clear()
+
+        # Goto with timeout
+        await asyncio.wait_for(
+            page.evaluate(f"window.replayer.goto({timestamp})"),
+            timeout=self._seek_timeout
+        )
+
+        # Wait for player to reach the target timestamp
+        await asyncio.wait_for(self._time_reached.wait(), timeout=self._time_sync_timeout)
+
+        # Wait for DOM stability
+        await asyncio.wait_for(
+            page.evaluate("window.waitForDOMStability()"),
+            timeout=self._dom_stability_timeout
+        )
+
+        return True
+
+    async def _attempt_snapshot_recovery(self, page, second: int, current_timestamp: int) -> bool:
+        """Attempt to recover from DOM errors using snapshot recovery.
+        Returns True if screenshot was successfully captured."""
+        # Find nearest snapshot
+        nearest_snapshot = self._find_nearest_snapshot(current_timestamp)
+        print(f"   📸 Seeking to nearest snapshot at {nearest_snapshot}ms")
+
+        # Reset to snapshot
+        await asyncio.wait_for(
+            page.evaluate(f"window.replayer.goto({nearest_snapshot})"),
+            timeout=self._seek_timeout
+        )
+        await asyncio.sleep(self._snapshot_stabilization_wait)  # Allow DOM to stabilize
+
+        # Now try to seek to target again
+        await asyncio.wait_for(
+            page.evaluate(f"window.replayer.goto({current_timestamp})"),
+            timeout=self._seek_timeout
+        )
+
+        # Wait for time sync and DOM stability
+        self._target_timestamp["value"] = current_timestamp
+        self._time_reached.clear()
+        await asyncio.wait_for(self._time_reached.wait(), timeout=self._time_sync_timeout)
+        await asyncio.wait_for(
+            page.evaluate("window.waitForDOMStability()"),
+            timeout=self._dom_stability_timeout
+        )
+
+        # Take screenshot
+        await self._take_screenshot_at_second(page, second)
+        return True
+
+    def _create_fallback_screenshot(self, second: int, successful_screenshots: dict) -> bool:
+        """Copy a nearby successful screenshot as fallback.
+        Returns True if fallback was created successfully."""
+        # Try to find nearest successful screenshot
+        fallback_source = None
+        for distance in self._fallback_search_distances:
+            if second - distance in successful_screenshots:
+                fallback_source = second - distance
+                break
+            elif second + distance in successful_screenshots:
+                fallback_source = second + distance
+                break
+
+        if fallback_source is not None:
+            try:
+                source_path = f"{self._screenshot_dir}/screenshot_sec{fallback_source}.jpg"
+                target_path = f"{self._screenshot_dir}/screenshot_sec{second}.jpg"
+
+                # Copy the file
+                import shutil
+                shutil.copy2(source_path, target_path)
+                self._log_capture_result(second, fallback_source, True, "fallback")
+                return True
+            except Exception as copy_error:
+                print(f"⚠️  Failed to copy fallback screenshot: {str(copy_error)}")
+        return False
+
+    async def _try_capture_with_retries(self, page, second: int, successful_screenshots: dict) -> bool:
+        """Try to capture screenshot with multiple retry offsets and strategies.
+        Returns True if screenshot was captured (including fallback)."""
+        exact_timestamp = self._calculate_exact_timestamp(second)
+        print(f"\n📍 Second {second}: Starting at exact timestamp {exact_timestamp}ms")
+
+        screenshot_taken = False
+        used_snapshot_recovery = False
+
+        # Try each offset
+        for attempt, offset in enumerate(self._retry_offsets):
+            current_timestamp = exact_timestamp + offset
+
+            # Log attempt
+            self._log_attempt(attempt, len(self._retry_offsets), current_timestamp, offset)
+
+            try:
+                # Wrap entire attempt in a timeout
+                async def try_screenshot():
+                    await self._seek_to_timestamp(page, current_timestamp)
+                    await self._take_screenshot_at_second(page, second)
+                    return True
+
+                # Overall timeout for entire attempt
+                success = await asyncio.wait_for(try_screenshot(), timeout=self._screenshot_attempt_timeout)
+                if success:
+                    self._log_capture_result(second, current_timestamp, True, "direct")
+                    screenshot_taken = True
+                    successful_screenshots[second] = True
+                    break  # Success! Move to next second
+
+            except asyncio.TimeoutError:
+                print(f"⚠️  Timeout for {current_timestamp}ms")
+                if attempt < len(self._retry_offsets) - 1:
+                    print(f"   Retrying with different offset...")
+                continue
+
+            except Exception as e:
+                error_msg = str(e)
+                print(f"⚠️  Error for {current_timestamp}ms: {error_msg}")
+
+                # Check if this is a DOM error (insertBefore, Node type errors)
+                is_dom_error = any(keyword in error_msg for keyword in ['insertBefore', 'Node', 'appendChild', 'removeChild'])
+
+                if is_dom_error and not used_snapshot_recovery and attempt < len(self._retry_offsets) - 1:
+                    print(f"   🔄 DOM error detected, attempting snapshot recovery...")
+                    used_snapshot_recovery = True
 
                     try:
-                        # Wrap entire attempt in a timeout
-                        async def try_screenshot():
-                            # Goto with timeout
-                            await asyncio.wait_for(
-                                page.evaluate(f"window.replayer.goto({current_timestamp})"),
-                                timeout=1.5
-                            )
+                        await self._attempt_snapshot_recovery(page, second, current_timestamp)
+                        self._log_capture_result(second, current_timestamp, True, "snapshot_recovery")
+                        screenshot_taken = True
+                        successful_screenshots[second] = True
+                        break
 
-                            # Wait for player to reach the target timestamp
-                            await asyncio.wait_for(time_reached.wait(), timeout=2.0)
+                    except Exception as recovery_error:
+                        print(f"   ⚠️  Snapshot recovery failed: {str(recovery_error)}")
+                        print(f"   Continuing with next offset...")
+                else:
+                    if attempt < len(self._retry_offsets) - 1:
+                        print(f"   Retrying with different offset...")
+                continue
 
-                            # Wait for DOM stability
-                            await asyncio.wait_for(
-                                page.evaluate("window.waitForDOMStability()"),
-                                timeout=1.0
-                            )
+        # If all retries failed, try fallback to adjacent frame
+        if not screenshot_taken:
+            print(f"❌ Failed to capture screenshot for second {second} after {len(self._retry_offsets)} attempt(s)")
+            if self._create_fallback_screenshot(second, successful_screenshots):
+                successful_screenshots[second] = True
+                screenshot_taken = True
 
-                            # Take screenshot
-                            screenshot_path = f"{self._screenshot_dir}/screenshot_sec{second}.jpg"
-                            await page.screenshot(path=screenshot_path)
-                            return True
+        return screenshot_taken
 
-                        # Overall timeout for entire attempt
-                        success = await asyncio.wait_for(try_screenshot(), timeout=5.0)
-                        if success:
-                            print(f"✅ Player reached {current_timestamp}ms")
-                            print(f"📸 Captured screenshot for second {second} at {current_timestamp}ms")
-                            screenshot_taken = True
-                            successful_screenshots[second] = True
-                            break  # Success! Move to next second
+    async def _record_rrweb_to_video(self) -> bool:
+        """Record rrweb replay to video by capturing screenshots at each second.
+        Uses self._html_file_path, self._video_duration_secs, self._type2_timestamps."""
+        start = time.time()
+        async with async_playwright() as p:
+            # Setup browser and page
+            browser, context, page = await self._setup_browser_context(p)
+            await self._setup_replay_synchronization(page)
+            await self._initialize_replay_page(page)
 
-                    except asyncio.TimeoutError:
-                        print(f"⚠️  Timeout for {current_timestamp}ms")
-                        if attempt < len(retry_offsets) - 1:
-                            print(f"   Retrying with different offset...")
-                        continue
+            # Capture screenshots for each second
+            successful_screenshots = {}
+            total_seconds = int(self._video_duration_secs) + 1
+            for second in range(total_seconds):
+                await self._try_capture_with_retries(page, second, successful_screenshots)
 
-                    except Exception as e:
-                        error_msg = str(e)
-                        print(f"⚠️  Error for {current_timestamp}ms: {error_msg}")
-
-                        # Check if this is a DOM error (insertBefore, Node type errors)
-                        is_dom_error = any(keyword in error_msg for keyword in ['insertBefore', 'Node', 'appendChild', 'removeChild'])
-
-                        if is_dom_error and not used_snapshot_recovery and attempt < len(retry_offsets) - 1:
-                            print(f"   🔄 DOM error detected, attempting snapshot recovery...")
-                            used_snapshot_recovery = True
-
-                            try:
-                                # Find nearest snapshot
-                                nearest_snapshot = find_nearest_snapshot(current_timestamp)
-                                print(f"   📸 Seeking to nearest snapshot at {nearest_snapshot}ms")
-
-                                # Reset to snapshot
-                                await asyncio.wait_for(
-                                    page.evaluate(f"window.replayer.goto({nearest_snapshot})"),
-                                    timeout=1.5
-                                )
-                                await asyncio.sleep(0.3)  # Allow DOM to stabilize
-
-                                # Now try to seek to target again
-                                await asyncio.wait_for(
-                                    page.evaluate(f"window.replayer.goto({current_timestamp})"),
-                                    timeout=1.5
-                                )
-
-                                # Wait for time sync and DOM stability
-                                target_timestamp["value"] = current_timestamp
-                                time_reached.clear()
-                                await asyncio.wait_for(time_reached.wait(), timeout=2.0)
-                                await asyncio.wait_for(
-                                    page.evaluate("window.waitForDOMStability()"),
-                                    timeout=1.0
-                                )
-
-                                # Take screenshot
-                                screenshot_path = f"{self._screenshot_dir}/screenshot_sec{second}.jpg"
-                                await page.screenshot(path=screenshot_path)
-                                print(f"✅ Snapshot recovery successful!")
-                                print(f"📸 Captured screenshot for second {second} at {current_timestamp}ms")
-                                screenshot_taken = True
-                                successful_screenshots[second] = True
-                                break
-
-                            except Exception as recovery_error:
-                                print(f"   ⚠️  Snapshot recovery failed: {str(recovery_error)}")
-                                print(f"   Continuing with next offset...")
-                        else:
-                            if attempt < len(retry_offsets) - 1:
-                                print(f"   Retrying with different offset...")
-                        continue
-
-                # If all retries failed, try fallback to adjacent frame
-                if not screenshot_taken:
-                    print(f"❌ Failed to capture screenshot for second {second} after {len(retry_offsets)} attempt(s)")
-
-                    # Try to find nearest successful screenshot
-                    fallback_source = None
-                    for distance in [1, 2, 3]:
-                        if second - distance in successful_screenshots:
-                            fallback_source = second - distance
-                            break
-                        elif second + distance in successful_screenshots:
-                            fallback_source = second + distance
-                            break
-
-                    if fallback_source is not None:
-                        try:
-                            source_path = f"{self._screenshot_dir}/screenshot_sec{fallback_source}.jpg"
-                            target_path = f"{self._screenshot_dir}/screenshot_sec{second}.jpg"
-
-                            # Copy the file
-                            import shutil
-                            shutil.copy2(source_path, target_path)
-                            print(f"📸 Using fallback screenshot from second {fallback_source}")
-                            successful_screenshots[second] = True
-                        except Exception as copy_error:
-                            print(f"⚠️  Failed to copy fallback screenshot: {str(copy_error)}")
-
-            await page.close()
-            await context.close()
-            await browser.close()
-            session_duration = time.time() - start
-            print(f"\n✅ Session Duration: {session_duration:.2f} seconds")
-            print(f"✅ Total seconds processed: {total_seconds}")
-            print(f"✅ Successful screenshots: {len(successful_screenshots)}/{total_seconds}")
+            # Cleanup
+            await self._cleanup_browser(page, context, browser)
+            self._print_session_statistics(start, total_seconds, len(successful_screenshots))
 
             return True
         
