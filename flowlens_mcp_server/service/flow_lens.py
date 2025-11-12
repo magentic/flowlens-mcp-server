@@ -1,7 +1,7 @@
 import asyncio
 from typing import List, Optional
 
-from flowlens_mcp_server.utils.video.rrweb_renderer import RrwebRenderer
+from flowlens_mcp_server.utils.video.rrweb_renderer_clean import RrwebRenderer
 from ..dto import dto
 from ..utils import http_request, logger_setup, local_zip
 from ..utils.flow_registry import flow_registry
