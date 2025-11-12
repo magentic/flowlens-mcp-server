@@ -71,22 +71,31 @@ class FlowLensService:
             raise RuntimeError("Either flow_uuid or local_flow_zip_path must be provided to request a flow")
         
     async def _request_flow_by_uuid(self) -> dto.FlowlensFlow:
-        qparams = {
-            "session_uuid": settings.flowlens_session_uuid,
-            "mcp_version": settings.flowlens_mcp_version
-            }
-        response: dto.FullFlow = await self._client.get(f"flow/{self.params.flow_uuid}", qparams=qparams, response_model=dto.FullFlow)
+        response = await self._get_remote_flow()
         await self._load_video(response)
         if response.recording_type == dto.enums.RecordingType.RRWEB:
             self._render_rrweb(response)
         
         return await self._create_flow(response)
+
+    async def _get_remote_flow(self):
+        qparams = {
+            "session_uuid": settings.flowlens_session_uuid,
+            "mcp_version": settings.flowlens_mcp_version
+            }
+        response: dto.FullFlow = await self._client.get(f"flow/{self.params.flow_uuid}", qparams=qparams, response_model=dto.FullFlow)
+        return response
     
     async def _request_flow_by_zip(self) -> dto.FlowlensFlow:
         response: dto.FullFlow = await self._zip_client.get()
         if response.recording_type == dto.enums.RecordingType.RRWEB:
             self._render_rrweb(response)
-        return await self._create_flow(response)
+        flow = await self._create_flow(response)
+        self.params.flow_uuid = flow.uuid
+        remote_flow = await self._get_remote_flow()
+        if remote_flow.uuid != response.uuid:
+            raise RuntimeError("The local flow is not valid. please, make sure you provide a valid flow zip file.")
+        return flow
     
     async def _create_flow(self, base_flow: dto.FullFlow) -> dto.FlowlensFlow:
         timeline_overview = await timeline_registry.register_timeline(base_flow)
