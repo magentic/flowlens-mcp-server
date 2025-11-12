@@ -47,9 +47,9 @@ class RrwebRenderer:
         self._time_reached = None
 
     def render_rrweb(self):
-        asyncio.create_task(self._render_rrweb())
+        asyncio.create_task(self._compile_screenshots())
 
-    async def _render_rrweb(self):
+    async def _compile_screenshots(self):
         rrweb_events = await self._extract_events()
         if not rrweb_events:
             raise ValueError("No rrweb events found for the specified time range.")
@@ -123,17 +123,17 @@ class RrwebRenderer:
         self._target_timestamp = {"value": 0}  # Using dict to allow modification in closure
         self._time_reached = asyncio.Event()
 
-        def on_time_update(current_time):
-            if abs(current_time - self._target_timestamp["value"]) < self._time_matching_tolerance_ms:
-                self._time_reached.set()
-
         # Navigate to blank page first
         await self._page.goto("about:blank")
 
         # Expose callback functions to the page BEFORE setting content
         await self._page.expose_function("onReplayStart", lambda: self._replay_started.set())
         await self._page.expose_function("onReplayFinish", lambda: self._replay_finished.set())
-        await self._page.expose_function("onTimeUpdate", on_time_update)
+        await self._page.expose_function("onTimeUpdate", self._on_time_update)
+    
+    def _on_time_update(self, current_time):
+            if abs(current_time - self._target_timestamp["value"]) < self._time_matching_tolerance_ms:
+                self._time_reached.set()
 
     async def _initialize_replay_page(self):
         await self._page.goto(f"file://{self._html_file_path}", wait_until="domcontentloaded")
@@ -194,28 +194,7 @@ class RrwebRenderer:
         await self._take_screenshot_at_second(second)
         return True
 
-    def _create_fallback_screenshot(self, second: int, successful_screenshots: dict) -> bool:
-        fallback_source = None
-        for distance in self._fallback_search_distances:
-            if second - distance in successful_screenshots:
-                fallback_source = second - distance
-                break
-
-        if fallback_source is None:
-            return False
-        try:
-            source_path = f"{self._screenshot_dir}/screenshot_sec{fallback_source}.jpg"
-            target_path = f"{self._screenshot_dir}/screenshot_sec{second}.jpg"
-
-            # Copy the file
-            import shutil
-            shutil.copy2(source_path, target_path)
-            return True
-        except Exception:
-            pass
-        return False
-
-    async def _try_capture_with_retries(self, second: int, successful_screenshots: dict) -> bool:
+    async def _try_capture_with_retries(self, second: int) -> bool:
         exact_timestamp = self._calculate_exact_timestamp(second)
 
         screenshot_taken = False
@@ -232,7 +211,6 @@ class RrwebRenderer:
                 )
                 if success:
                     screenshot_taken = True
-                    successful_screenshots[second] = True
                     break  # Success! Move to next second
 
             except asyncio.TimeoutError:
@@ -246,7 +224,6 @@ class RrwebRenderer:
                     try:
                         await self._attempt_snapshot_recovery(second, current_timestamp)
                         screenshot_taken = True
-                        successful_screenshots[second] = True
                         break
 
                     except Exception:
@@ -255,13 +232,6 @@ class RrwebRenderer:
                     if attempt < len(self._retry_offsets) - 1:
                         continue
                 continue
-
-        # If all retries failed, try fallback to adjacent frame
-        if not screenshot_taken:
-            if self._create_fallback_screenshot(second, successful_screenshots):
-                successful_screenshots[second] = True
-                screenshot_taken = True
-
         return screenshot_taken
 
     async def _take_screenshots(self) -> bool:
@@ -272,10 +242,9 @@ class RrwebRenderer:
             await self._initialize_replay_page()
 
             # Capture screenshots for each second
-            successful_screenshots = {}
             total_seconds = int(self._video_duration_secs) + 1
             for second in range(total_seconds):
-                await self._try_capture_with_retries(second, successful_screenshots)
+                await self._try_capture_with_retries(second)
 
             # Cleanup
             await self._cleanup_browser(context, browser)
