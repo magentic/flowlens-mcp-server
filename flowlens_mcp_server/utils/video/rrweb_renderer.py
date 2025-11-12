@@ -4,14 +4,14 @@ import json
 import aiofiles
 import time
 from playwright.async_api import async_playwright
-
+from typing import Union
 from ..settings import settings
 from ..flow_registry import flow_registry
 from ...dto import dto
 from .html_builder import HtmlBuilder, BuilderParams
 
 class RrwebRenderer:
-    def __init__(self, flow: dto.FullFlow, show_controller: bool = False):
+    def __init__(self, flow: Union[dto.FullFlow, dto.FlowlensFlow], show_controller: bool = False):
         self._flow = flow
         self._show_controller = show_controller
         self._video_width = 1280
@@ -21,7 +21,7 @@ class RrwebRenderer:
             self._screenshot_dir = f"{self._flow.local_files_data.extracted_dir_path}/screenshots"
             self._snapshot_dir = f"{self._flow.local_files_data.extracted_dir_path}/snapshots"
         else:
-            flow_dir = f"{settings.flowlens_save_dir_path}/flows/{self._flow.id}"
+            flow_dir = f"{settings.flowlens_save_dir_path}/flows/{self._flow.uuid}"
             self._rrweb_file_path = f"{flow_dir}/rrweb_video.json"
             self._screenshot_dir = f"{flow_dir}/screenshots"
             self._snapshot_dir = f"{flow_dir}/snapshots"
