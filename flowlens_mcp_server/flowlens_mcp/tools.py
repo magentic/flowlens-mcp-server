@@ -244,7 +244,11 @@ async def take_flow_screenshot_at_second(flow_uuid: str, second: int) -> str:
         4. For example: if event shows "relative_time_ms:48940", use second=48 or 49
         NOTE: You can use arbitrary seconds If you don't have specific events to investigate 
         e.g. when have a flow related to UX so you can take screenshots at multiple intervals to have a visual understanding of the flow.
-
+        NOTE: This tool works for both WEBM and RRWEB recorded flows. If you have issue getting a screenshot from RRWEB flow.
+        you have two options:
+        1. Wait for 20 seconds and try again as RRWEB processing might not be complete yet.
+        2. Use take_flow_snapshot_at_second() tool to get full DOM snapshot at specific second.
+        
         WHY: Screenshots are most valuable when tied to specific events rather than arbitrary time intervals.
         This approach helps you understand the exact application state when issues occurred.
 
@@ -264,6 +268,21 @@ async def take_flow_screenshot_at_second(flow_uuid: str, second: int) -> str:
     """
     service: FlowLensService = _get_cached_flow_service(flow_uuid)
     return await service.save_screenshot(second)
+
+@server_instance.flowlens_mcp.tool
+async def take_flow_snapshot_at_second(flow_uuid: str, second: int) -> str:
+    """
+    Saves RRWEB full dnapshot at taken at specific second in json format for flow with recording type RRWEB.
+    Snapshots are a key tool to capture the full DOM state of the application at a specific moment in time.
+    The snapshot is taken from the RRWEB recording of the flow.
+    
+    Note: Snapshots can only be taken from flows with recording type RRWEB.
+    Args:
+        flow_uuid (string): The UUID of the flow to take the snapshot for.
+        second (int): The second to take the snapshot at.
+    """
+    service: FlowLensService = _get_cached_flow_service(flow_uuid)
+    return await service.save_snapshot(second)
 
 def _get_flow_service(flow_uuid: str):
     params = FlowLensServiceParams(flow_uuid=flow_uuid)

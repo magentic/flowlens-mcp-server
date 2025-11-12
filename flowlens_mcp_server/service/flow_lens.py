@@ -1,7 +1,7 @@
 import asyncio
 from typing import List, Optional
 
-from flowlens_mcp_server.utils.video.rrweb_renderer_clean import RrwebRenderer
+from flowlens_mcp_server.utils.video.rrweb_renderer import RrwebRenderer
 from ..dto import dto
 from ..utils import http_request, logger_setup, local_zip
 from ..utils.flow_registry import flow_registry
@@ -46,13 +46,21 @@ class FlowLensService:
         flow = await self.get_cached_flow()
         return flow.comments
 
-    async def save_screenshot(self, timestamp: float) -> str:
+    async def save_screenshot(self, second: int) -> str:
         flow = await self.get_cached_flow()
         if not flow.are_screenshots_available:
             raise RuntimeError("Screenshots are not available for this flow")
         handler = VideoHandler(flow)
-        image_path = await handler.save_screenshot(timestamp)
+        image_path = await handler.save_screenshot(second)
         return image_path
+    
+    async def save_snapshot(self, second: int) -> str:
+        flow = await self.get_cached_flow()
+        if flow.recording_type != dto.enums.RecordingType.RRWEB:
+            raise RuntimeError("Snapshots can only be taken from RRWEB recorded flows")
+        renderer = RrwebRenderer(flow)
+        return await renderer.save_snapshot(second)
+        
 
     async def _request_flow(self):
         if self.params.flow_uuid:
