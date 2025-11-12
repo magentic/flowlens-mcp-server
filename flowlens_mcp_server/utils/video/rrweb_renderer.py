@@ -152,8 +152,9 @@ class RrwebRenderer:
         await self._page.expose_function("onTimeUpdate", self._on_time_update)
     
     def _on_time_update(self, current_time):
-            if abs(current_time - self._target_timestamp["value"]) < self._time_matching_tolerance_ms:
-                self._time_reached.set()
+        self._replay_started.set()
+        if abs(current_time - self._target_timestamp["value"]) < self._time_matching_tolerance_ms:
+            self._time_reached.set()
 
     async def _initialize_replay_page(self):
         await self._page.goto(f"file://{self._html_file_path}", wait_until="domcontentloaded")
