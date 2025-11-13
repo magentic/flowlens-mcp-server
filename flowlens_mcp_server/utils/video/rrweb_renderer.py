@@ -83,6 +83,7 @@ class RrwebRenderer:
         # Record video (uses member variables)
         is_rendering_finished = await self._take_screenshots()
         await flow_registry.set_finished_rendering(self._flow.id, is_rendering_finished)
+        os.remove(self._html_file_path)
 
     async def _extract_events(self):
         if not os.path.exists(self._rrweb_file_path):
