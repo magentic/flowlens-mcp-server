@@ -242,19 +242,21 @@ async def take_flow_screenshot_at_second(flow_uuid: str, second: int) -> str:
         Save a screenshot at a specific timeline relative second for a specific flow. 
         Screenshots are a key tool to capture the visual state of the application at a specific moment in time.
         The screenshot is taken from the video recording of the flow. 
-
+        
+        NOTE: For RRWEB flows, prefer using take_flow_snapshot_at_second() tool to get full DOM snapshot at that second.
+        
         BEST PRACTICE: Always analyze timeline events FIRST before taking screenshots.
         1. Use list_flow_timeline_events_within_range to identify key moments
         2. Look for specific event types: console warnings, errors, user interactions, network failures
         3. Take screenshots at the EXACT relative_time_ms (converted to seconds) of interesting events
         4. For example: if event shows "relative_time_ms:48940", use second=48 or 49
-        NOTE: For RRWEB flows, prefer using take_flow_snapshot_at_second() tool to get full DOM snapshot at that second.
+        
         NOTE: You can use arbitrary seconds If you don't have specific events to investigate 
         e.g. when have a flow related to UX so you can take screenshots at multiple intervals to have a visual understanding of the flow.
         NOTE: This tool works for both WEBM and RRWEB recorded flows. If you have issue getting a screenshot from RRWEB flow.
         you have two options:
-        1. Wait for 20 seconds and try again as RRWEB processing might not be complete yet.
-        2. Use take_flow_snapshot_at_second() tool to get full DOM snapshot at specific second.
+        1. Use take_flow_snapshot_at_second() tool to get full DOM snapshot at specific second. 
+        2. Wait for 20 seconds and try again as RRWEB processing might not be complete yet.
         
         WHY: Screenshots are most valuable when tied to specific events rather than arbitrary time intervals.
         This approach helps you understand the exact application state when issues occurred.
@@ -279,7 +281,7 @@ async def take_flow_screenshot_at_second(flow_uuid: str, second: int) -> str:
 @server_instance.flowlens_mcp.tool
 async def take_flow_snapshot_at_second(flow_uuid: str, second: int) -> str:
     """
-    Saves RRWEB full dnapshot at taken at specific second in json format for flow with recording type RRWEB.
+    Saves RRWEB full snapshot at specific second in json format for flow with recording type RRWEB.
     Snapshots are a key tool to capture the full DOM state of the application at a specific moment in time.
     The snapshot is taken from the RRWEB recording of the flow.
     NOTE: Snapshots can only be taken from flows with recording type RRWEB.
