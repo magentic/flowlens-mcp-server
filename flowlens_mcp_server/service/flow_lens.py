@@ -113,7 +113,6 @@ class FlowLensService:
             system_id=base_flow.system_id,
             tags=base_flow.tags,
             comments=base_flow.comments if base_flow.comments else [],
-            reporter=base_flow.reporter,
             events_count=timeline_overview.events_count,
             duration_ms=timeline_overview.duration_ms,
             http_requests_count=timeline_overview.http_requests_count,

@@ -22,6 +22,12 @@ class _BaseDTO(BaseModel):
         if isinstance(s, str) and len(s) > limit:
             return s[:limit] + "...(truncated)"
         return s
+
+class McpVersionResponse(BaseModel):
+    version: str
+    is_supported: bool
+    session_uuid: str
+    recommendation: Optional[str] = None
     
 class RequestParams(BaseModel):
     endpoint: str
@@ -33,9 +39,6 @@ class RequestParams(BaseModel):
 class FlowTag(BaseModel):
     id: str
     title: str
-    
-class FlowTagList(BaseModel):
-    tags: List[FlowTag]
     
 class FlowComment(BaseModel):
     model_config = ConfigDict(
@@ -56,18 +59,6 @@ class FlowComment(BaseModel):
         values["video_second"] = max(0, values.get("timestamp"))
         return values
 
-class System(BaseModel):
-    id: str
-    name: str
-    description: Optional[str] = None
-    users: Optional[List["User"]] = None
-
-class User(BaseModel):
-    id: str
-    username: str
-    email: str
-    systems: Optional[List[System]] = None
-    auth_id: str
 
 class LocalFilesData(BaseModel):
     zip_file_path: str
@@ -76,7 +67,7 @@ class LocalFilesData(BaseModel):
     video_file_path: Optional[str] = None
     rrweb_file_path: Optional[str] = None
     
-class Flow(BaseModel):
+class FullFlow(BaseModel):
     model_config = ConfigDict(
         json_encoders={datetime: lambda v: v.isoformat()},
         ser_json_timedelta='iso8601',
@@ -86,20 +77,15 @@ class Flow(BaseModel):
     description: Optional[str] = None
     video_duration_ms: int
     created_at: datetime = Field(..., description="Native datetime in UTC")
-    system_id: str
+    system_id: Optional[str] = 'N/A'
     is_local: bool
-    system: Optional[System] = []
     tags: Optional[List[FlowTag]] = []
-    reporter: Optional[str] = None
-    sequence_diagram_status: Optional[enums.ProcessingStatus] = enums.ProcessingStatus.COMPLETED
-    is_timeline_uploaded: Optional[bool] = True
-    is_video_uploaded: Optional[bool] = True
-    has_extended_sequence_diagram: Optional[bool] = False
     comments: Optional[List[FlowComment]] = None
     recording_type: enums.RecordingType
-    recording_status: Optional[enums.ProcessingStatus] = enums.ProcessingStatus.COMPLETED
     local_files_data: Optional[LocalFilesData] = Field(None, exclude=True)
     anonymous_user_id: Optional[str] = None
+    timeline_url: Optional[str] = None
+    video_url: Optional[str] = None
     
     @model_validator(mode="before")
     def validate_timestamp(cls, values:dict):
@@ -111,15 +97,6 @@ class Flow(BaseModel):
         }
         values["recording_type"] = recording_type_dict.get(values.get("recording_type"))
         return values
-
-class FlowList(BaseModel):
-    flows: List[Flow]
-
-class FullFlow(Flow):
-    timeline_url: Optional[str] = None
-    video_url: Optional[str] = None
-    sequence_diagram_url: Optional[str] = None
-    extended_sequence_diagram_url: Optional[str] = None
     
     @property
     def are_screenshots_available(self) -> bool:
@@ -130,39 +107,7 @@ class FullFlow(Flow):
     @property
     def uuid(self) -> str:
         return self.id
-    
-class DeleteResponse(BaseModel):
-    id: str
-    success: bool
-    message: Optional[str] = None
 
-class FlowUpdate(BaseModel):
-    title: Optional[str] = None
-    description: Optional[str] = None
-    system_id: str
-    tag_ids: Optional[List[int]] = None
-
-class FlowTagCreateUpdate(BaseModel):
-    title: str
-    system_id: str
-
-class FlowSequenceDiagramResponse(BaseModel):
-    flow_id: str
-    status: enums.ProcessingStatus
-    url: Optional[str] = None
-    has_extended_diagram: bool = False
-    extended_diagram_url: Optional[str] = None
-    
-class FlowShareLink(BaseModel):
-    model_config = ConfigDict(
-        json_encoders={datetime: lambda v: v.isoformat()},
-        ser_json_timedelta='iso8601',
-    )
-    
-    flow_id: str
-    token: str
-    share_url: str
-    expires_at: datetime
 
 class EventTypeSummary(BaseModel):
     event_type: str
@@ -195,10 +140,9 @@ class FlowlensFlow(_BaseDTO):
     title: str
     description: Optional[str] = None
     created_at: datetime = Field(..., description="Native datetime in UTC")
-    system_id: str
+    system_id: str = Field(exclude=True)
     tags: Optional[List[FlowTag]] = None
     comments: Optional[List[FlowComment]] = None
-    reporter: Optional[str] = None
     events_count: int
     duration_ms: int
     event_type_summaries: List[EventTypeSummary]
@@ -208,7 +152,7 @@ class FlowlensFlow(_BaseDTO):
     recording_type: enums.RecordingType
     are_screenshots_available: bool
     websockets_overview: List[WebSocketOverview]
-    is_local: bool
+    is_local: bool = Field(exclude=True)
     local_files_data: Optional[LocalFilesData] = Field(None, exclude=True)
     video_url: Optional[str] = Field(None, exclude=True)
     is_rendering_finished: Optional[bool] = Field(None, exclude=True)
@@ -817,7 +761,8 @@ class WebSocketClosedEvent(BaseTimelineEvent):
         values['type'] = enums.TimelineEventType.WEBSOCKET_CLOSED
         values['action_type'] = enums.ActionType.CONNECTION_CLOSED
         return values
-     
+
+
 TimelineEventType = Union[NetworkRequestEvent, NetworkResponseEvent, NetworkRequestWithResponseEvent,
                          DomActionEvent, NavigationEvent, LocalStorageEvent, ConsoleWarningEvent, ConsoleErrorEvent,
                          JavaScriptErrorEvent, SessionStorageEvent, 
@@ -847,8 +792,3 @@ types_dict: dict[str, Type[TimelineEventType]] = {
         enums.TimelineEventType.CONSOLE_INFO.value: ConsoleInfoEvent,
         }
 
-class McpVersionResponse(BaseModel):
-    version: str
-    is_supported: bool
-    session_uuid: str
-    recommendation: Optional[str] = None
