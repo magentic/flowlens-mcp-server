@@ -117,7 +117,7 @@ class FlowLensService:
             recording_type=base_flow.recording_type,
             are_screenshots_available=base_flow.are_screenshots_available,
             websockets_overview=timeline_overview.websockets_overview,
-            is_local=bool(self.params.local_flow_zip_path),
+            is_local=base_flow.is_local,
             local_files_data=base_flow.local_files_data,
             video_url=base_flow.video_url,
         )
