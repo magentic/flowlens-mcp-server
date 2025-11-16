@@ -7,8 +7,8 @@ from ...dto import dto, dto_timeline
 from .loader import TimelineLoader
 
 class TimelineProcessor:
-    def __init__(self, url: str):
-        self.url = url
+    def __init__(self, flow: dto.FullFlow):
+        self.flow = flow
         self._timeline: dto_timeline.Timeline = None
 
     async def process(self) -> dto_timeline.TimelineOverview:
@@ -154,7 +154,7 @@ class TimelineProcessor:
         )
 
     async def _load_timeline_data(self) -> dto_timeline.Timeline:
-        loader = TimelineLoader(self.url)
+        loader = TimelineLoader(self.flow)
         timeline = await loader.load()
         return timeline
         

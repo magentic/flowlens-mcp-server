@@ -2,8 +2,8 @@
 # pipx run --no-cache --spec $mcp_repo_path local-mcp-server --stdio --token $mcp_token
 
 PYTHON_CACHE="$HOME/.cache/pypoetry/virtualenvs"
-source "$PYTHON_CACHE/flowlens-mcp-server-r5o-YNLt-py3.12/bin/activate" && \
-python3 -m flowlens_mcp_server.server --stdio --token "$mcp_token"
+source "$PYTHON_CACHE/$POETRY_PATH/bin/activate" && \
+python -m flowlens_mcp_server.server
 
 
 # For local development usage with claude code:

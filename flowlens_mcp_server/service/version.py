@@ -1,4 +1,3 @@
-import asyncio
 from ..dto import dto
 from ..utils.http_request import HttpClient
 from ..utils.settings import settings

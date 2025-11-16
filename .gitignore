@@ -3,3 +3,6 @@ dist/**
 magentic_flowlens_mcp_data/**
 magentic_mcp_data/**
 .pypirc
+data/**
+.gitignore
+.DS_Store

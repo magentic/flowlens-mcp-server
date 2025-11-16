@@ -43,7 +43,7 @@ class FlowComment(BaseModel):
         ser_json_timedelta='iso8601',
     )
     
-    flow_id: str
+    flow_id: Optional[str] = None
     video_second: int
     content: str
     id: Optional[str] = None
@@ -69,6 +69,13 @@ class User(BaseModel):
     systems: Optional[List[System]] = None
     auth_id: str
 
+class LocalFilesData(BaseModel):
+    zip_file_path: str
+    extracted_dir_path: str
+    timeline_file_path: str
+    video_file_path: Optional[str] = None
+    rrweb_file_path: Optional[str] = None
+    
 class Flow(BaseModel):
     model_config = ConfigDict(
         json_encoders={datetime: lambda v: v.isoformat()},
@@ -80,16 +87,29 @@ class Flow(BaseModel):
     video_duration_ms: int
     created_at: datetime = Field(..., description="Native datetime in UTC")
     system_id: str
+    is_local: bool
     system: Optional[System] = []
     tags: Optional[List[FlowTag]] = []
     reporter: Optional[str] = None
-    sequence_diagram_status: enums.ProcessingStatus
-    is_timeline_uploaded: bool
-    is_video_uploaded: bool
-    has_extended_sequence_diagram: bool
+    sequence_diagram_status: Optional[enums.ProcessingStatus] = enums.ProcessingStatus.COMPLETED
+    is_timeline_uploaded: Optional[bool] = True
+    is_video_uploaded: Optional[bool] = True
+    has_extended_sequence_diagram: Optional[bool] = False
     comments: Optional[List[FlowComment]] = None
     recording_type: enums.RecordingType
-    recording_status: enums.ProcessingStatus
+    recording_status: Optional[enums.ProcessingStatus] = enums.ProcessingStatus.COMPLETED
+    local_files_data: Optional[LocalFilesData] = Field(None, exclude=True)
+    
+    @model_validator(mode="before")
+    def validate_timestamp(cls, values:dict):
+        values["id"] = values.get("flow_id", values.get("id"))
+        values["video_duration_ms"] = values.get("recording_duration_ms", values.get("video_duration_ms"))
+        recording_type_dict = {
+            "RRWEB": enums.RecordingType.RRWEB,
+            "WEBM": enums.RecordingType.WEBM
+        }
+        values["recording_type"] = recording_type_dict.get(values.get("recording_type"))
+        return values
 
 class FlowList(BaseModel):
     flows: List[Flow]
@@ -102,9 +122,13 @@ class FullFlow(Flow):
     
     @property
     def are_screenshots_available(self) -> bool:
-        if self.recording_type == enums.RecordingType.RRWEB:
-            return False
-        return self.video_url is not None
+        if self.video_url:
+            return True
+        return self.is_local
+    
+    @property
+    def uuid(self) -> str:
+        return self.id
     
 class DeleteResponse(BaseModel):
     id: str
@@ -166,7 +190,7 @@ class WebSocketOverview(BaseModel):
     handshake_responses_count: Optional[int] = 0
 
 class FlowlensFlow(_BaseDTO):
-    id: str
+    uuid: str
     title: str
     description: Optional[str] = None
     created_at: datetime = Field(..., description="Native datetime in UTC")
@@ -183,6 +207,10 @@ class FlowlensFlow(_BaseDTO):
     recording_type: enums.RecordingType
     are_screenshots_available: bool
     websockets_overview: List[WebSocketOverview]
+    is_local: bool
+    local_files_data: Optional[LocalFilesData] = Field(None, exclude=True)
+    video_url: Optional[str] = Field(None, exclude=True)
+    is_rendering_finished: Optional[bool] = Field(None, exclude=True)
     
     def truncate(self):
         copy = self.model_copy(deep=True)
@@ -525,11 +553,6 @@ class ConsoleWarningEvent(BaseTimelineEvent):
         values['type'] = enums.TimelineEventType.CONSOLE_WARNING
         values['action_type'] = enums.ActionType.WARNING_LOGGED
         return values
-    
-    def _truncate_string(self, s: str) -> str:
-        if isinstance(s, str) and len(s) > settings.flowlens_max_string_length:
-            return s[:settings.flowlens_max_string_length] + "...(truncated)"
-        return s
 
 class ConsoleErrorEvent(BaseTimelineEvent):
     page_url: Optional[str] = None
@@ -545,6 +568,55 @@ class ConsoleErrorEvent(BaseTimelineEvent):
             return values
         values['type'] = enums.TimelineEventType.CONSOLE_ERROR
         values['action_type'] = enums.ActionType.ERROR_LOGGED
+        return values
+    
+
+class ConsoleInfoEvent(BaseTimelineEvent):
+    page_url: Optional[str] = None
+    console_info_data: ConsoleData
+    
+    def reduce_into_one_line(self) -> str:
+        base_line = super().reduce_into_one_line()
+        return (f"{base_line} {self._truncate_string(self.console_info_data.message)} ")
+
+    @model_validator(mode="before")
+    def validate_console_info(cls, values):
+        if not isinstance(values, dict):
+            return values
+        values['type'] = enums.TimelineEventType.CONSOLE_INFO
+        values['action_type'] = enums.ActionType.INFO_LOGGED
+        return values
+
+class ConsoleDebugEvent(BaseTimelineEvent):
+    page_url: Optional[str] = None
+    console_debug_data: ConsoleData
+    
+    def reduce_into_one_line(self) -> str:
+        base_line = super().reduce_into_one_line()
+        return (f"{base_line} {self._truncate_string(self.console_debug_data.message)} ")
+
+    @model_validator(mode="before")
+    def validate_console_debug(cls, values):
+        if not isinstance(values, dict):
+            return values
+        values['type'] = enums.TimelineEventType.CONSOLE_DEBUG
+        values['action_type'] = enums.ActionType.DEBUG_LOGGED
+        return values
+
+class ConsoleLogEvent(BaseTimelineEvent):
+    page_url: Optional[str] = None
+    console_log_data: ConsoleData
+    
+    def reduce_into_one_line(self) -> str:
+        base_line = super().reduce_into_one_line()
+        return (f"{base_line} {self._truncate_string(self.console_log_data.message)} ")
+
+    @model_validator(mode="before")
+    def validate_console_log(cls, values):
+        if not isinstance(values, dict):
+            return values
+        values['type'] = enums.TimelineEventType.CONSOLE_LOG
+        values['action_type'] = enums.ActionType.LOG_LOGGED
         return values
 
 class JavaScriptErrorData(BaseModel):
@@ -750,7 +822,7 @@ TimelineEventType = Union[NetworkRequestEvent, NetworkResponseEvent, NetworkRequ
                          JavaScriptErrorEvent, SessionStorageEvent, 
                          WebsocketCreatedEvent, WebSocketHandshakeRequestEvent, WebSocketHandshakeResponseEvent,
                          WebSocketFrameSentEvent, WebSocketFrameReceivedEvent,
-                         WebSocketClosedEvent]
+                         WebSocketClosedEvent, ConsoleDebugEvent, ConsoleLogEvent, ConsoleInfoEvent]
 
     
 types_dict: dict[str, Type[TimelineEventType]] = {
@@ -769,6 +841,9 @@ types_dict: dict[str, Type[TimelineEventType]] = {
         enums.TimelineEventType.WEBSOCKET_FRAME_SENT.value: WebSocketFrameSentEvent,
         enums.TimelineEventType.WEBSOCKET_FRAME_RECEIVED.value: WebSocketFrameReceivedEvent,
         enums.TimelineEventType.WEBSOCKET_CLOSED.value: WebSocketClosedEvent,
+        enums.TimelineEventType.CONSOLE_DEBUG.value: ConsoleDebugEvent,
+        enums.TimelineEventType.CONSOLE_LOG.value: ConsoleLogEvent,
+        enums.TimelineEventType.CONSOLE_INFO.value: ConsoleInfoEvent,
         }
 
 class McpVersionResponse(BaseModel):
