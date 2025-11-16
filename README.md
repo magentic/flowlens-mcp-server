@@ -31,6 +31,8 @@ pipx upgrade flowlens-mcp-server
 }
 ```
 
+> Note: **FLOWLENS_MCP_TOKEN** is only needed for shared flows. MCP doesn't need this token for downloaded flows. 
+
 ### Claude Code Shortcut
 ```bash
 claude mcp add flowlens-mcp --transport stdio --env FLOWLENS_MCP_TOKEN=<YOUR_FLOWLENS_MCP_TOKEN> -- pipx run "flowlens-mcp-server"

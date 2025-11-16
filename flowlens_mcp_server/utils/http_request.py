@@ -12,7 +12,9 @@ class HttpClient:
     def __init__(self, token: str, base_url: str):
         self.base_url = base_url
         self._token = token
-        self._headers = {"Authorization": f"Bearer {self._token}"}
+        self._headers = {}
+        if token:
+            self._headers = {"Authorization": f"Bearer {self._token}"}
 
     async def get(self, endpoint: str, qparams=None, response_model=None):
         params = dto.RequestParams(
@@ -72,7 +74,10 @@ class HttpClient:
                 raise ValueError(f"Unsupported request type: {params.request_type}")
             response.raise_for_status()
             if response.text.strip():
-                return params.response_model(**response.json())
+                if params.response_model:
+                    return params.response_model(**response.json())
+                return response.json()
+            
             raise Exception(f"Empty response from {url}")
         raise Exception(f"Failed to send request to {url}")
     

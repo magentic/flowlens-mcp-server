@@ -99,6 +99,7 @@ class Flow(BaseModel):
     recording_type: enums.RecordingType
     recording_status: Optional[enums.ProcessingStatus] = enums.ProcessingStatus.COMPLETED
     local_files_data: Optional[LocalFilesData] = Field(None, exclude=True)
+    anonymous_user_id: Optional[str] = None
     
     @model_validator(mode="before")
     def validate_timestamp(cls, values:dict):

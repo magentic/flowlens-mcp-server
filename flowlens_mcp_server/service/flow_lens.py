@@ -86,15 +86,21 @@ class FlowLensService:
         response: dto.FullFlow = await self._client.get(f"flow/{self.params.flow_uuid}", qparams=qparams, response_model=dto.FullFlow)
         return response
     
+    async def _log_flow_usage(self, flow: dto.FullFlow):
+        body = {
+            "flow_id": flow.id,
+            "anonymous_user_id": flow.anonymous_user_id,
+            "recording_type": flow.recording_type.value,
+            "is_mcp_usage": True
+        }
+        await self._client.post("log", body)
+    
     async def _request_flow_by_zip(self) -> dto.FlowlensFlow:
         response: dto.FullFlow = await self._zip_client.get()
         if response.recording_type == dto.enums.RecordingType.RRWEB:
             self._render_rrweb(response)
         flow = await self._create_flow(response)
-        self.params.flow_uuid = flow.uuid
-        remote_flow = await self._get_remote_flow()
-        if remote_flow.uuid != response.uuid:
-            raise RuntimeError("The local flow is not valid. please, make sure you provide a valid flow zip file.")
+        await self._log_flow_usage(response)
         return flow
     
     async def _create_flow(self, base_flow: dto.FullFlow) -> dto.FlowlensFlow:
@@ -119,7 +125,7 @@ class FlowLensService:
             websockets_overview=timeline_overview.websockets_overview,
             is_local=base_flow.is_local,
             local_files_data=base_flow.local_files_data,
-            video_url=base_flow.video_url,
+            video_url=base_flow.video_url
         )
         await flow_registry.register_flow(flow)
         return flow
