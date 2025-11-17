@@ -93,7 +93,10 @@ class FlowLensService:
             "recording_type": flow.recording_type.value,
             "is_mcp_usage": True
         }
-        await self._client.post("log", body)
+        try:
+            await self._client.post("log", body)
+        except Exception:
+            pass
     
     async def _request_flow_by_zip(self) -> dto.FlowlensFlow:
         response: dto.FullFlow = await self._zip_client.get()
