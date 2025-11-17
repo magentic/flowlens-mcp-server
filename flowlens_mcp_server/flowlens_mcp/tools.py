@@ -39,6 +39,8 @@ async def get_flow_from_local_zip(flow_zip_path: str) -> dto.FlowlensFlow:
     Returns:
         dto.FlowlensFlow: The FlowlensFlow dto object.
     """
+    import asyncio
+    print("Loop", asyncio.get_running_loop())
     params = FlowLensServiceParams(local_flow_zip_path=flow_zip_path)
     service = FlowLensService(params)
     return await service.get_truncated_flow()
