@@ -27,10 +27,7 @@ class VideoHandler:
         await self._download_video()
 
     async def save_screenshot(self, video_sec: int) -> str:
-        if self._flow.recording_type == dto.enums.RecordingType.RRWEB:
-            return self._refer_rrweb_screenshot(video_sec)
-        else:
-            video_path = os.path.join(self._video_dir_path, self._video_name)
+        video_path = os.path.join(self._video_dir_path, self._video_name)
         if not os.path.exists(video_path):
             rrweb_message = "Wait for 20 seconds and try again as the video is still being processed."
             message = rrweb_message if self._flow.recording_type == dto.enums.RecordingType.RRWEB else "RRWEB video not found, we cannot extract screenshot."
@@ -42,12 +39,6 @@ class VideoHandler:
         async with aiofiles.open(output_path, "wb") as f:
             await f.write(bytearray(frame_info.buffer))
         return os.path.abspath(output_path)
-    
-    def _refer_rrweb_screenshot(self, video_sec:int) -> str:
-        file_path = f"{self._video_dir_path}/screenshots/screenshot_sec{video_sec}.jpg"
-        if os.path.exists(file_path):
-            return os.path.abspath(file_path)
-        raise RuntimeError("RRWEB video is still being processed, cannot extract screenshot yet. Please try again in 20 seconds.")
         
     def _extract_frame_buffer(self, video_path:str, video_sec:int) -> _FrameInfo:
         cap = cv2.VideoCapture(video_path)

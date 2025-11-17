@@ -1,7 +1,7 @@
 import asyncio
 from typing import List, Optional
 
-from flowlens_mcp_server.utils.video.rrweb_renderer import RrwebRenderer
+from flowlens_mcp_server.utils.video.dom_snapshot_handler import DomSnapshotHandler
 from ..dto import dto
 from ..utils import http_request, logger_setup, local_zip
 from ..utils.flow_registry import flow_registry
@@ -48,8 +48,8 @@ class FlowLensService:
 
     async def save_screenshot(self, second: int) -> str:
         flow = await self.get_cached_flow()
-        if not flow.are_screenshots_available:
-            raise RuntimeError("Screenshots are not available for this flow")
+        if flow.recording_type != dto.enums.RecordingType.WEBM:
+            raise RuntimeError("Screenshots can only be taken from WEBM recorded flows")
         handler = VideoHandler(flow)
         image_path = await handler.save_screenshot(second)
         return image_path
@@ -58,7 +58,7 @@ class FlowLensService:
         flow = await self.get_cached_flow()
         if flow.recording_type != dto.enums.RecordingType.RRWEB:
             raise RuntimeError("Snapshots can only be taken from RRWEB recorded flows")
-        renderer = RrwebRenderer(flow)
+        renderer = DomSnapshotHandler(flow)
         return await renderer.save_snapshot(second)
         
 
@@ -73,9 +73,6 @@ class FlowLensService:
     async def _request_flow_by_uuid(self) -> dto.FlowlensFlow:
         response = await self._get_remote_flow()
         await self._load_video(response)
-        if response.recording_type == dto.enums.RecordingType.RRWEB:
-            self._render_rrweb(response)
-        
         return await self._create_flow(response)
 
     async def _get_remote_flow(self):
@@ -100,8 +97,6 @@ class FlowLensService:
     
     async def _request_flow_by_zip(self) -> dto.FlowlensFlow:
         response: dto.FullFlow = await self._zip_client.get()
-        if response.recording_type == dto.enums.RecordingType.RRWEB:
-            self._render_rrweb(response)
         flow = await self._create_flow(response)
         await self._log_flow_usage(response)
         return flow
@@ -138,6 +133,3 @@ class FlowLensService:
         handler = VideoHandler(flow)
         await handler.load_video()
         
-    def _render_rrweb(self, flow: dto.FullFlow):
-        renderer = RrwebRenderer(flow)
-        renderer.render_rrweb()
