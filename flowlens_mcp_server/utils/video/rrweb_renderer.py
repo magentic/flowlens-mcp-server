@@ -52,7 +52,8 @@ class RrwebRenderer:
         self._time_reached = None
 
     def render_rrweb(self):
-        asyncio.create_task(self._compile_screenshots())
+        from flowlens_mcp_server.flowlens_mcp import server_instance
+        server_instance.loop.create_task(self._compile_screenshots())
         
     async def save_snapshot(self, second: int) -> str:
         target_ms = second * 1000
