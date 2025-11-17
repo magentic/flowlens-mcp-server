@@ -1,4 +1,5 @@
 import argparse
+import asyncio
 from flowlens_mcp_server.flowlens_mcp import server_instance
 from flowlens_mcp_server.utils.settings import settings
 from flowlens_mcp_server.service import version
@@ -8,7 +9,7 @@ flowlens_mcp = server_instance.flowlens_mcp
     
 def run_stdio():
     version.VersionService().check_version()
-    flowlens_mcp.run(transport="stdio")
+    asyncio.run(flowlens_mcp.run_async(transport="stdio"))
 
 def run_http():
     parser = argparse.ArgumentParser(description="Run the Flowlens MCP server using HTTP transport.")
@@ -17,6 +18,5 @@ def run_http():
     version.VersionService().check_version()
     flowlens_mcp.run(transport="http", path="/mcp_stream/mcp/", port=args.port)
 
-if __name__ == "__main__":
-    
-    run_http()
+if __name__ == "__main__":   
+    run_stdio()
