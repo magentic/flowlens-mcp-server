@@ -140,6 +140,4 @@ class FlowLensService:
         
     def _render_rrweb(self, flow: dto.FullFlow):
         renderer = RrwebRenderer(flow)
-        from multiprocessing import Process
-        process = Process(target=renderer.render_rrweb)
-        process.start()
+        renderer.render_rrweb()

@@ -8,6 +8,9 @@ flowlens_mcp = server_instance.flowlens_mcp
 
     
 def run_stdio():
+    import asyncio
+    loop = asyncio.get_running_loop()
+    loop.set_debug(True)
     version.VersionService().check_version()
     asyncio.run(flowlens_mcp.run_async(transport="stdio"))
 

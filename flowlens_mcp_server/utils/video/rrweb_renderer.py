@@ -52,7 +52,9 @@ class RrwebRenderer:
         self._time_reached = None
 
     def render_rrweb(self):
-        asyncio.run(self._compile_screenshots())
+        # asyncio.create_task(self._compile_screenshots())
+        print("Loop in render_rrweb", asyncio.get_running_loop())
+        asyncio.get_running_loop().create_task(self._compile_screenshots())
         
     async def save_snapshot(self, second: int) -> str:
         target_ms = second * 1000
