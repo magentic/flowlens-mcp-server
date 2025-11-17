@@ -44,12 +44,9 @@ class VideoHandler:
         return os.path.abspath(output_path)
     
     def _refer_rrweb_screenshot(self, video_sec:int) -> str:
-        if self._flow.is_rendering_finished:
-            file_path = f"{self._video_dir_path}/screenshots/screenshot_sec{video_sec}.jpg"
-            if os.path.exists(file_path):
-                return os.path.abspath(file_path)
-            msg = f"Failed to. render this second {video_sec} from RRWEB video. Please try take_flow_snapshot_at_second() instead."
-            raise RuntimeError(msg)
+        file_path = f"{self._video_dir_path}/screenshots/screenshot_sec{video_sec}.jpg"
+        if os.path.exists(file_path):
+            return os.path.abspath(file_path)
         raise RuntimeError("RRWEB video is still being processed, cannot extract screenshot yet. Please try again in 20 seconds.")
         
     def _extract_frame_buffer(self, video_path:str, video_sec:int) -> _FrameInfo:

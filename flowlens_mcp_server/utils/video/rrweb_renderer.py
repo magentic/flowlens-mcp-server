@@ -52,8 +52,7 @@ class RrwebRenderer:
         self._time_reached = None
 
     def render_rrweb(self):
-        from flowlens_mcp_server.flowlens_mcp import server_instance
-        server_instance.loop.create_task(self._compile_screenshots())
+        asyncio.run(self._compile_screenshots())
         
     async def save_snapshot(self, second: int) -> str:
         target_ms = second * 1000
@@ -83,7 +82,7 @@ class RrwebRenderer:
         print(f"Created temporary HTML file for rrweb replay at {self._html_file_path}")
         # Record video (uses member variables)
         is_rendering_finished = await self._take_screenshots()
-        await flow_registry.set_finished_rendering(self._flow.id, is_rendering_finished)
+        # await flow_registry.set_finished_rendering(self._flow.id, is_rendering_finished)
         os.remove(self._html_file_path)
 
     async def _extract_events(self):
