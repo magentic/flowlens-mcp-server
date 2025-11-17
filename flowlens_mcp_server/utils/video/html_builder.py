@@ -214,7 +214,6 @@ class HtmlBuilder:
   </body>
 </html>"""
 
-        print("📝 Generated HTML content for rrweb replay with controller")
         return html_content
 
     def _generate_html_without_controller(self) -> str:
@@ -277,5 +276,4 @@ class HtmlBuilder:
   </body>
 </html>"""
 
-        print("📝 Generated HTML content for rrweb replay without controller")
         return html_content

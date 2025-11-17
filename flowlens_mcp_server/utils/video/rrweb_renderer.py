@@ -79,7 +79,7 @@ class RrwebRenderer:
 
         # Generate HTML and store path
         self._html_file_path = self._create_html_file_with_events(rrweb_events)
-
+        print(f"Created temporary HTML file for rrweb replay at {self._html_file_path}")
         # Record video (uses member variables)
         is_rendering_finished = await self._take_screenshots()
         await flow_registry.set_finished_rendering(self._flow.id, is_rendering_finished)
@@ -260,17 +260,20 @@ class RrwebRenderer:
         async with async_playwright() as p:
             # Setup browser and page
             browser, context = await self._setup_browser_context(p)
+            print("Launched headless browser for rrweb screenshot capturing.")
             await self._setup_replay_synchronization()
+            print("Replay synchronization setup complete.")
             await self._initialize_replay_page()
+            print("Replay page initialized and ready for screenshot capturing.")
 
             # Capture screenshots for each second
             total_seconds = int(self._video_duration_secs) + 1
             for second in range(total_seconds):
                 await self._try_capture_with_retries(second)
-
+                print(f"Captured screenshot for second {second}.")
             # Cleanup
             await self._cleanup_browser(context, browser)
-
+            print("Cleaned up browser resources after screenshot capturing.")
             return True
 
     def _create_html_file(self, html_content: str) -> str:
