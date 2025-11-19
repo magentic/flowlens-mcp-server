@@ -24,14 +24,34 @@ class TimelineLoader(ABC):
         events = []
         for i, event in enumerate(self._raw_timeline):
             event["index"] = i
-            dto_event = self._create_dto_event(event)
-            if dto_event:
-                events.append(dto_event)
+            mapped_event = self._map_event(event)
+            event_dto = TimelineLoader._create_event_dto(mapped_event)
+            if event_dto:
+                events.append(event_dto)
         return dto_timeline.Timeline(
             metadata=self._metadata,
             events=events)
 
-    def _create_dto_event(self, event: dict) -> dto_timeline.TimelineEventType:
+    @staticmethod
+    def _map_event(event):
+        """Map event types to unified types (e.g., all console events to 'console')."""
+        mapped_event_type = TimelineLoader.map_event_type(event.get("type"))
+        event["type"] = mapped_event_type
+        return event
+
+    @staticmethod
+    def map_event_type(event_type):
+        """
+        Note: This mapping should be done on the extension side.
+        """
+        if event_type == "dom_action":
+            return "user_action"
+        elif event_type in ["console_debug", "console_log", "console_info", "console_warning", "console_error"]:
+            return "console"
+        return event_type
+
+    @staticmethod
+    def _create_event_dto(event: dict) -> dto_timeline.TimelineEventType:
         """Create a DTO event object from raw event data."""
         try:
             event_type = event.get("type")

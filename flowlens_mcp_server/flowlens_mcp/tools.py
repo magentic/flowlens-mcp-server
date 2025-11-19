@@ -197,24 +197,16 @@ async def search_flow_events_with_regex(flow_uuid: str, pattern: str, event_type
     [index:int] network_request_pending debugger_request_pending [relative_timestamp:int]ms [POST|PUT|PATCH|GET|DELETE] [url:string] {[trace_id=opentelemtry_trace_id:string]:Optional} {[datadog_trace_id=datadog_trace_id:string]:Optional} 
     - NetworkRequestFailedAtNetworkLevel (request failed at network level e.g. DNS failure, connection timeout, etc.)
     [index:int] network_level_failed_request network_level_failed_request [relative_timestamp:int]ms [POST|PUT|PATCH|GET|DELETE] [url:string] {[trace_id=opentelemtry_trace_id:string]:Optional} {[datadog_trace_id=datadog_trace_id:string]:Optional} latency=[latency_ms:int]ms network_error=[error_text:string]
-    - DomActionEvent (click, keydown_session, scroll, etc.)
-    [index:int] dom_action [click|keydown_session|scroll|etc.] [relative_timestamp:int]ms type=[element_type:string] text_content=[element_text:string or element_src:string:optional] 
+    - UserActionEvent (user interactions: click, input, submit)
+    [index:int] user_action [click|input|submit] [relative_timestamp:int]ms [page_url:string] {[elementId=[id:string]]:Optional} {[parentId=[parent_id:string]]:Optional} {[type=[element_type:string]]:Optional} {[text_content=[text or src]]:Optional} 
     - NavigationEvent (page navigation)
     [index:int] navigation history_change [relative_timestamp:int]ms [url:string] [frame_id:string] [transition_type:string]
     - LocalStorageEvent (local storage set or get)
-    [index:int] local_storage [set|get] [relative_timestamp:int]ms key=[key:string:optional] value=[value:string:optional]
+    [index:int] local_storage [set|get|remove|clear] [relative_timestamp:int]ms key=[key:string:optional] value=[value:string:optional]
     - SessionStorageEvent (session storage set or get)
-    [index:int] session_storage [set|get] [relative_timestamp:int]ms key=[key:string:optional] value=[value:string:optional]
-    - ConsoleDebugEvent (console debug message)
-    [index:int] console_debug debug_logged [relative_timestamp:int]ms [message:string]
-    - ConsoleLogEvent (console log message) 
-    [index:int] console_log log_logged [relative_timestamp:int]ms [message:string]
-    - ConsoleInfoEvent (console info message)
-    [index:int] console_info info_logged [relative_timestamp:int]ms [message:string]
-    - ConsoleWarningEvent (console warning message)
-    [index:int] console_warn warning_logged [relative_timestamp:int]ms [message:string]
-    - ConsoleErrorEvent (console error message)
-    [index:int] console_error error_logged [relative_timestamp:int]ms [message:string]
+    [index:int] session_storage [set|get|remove|clear] [relative_timestamp:int]ms key=[key:string:optional] value=[value:string:optional]
+    - ConsoleEvent (console messages: log, info, debug, warning, error)
+    [index:int] console [log|info|debug|warning|error] [relative_timestamp:int]ms [message:string]
     - JavaScriptErrorEvent (javascript error message)
     [index:int] javascript_error error_captured [relative_timestamp:int]ms [message:string]
     - WebSocketCreatedEvent (websocket connection opened)

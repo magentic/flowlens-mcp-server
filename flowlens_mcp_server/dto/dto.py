@@ -249,21 +249,6 @@ class NetworkResponseData(BaseNetworkData):
         return values
     
 
-class DomTarget(_BaseDTO):
-    src: Optional[str] = None
-    textContent: Optional[str] = None
-    xpath: str
-    type: Optional[str] = None
-    
-
-    def reduce_into_one_line(self) -> str:
-        items = [
-            f"type={self.type or 'unknown'}"
-        ]
-        if self.textContent or self.src:
-            items.append(f"text_content={self._truncate_string(self.textContent or self.src)}")
-        return " ".join(items)
-
 class NavigationData(BaseModel):
     url: str
     frame_id: int
@@ -409,25 +394,43 @@ class NetworkRequestWithResponseEvent(BaseTimelineEvent):
         return values
     
 
-class DomActionEvent(BaseTimelineEvent):
-    page_url: str
-    target: DomTarget
+class _DomTarget(_BaseDTO):
+    id: Optional[str] = None
+    parentId: Optional[str] = None
+    src: Optional[str] = None
+    textContent: Optional[str] = None
+    xpath: str
+    type: Optional[str] = None
     
     def reduce_into_one_line(self) -> str:
+        items = []
+        if self.id:
+            items.append(f"elementId={self.id}")
+        if self.parentId:
+            items.append(f"parentId={self.parentId}")
+        if self.type:
+            items.append(f"type={self.type}")
+        if self.textContent or self.src:
+            items.append(f"text_content={self._truncate_string(self.textContent or self.src)}")
+        return " ".join(items)
+
+class UserActionEvent(BaseTimelineEvent):
+    page_url: str
+    target: _DomTarget
+
+    def reduce_into_one_line(self) -> str:
         base_line = super().reduce_into_one_line()
-        return (f"{base_line} {self.target.reduce_into_one_line()} ")
-    
+        return (f"{base_line} {self._truncate_string(self.page_url)} {self.target.reduce_into_one_line()} ")
+
     @model_validator(mode="before")
-    def validate_dom_action(cls, values):
+    def validate_user_action(cls, values):
         if not isinstance(values, dict):
             return values
-        values['type'] = enums.TimelineEventType.DOM_ACTION
+        values['type'] = enums.TimelineEventType.USER_ACTION
         action_map = {
             "click": enums.ActionType.CLICK,
-            "keydown_session": enums.ActionType.KEYDOWN_SESSION,
+            "input": enums.ActionType.INPUT,
             "submit": enums.ActionType.SUBMIT,
-            "scroll": enums.ActionType.SCROLL,
-            "input": enums.ActionType.INPUT
         }
         action = values.get("action_type")
         values["action_type"] = action_map.get(action, enums.ActionType.UNKNOWN)
@@ -478,90 +481,40 @@ class LocalStorageEvent(BaseTimelineEvent):
         values["action_type"] = actions_map.get(action, None)
         return values
 
-class ConsoleData(BaseModel):
+class _ConsoleData(BaseModel):
     message: Optional[str] = None
     stack: Optional[str] = None
     userAgent: Optional[str] = None
-    
-class ConsoleWarningEvent(BaseTimelineEvent):
+
+class ConsoleEvent(BaseTimelineEvent):
     page_url: Optional[str] = None
-    console_warn_data: ConsoleData
-    
+    console_data: _ConsoleData
+
     def reduce_into_one_line(self) -> str:
         base_line = super().reduce_into_one_line()
-        return (f"{base_line} {self._truncate_string(self.console_warn_data.message)} ")
+        return f"{base_line} {self._truncate_string(self.console_data.message)} "
 
     @model_validator(mode="before")
-    def validate_console_warning(cls, values):
+    def validate_console(cls, values):
         if not isinstance(values, dict):
             return values
-        values['type'] = enums.TimelineEventType.CONSOLE_WARNING
-        values['action_type'] = enums.ActionType.WARNING_LOGGED
-        return values
 
-class ConsoleErrorEvent(BaseTimelineEvent):
-    page_url: Optional[str] = None
-    console_error_data: ConsoleData
-    
-    def reduce_into_one_line(self) -> str:
-        base_line = super().reduce_into_one_line()
-        return (f"{base_line} {self.console_error_data.message} ")
+        # Map various console data fields to unified console_data
+        console_field_mapping = {
+            'console_log_data': enums.ActionType.LOG,
+            'console_warn_data': enums.ActionType.WARNING,
+            'console_error_data': enums.ActionType.ERROR,
+            'console_info_data': enums.ActionType.INFO,
+            'console_debug_data': enums.ActionType.DEBUG,
+        }
 
-    @model_validator(mode="before")
-    def validate_console_error(cls, values):
-        if not isinstance(values, dict):
-            return values
-        values['type'] = enums.TimelineEventType.CONSOLE_ERROR
-        values['action_type'] = enums.ActionType.ERROR_LOGGED
-        return values
-    
+        for field_name, action_type in console_field_mapping.items():
+            if field_name in values:
+                values['console_data'] = values.pop(field_name)
+                values['action_type'] = action_type
+                break
 
-class ConsoleInfoEvent(BaseTimelineEvent):
-    page_url: Optional[str] = None
-    console_info_data: ConsoleData
-    
-    def reduce_into_one_line(self) -> str:
-        base_line = super().reduce_into_one_line()
-        return (f"{base_line} {self._truncate_string(self.console_info_data.message)} ")
-
-    @model_validator(mode="before")
-    def validate_console_info(cls, values):
-        if not isinstance(values, dict):
-            return values
-        values['type'] = enums.TimelineEventType.CONSOLE_INFO
-        values['action_type'] = enums.ActionType.INFO_LOGGED
-        return values
-
-class ConsoleDebugEvent(BaseTimelineEvent):
-    page_url: Optional[str] = None
-    console_debug_data: ConsoleData
-    
-    def reduce_into_one_line(self) -> str:
-        base_line = super().reduce_into_one_line()
-        return (f"{base_line} {self._truncate_string(self.console_debug_data.message)} ")
-
-    @model_validator(mode="before")
-    def validate_console_debug(cls, values):
-        if not isinstance(values, dict):
-            return values
-        values['type'] = enums.TimelineEventType.CONSOLE_DEBUG
-        values['action_type'] = enums.ActionType.DEBUG_LOGGED
-        return values
-
-class ConsoleLogEvent(BaseTimelineEvent):
-    page_url: Optional[str] = None
-    console_log_data: ConsoleData
-    
-    def reduce_into_one_line(self) -> str:
-        base_line = super().reduce_into_one_line()
-        return (f"{base_line} {self._truncate_string(self.console_log_data.message)} ")
-
-    @model_validator(mode="before")
-    def validate_console_log(cls, values):
-        if not isinstance(values, dict):
-            return values
-        values['type'] = enums.TimelineEventType.CONSOLE_LOG
-        values['action_type'] = enums.ActionType.LOG_LOGGED
+        values['type'] = enums.TimelineEventType.CONSOLE
         return values
 
 class JavaScriptErrorData(BaseModel):
@@ -764,21 +717,19 @@ class WebSocketClosedEvent(BaseTimelineEvent):
 
 
 TimelineEventType = Union[NetworkRequestEvent, NetworkResponseEvent, NetworkRequestWithResponseEvent,
-                         DomActionEvent, NavigationEvent, LocalStorageEvent, ConsoleWarningEvent, ConsoleErrorEvent,
-                         JavaScriptErrorEvent, SessionStorageEvent, 
+                         UserActionEvent, NavigationEvent, LocalStorageEvent,
+                         JavaScriptErrorEvent, SessionStorageEvent,
                          WebsocketCreatedEvent, WebSocketHandshakeRequestEvent, WebSocketHandshakeResponseEvent,
                          WebSocketFrameSentEvent, WebSocketFrameReceivedEvent,
-                         WebSocketClosedEvent, ConsoleDebugEvent, ConsoleLogEvent, ConsoleInfoEvent]
+                         WebSocketClosedEvent, ConsoleEvent]
 
     
 types_dict: dict[str, Type[TimelineEventType]] = {
         enums.TimelineEventType.NETWORK_REQUEST.value: NetworkRequestEvent,
         enums.TimelineEventType.NETWORK_RESPONSE.value: NetworkResponseEvent,
-        enums.TimelineEventType.DOM_ACTION.value: DomActionEvent,
+        enums.TimelineEventType.USER_ACTION.value: UserActionEvent,
         enums.TimelineEventType.NAVIGATION.value: NavigationEvent,
         enums.TimelineEventType.LOCAL_STORAGE.value: LocalStorageEvent,
-        enums.TimelineEventType.CONSOLE_WARNING.value: ConsoleWarningEvent,
-        enums.TimelineEventType.CONSOLE_ERROR.value: ConsoleErrorEvent,
         enums.TimelineEventType.JAVASCRIPT_ERROR.value: JavaScriptErrorEvent,
         enums.TimelineEventType.SESSION_STORAGE.value: SessionStorageEvent,
         enums.TimelineEventType.WEBSOCKET_CREATED.value: WebsocketCreatedEvent,
@@ -787,8 +738,6 @@ types_dict: dict[str, Type[TimelineEventType]] = {
         enums.TimelineEventType.WEBSOCKET_FRAME_SENT.value: WebSocketFrameSentEvent,
         enums.TimelineEventType.WEBSOCKET_FRAME_RECEIVED.value: WebSocketFrameReceivedEvent,
         enums.TimelineEventType.WEBSOCKET_CLOSED.value: WebSocketClosedEvent,
-        enums.TimelineEventType.CONSOLE_DEBUG.value: ConsoleDebugEvent,
-        enums.TimelineEventType.CONSOLE_LOG.value: ConsoleLogEvent,
-        enums.TimelineEventType.CONSOLE_INFO.value: ConsoleInfoEvent,
+        enums.TimelineEventType.CONSOLE.value: ConsoleEvent,
         }
 
