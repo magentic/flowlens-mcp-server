@@ -13,8 +13,8 @@ logger = Logger(__name__)
 class TimelineLoader(ABC):
     """Abstract base class for loading timeline data."""
 
-    def __init__(self, flow: dto.FullFlow):
-        self._flow = flow
+    def __init__(self, source: str):
+        self._source = source
         self._raw_timeline: list = None
         self._metadata: dict = None
 
@@ -58,8 +58,7 @@ class LocalTimelineLoader(TimelineLoader):
 
     async def _load_timeline_data(self) -> None:
         """Load timeline data from a local JSON file."""
-        timeline_file_path = self._flow.local_files_data.timeline_file_path
-        async with aiofiles.open(timeline_file_path, mode='r') as f:
+        async with aiofiles.open(self._source, mode='r') as f:
             content = await f.read()
         data = json.loads(content)
         self._raw_timeline = data.get("timeline", [])
@@ -78,7 +77,7 @@ class RemoteTimelineLoader(TimelineLoader):
     async def _load_json_from_url(self) -> dict:
         """Fetch and parse JSON data from the timeline URL."""
         async with aiohttp.ClientSession() as session:
-            async with session.get(self._flow.timeline_url) as response:
+            async with session.get(self._source) as response:
                 response.raise_for_status()
                 try:
                     return await response.json(content_type=None)
@@ -88,16 +87,17 @@ class RemoteTimelineLoader(TimelineLoader):
         raise RuntimeError("Failed to load timeline data")
 
 
-def get_timeline_loader(flow: dto.FullFlow) -> TimelineLoader:
+def get_timeline_loader(is_local: bool, source: str) -> TimelineLoader:
     """
     Factory function to create the appropriate timeline loader.
 
     Args:
-        flow: The flow object containing timeline information
+        is_local: Whether the timeline is stored locally or remotely
+        source: The file path (if local) or URL (if remote) to the timeline data
 
     Returns:
-        LocalTimelineLoader if flow.is_local is True, otherwise RemoteTimelineLoader
+        LocalTimelineLoader if is_local is True, otherwise RemoteTimelineLoader
     """
-    if flow.is_local:
-        return LocalTimelineLoader(flow)
-    return RemoteTimelineLoader(flow)
+    if is_local:
+        return LocalTimelineLoader(source)
+    return RemoteTimelineLoader(source)

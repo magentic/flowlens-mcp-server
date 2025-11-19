@@ -5,6 +5,7 @@ from ..dto import dto
 from ..utils import http_request, logger_setup, local_zip
 from ..utils.flow_registry import flow_registry
 from ..utils.settings import settings
+from ..utils.timeline.loader import get_timeline_loader
 from ..utils.timeline.processor import TimelineProcessor
 from ..utils.timeline.registry import timeline_registry
 from ..utils.video.handler import VideoHandler
@@ -102,8 +103,13 @@ class FlowLensService:
         return flow
     
     async def _create_flow(self, base_flow: dto.FullFlow) -> dto.FlowlensFlow:
+        # Load timeline data
+        source = base_flow.local_files_data.timeline_file_path if base_flow.is_local else base_flow.timeline_url
+        loader = get_timeline_loader(base_flow.is_local, source)
+        timeline = await loader.load()
+
         # Process timeline using TimelineProcessor
-        processor = TimelineProcessor(base_flow)
+        processor = TimelineProcessor(timeline)
         timeline_overview = await processor.process()
 
         # Register the processed timeline in the registry
