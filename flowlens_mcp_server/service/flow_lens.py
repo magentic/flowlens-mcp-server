@@ -2,8 +2,9 @@ from typing import List, Optional
 
 from flowlens_mcp_server.utils.recording.dom_snapshot_handler import DomSnapshotHandler
 from ..dto import dto
-from ..utils import http_client, logger_setup, local_zip
-from ..utils.flow_registry import flow_registry
+from ..utils import logger_setup
+from ..utils.flow import http_client, local_zip
+from ..utils.flow.registry import flow_registry
 from ..utils.settings import settings
 from ..utils.timeline.loader import get_timeline_loader
 from ..utils.timeline.processor import TimelineProcessor
