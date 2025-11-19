@@ -1,14 +1,14 @@
 from collections import defaultdict
 from typing import List
-import aiohttp
 
 from flowlens_mcp_server.models import enums
 from ...dto import dto, dto_timeline
-from .loader import TimelineLoader
+from .loader import get_timeline_loader
 
 class TimelineProcessor:
     def __init__(self, flow: dto.FullFlow):
         self.flow = flow
+        self._loader = get_timeline_loader(flow)
         self._timeline: dto_timeline.Timeline = None
 
     async def process(self) -> dto_timeline.TimelineOverview:
@@ -154,7 +154,5 @@ class TimelineProcessor:
         )
 
     async def _load_timeline_data(self) -> dto_timeline.Timeline:
-        loader = TimelineLoader(self.flow)
-        timeline = await loader.load()
-        return timeline
+        return await self._loader.load()
         
