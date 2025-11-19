@@ -44,7 +44,7 @@ class TimelineRegistry:
         """
         async with self._lock:
             if flow_id not in self._timelines:
-                raise KeyError(f"Timeline for flow ID {flow_id} not found.")
+                raise KeyError(f"Timeline for flow ID {flow_id} not found. Must get flow first.")
             return self._timelines[flow_id]
 
 

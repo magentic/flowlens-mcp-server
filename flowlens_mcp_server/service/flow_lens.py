@@ -1,14 +1,14 @@
 from typing import List, Optional
 
-from flowlens_mcp_server.utils.video.dom_snapshot_handler import DomSnapshotHandler
+from flowlens_mcp_server.utils.recording.dom_snapshot_handler import DomSnapshotHandler
 from ..dto import dto
-from ..utils import http_request, logger_setup, local_zip
+from ..utils import http_client, logger_setup, local_zip
 from ..utils.flow_registry import flow_registry
 from ..utils.settings import settings
 from ..utils.timeline.loader import get_timeline_loader
 from ..utils.timeline.processor import TimelineProcessor
 from ..utils.timeline.registry import timeline_registry
-from ..utils.video.handler import VideoHandler
+from ..utils.recording.video_handler import VideoHandler
 
 log = logger_setup.Logger(__name__)
 
@@ -23,7 +23,7 @@ class FlowLensService:
     def __init__(self, params: FlowLensServiceParams):
         self.params = params
         base_url = f"{settings.flowlens_url}/flowlens"
-        self._client = http_request.HttpClient(params.token, base_url)
+        self._client = http_client.HttpClient(params.token, base_url)
         self._zip_client = local_zip.LocalZipClient(params.local_flow_zip_path)
 
     async def get_cached_flow(self) -> Optional[dto.FlowlensFlow]:
