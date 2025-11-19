@@ -1,4 +1,3 @@
-import asyncio
 from typing import List, Optional
 
 from flowlens_mcp_server.utils.video.dom_snapshot_handler import DomSnapshotHandler
@@ -6,6 +5,7 @@ from ..dto import dto
 from ..utils import http_request, logger_setup, local_zip
 from ..utils.flow_registry import flow_registry
 from ..utils.settings import settings
+from ..utils.timeline.processor import TimelineProcessor
 from ..utils.timeline.registry import timeline_registry
 from ..utils.video.handler import VideoHandler
 
@@ -102,7 +102,13 @@ class FlowLensService:
         return flow
     
     async def _create_flow(self, base_flow: dto.FullFlow) -> dto.FlowlensFlow:
-        timeline_overview = await timeline_registry.register_timeline(base_flow)
+        # Process timeline using TimelineProcessor
+        processor = TimelineProcessor(base_flow)
+        timeline_overview = await processor.process()
+
+        # Register the processed timeline in the registry
+        await timeline_registry.register_timeline(base_flow.id, timeline_overview)
+
         flow = dto.FlowlensFlow(
             uuid=base_flow.id,
             title=base_flow.title,

@@ -1,6 +1,5 @@
 import asyncio
-from ...dto import dto, dto_timeline
-from .processor import TimelineProcessor
+from ...dto import dto_timeline
 
 
 class TimelineRegistry:
@@ -8,27 +7,45 @@ class TimelineRegistry:
         self._timelines: dict[str, dto_timeline.TimelineOverview] = {}
         self._lock = asyncio.Lock()
 
-    async def register_timeline(self, flow: dto.FullFlow) -> dto_timeline.TimelineOverview:
-        if await self.is_registered(flow.id):
-            return await self.get_timeline(flow.id)
-        
-        processor = TimelineProcessor(flow)
-        timeline = await processor.process()
+    async def register_timeline(self, flow_id: str, timeline: dto_timeline.TimelineOverview) -> bool:
+        """
+        Register a timeline overview in the registry.
 
+        Args:
+            flow_id: The flow UUID to register the timeline under
+            timeline: The timeline overview to register
+
+        Returns:
+            True if timeline was registered successfully, False if already exists
+        """
         async with self._lock:
-            self._timelines[flow.id] = timeline
-            return timeline
-        raise KeyError(f"Failed to register timeline for flow ID {flow.id}.")
-    
+            if flow_id in self._timelines:
+                return False
+            self._timelines[flow_id] = timeline
+            return True
+
     async def is_registered(self, flow_id: str) -> bool:
+        """Check if a timeline is registered for the given flow ID."""
         async with self._lock:
             return flow_id in self._timelines
-        return False
 
     async def get_timeline(self, flow_id: str) -> dto_timeline.TimelineOverview:
+        """
+        Get a registered timeline by flow ID.
+
+        Args:
+            flow_id: The flow UUID to look up
+
+        Returns:
+            The timeline overview
+
+        Raises:
+            KeyError: If timeline not found
+        """
         async with self._lock:
-            return self._timelines.get(flow_id)
-        raise KeyError(f"Timeline for flow ID {flow_id} not found.")
+            if flow_id not in self._timelines:
+                raise KeyError(f"Timeline for flow ID {flow_id} not found.")
+            return self._timelines[flow_id]
 
 
 timeline_registry = TimelineRegistry()
