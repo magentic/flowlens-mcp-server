@@ -105,15 +105,15 @@ class FlowLensService:
     async def _create_flow(self, base_flow: dto.FullFlow) -> dto.FlowlensFlow:
         # Load timeline data
         source = base_flow.local_files_data.timeline_file_path if base_flow.is_local else base_flow.timeline_url
-        loader = get_timeline_loader(base_flow.is_local, source)
-        timeline = await loader.load()
-
-        # Process timeline using TimelineProcessor
-        processor = TimelineProcessor(timeline)
-        timeline_overview = await processor.process()
-
+        timeline_loader = get_timeline_loader(base_flow.is_local, source)
+        timeline = await timeline_loader.load()
         # Register the processed timeline in the registry
-        await timeline_registry.register_timeline(base_flow.id, timeline_overview)
+        await timeline_registry.register_timeline(base_flow.id, timeline)
+
+        # Process timeline and compute summary
+        processor = TimelineProcessor(timeline)
+        summary = await processor.get_summary()
+
 
         flow = dto.FlowlensFlow(
             uuid=base_flow.id,
@@ -123,15 +123,15 @@ class FlowLensService:
             system_id=base_flow.system_id,
             tags=base_flow.tags,
             comments=base_flow.comments if base_flow.comments else [],
-            events_count=timeline_overview.events_count,
-            duration_ms=timeline_overview.duration_ms,
-            http_requests_count=timeline_overview.http_requests_count,
-            event_type_summaries=timeline_overview.event_type_summaries,
-            http_request_status_code_summaries=timeline_overview.http_request_status_code_summaries,
-            http_request_domain_summary=timeline_overview.http_request_domain_summary,
+            events_count=summary.events_count,
+            duration_ms=summary.duration_ms,
+            http_requests_count=summary.http_requests_count,
+            event_type_summaries=summary.event_type_summaries,
+            http_request_status_code_summaries=summary.http_request_status_code_summaries,
+            http_request_domain_summary=summary.http_request_domain_summary,
             recording_type=base_flow.recording_type,
             are_screenshots_available=base_flow.are_screenshots_available,
-            websockets_overview=timeline_overview.websockets_overview,
+            websockets_overview=summary.websockets_overview,
             is_local=base_flow.is_local,
             local_files_data=base_flow.local_files_data,
             video_url=base_flow.video_url

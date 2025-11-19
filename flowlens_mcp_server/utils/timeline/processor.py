@@ -6,35 +6,35 @@ from ...dto import dto, dto_timeline
 
 class TimelineProcessor:
     def __init__(self, timeline: dto_timeline.Timeline):
-        self._timeline = timeline
+        self.timeline = timeline
 
-    async def process(self) -> dto_timeline.TimelineOverview:
-        total_recording_duration_ms = self._timeline.metadata.get("recording_duration_ms", 0)
-        self._timeline.events = self._process_timeline_events()
+    async def get_summary(self) -> dto_timeline.TimelineSummary:
+        """Process timeline events and return computed summary statistics."""
+        total_recording_duration_ms = self.timeline.metadata.get("recording_duration_ms", 0)
+        self.timeline.events = self.process_timeline_events()
 
-        return dto_timeline.TimelineOverview(
-            timeline=self._timeline,
+        return dto_timeline.TimelineSummary(
             duration_ms=total_recording_duration_ms,
-            events_count=len(self._timeline.events),
-            http_requests_count=self._count_network_requests(),
-            event_type_summaries=self._summarize_event_types(),
-            http_request_status_code_summaries=self._summarize_request_status_codes(),
-            http_request_domain_summary=self._summarize_request_domains(),
-            websockets_overview=self._summarize_websockets()
+            events_count=len(self.timeline.events),
+            http_requests_count=self.count_network_requests(),
+            event_type_summaries=self.summarize_event_types(),
+            http_request_status_code_summaries=self.summarize_request_status_codes(),
+            http_request_domain_summary=self.summarize_request_domains(),
+            websockets_overview=self.summarize_websockets()
         )
 
-    def _summarize_event_types(self) -> List[dto.EventTypeSummary]:
+    def summarize_event_types(self) -> List[dto.EventTypeSummary]:
         count_dict = defaultdict(int)
-        for event in self._timeline.events:
+        for event in self.timeline.events:
             event_type = event.type
             if event_type:
                 count_dict[event_type] += 1
         return [dto.EventTypeSummary(event_type=event_type, events_count=count) 
                 for event_type, count in count_dict.items()]
 
-    def _summarize_request_status_codes(self) -> List[dto.RequestStatusCodeSummary]:
+    def summarize_request_status_codes(self) -> List[dto.RequestStatusCodeSummary]:
         count_dict = defaultdict(int)
-        for event in self._timeline.events:
+        for event in self.timeline.events:
             if event.type == enums.TimelineEventType.NETWORK_REQUEST_WITH_RESPONSE:
                 status_code = event.network_response_data.status
                 if status_code:
@@ -46,11 +46,11 @@ class TimelineProcessor:
         return [dto.RequestStatusCodeSummary(status_code=str(status_code), requests_count=count) 
                 for status_code, count in count_dict.items()]
     
-    def _summarize_request_domains(self) -> List[dto.NetworkRequestDomainSummary]:
+    def summarize_request_domains(self) -> List[dto.NetworkRequestDomainSummary]:
         count_dict = defaultdict(int)
         request_types = {enums.TimelineEventType.NETWORK_REQUEST, enums.TimelineEventType.NETWORK_REQUEST_WITH_RESPONSE,
                          enums.TimelineEventType.NETWORK_REQUEST_PENDING}
-        for event in self._timeline.events:
+        for event in self.timeline.events:
             if event.type not in request_types:
                 continue
             domain = event.network_request_data.domain_name
@@ -59,14 +59,14 @@ class TimelineProcessor:
         return [dto.NetworkRequestDomainSummary(domain=domain, requests_count=count) 
                 for domain, count in count_dict.items()]
         
-    def _count_network_requests(self) -> int:
-        return sum(1 for event in self._timeline.events
+    def count_network_requests(self) -> int:
+        return sum(1 for event in self.timeline.events
                    if event.type in {enums.TimelineEventType.NETWORK_REQUEST, 
                                      enums.TimelineEventType.NETWORK_REQUEST_WITH_RESPONSE})
 
-    def _summarize_websockets(self) -> List[dto_timeline.WebSocketOverview]:
+    def summarize_websockets(self) -> List[dto_timeline.WebSocketOverview]:
         sockets = defaultdict(lambda: dto_timeline.WebSocketOverview(socket_id=""))
-        for event in self._timeline.events:
+        for event in self.timeline.events:
             if not event.type.value.startswith("websocket_"):
                 continue
             socket_id = event.correlation_id
@@ -91,11 +91,11 @@ class TimelineProcessor:
             
         return list(sockets.values())
 
-    def _process_timeline_events(self) -> dto_timeline.Timeline:
+    def process_timeline_events(self) -> dto_timeline.Timeline:
         requests_map = {}
         processed_timeline = []
 
-        for event in self._timeline.events:
+        for event in self.timeline.events:
             event_type = event.type
 
             if event_type not in {enums.TimelineEventType.NETWORK_REQUEST,

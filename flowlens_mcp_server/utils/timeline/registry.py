@@ -4,16 +4,16 @@ from ...dto import dto_timeline
 
 class TimelineRegistry:
     def __init__(self):
-        self._timelines: dict[str, dto_timeline.TimelineOverview] = {}
+        self._timelines: dict[str, dto_timeline.Timeline] = {}
         self._lock = asyncio.Lock()
 
-    async def register_timeline(self, flow_id: str, timeline: dto_timeline.TimelineOverview) -> bool:
+    async def register_timeline(self, flow_id: str, timeline: dto_timeline.Timeline) -> bool:
         """
-        Register a timeline overview in the registry.
+        Register a timeline in the registry.
 
         Args:
             flow_id: The flow UUID to register the timeline under
-            timeline: The timeline overview to register
+            timeline: The timeline to register
 
         Returns:
             True if timeline was registered successfully, False if already exists
@@ -29,7 +29,7 @@ class TimelineRegistry:
         async with self._lock:
             return flow_id in self._timelines
 
-    async def get_timeline(self, flow_id: str) -> dto_timeline.TimelineOverview:
+    async def get_timeline(self, flow_id: str) -> dto_timeline.Timeline:
         """
         Get a registered timeline by flow ID.
 
@@ -37,7 +37,7 @@ class TimelineRegistry:
             flow_id: The flow UUID to look up
 
         Returns:
-            The timeline overview
+            The timeline
 
         Raises:
             KeyError: If timeline not found

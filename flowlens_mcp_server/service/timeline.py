@@ -10,18 +10,16 @@ class TimelineServiceParams:
 
 def load_timeline(func):
     async def wrapper(self, *args, **kwargs):
-        if not self._overview:
-            self._overview = await timeline_registry.get_timeline(self.params.flow_uuid)
-            self._timeline = self._overview.timeline
+        if not self._timeline:
+            self._timeline = await timeline_registry.get_timeline(self.params.flow_uuid)
         return await func(self, *args, **kwargs)
     return wrapper
-           
+
 class TimelineService:
     _timeline_state = {}
-    
+
     def __init__(self, params: TimelineServiceParams):
         self.params = params
-        self._overview: dto_timeline.TimelineOverview = None
         self._timeline: dto_timeline.Timeline = None
 
     @load_timeline

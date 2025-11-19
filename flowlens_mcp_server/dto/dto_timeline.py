@@ -93,9 +93,9 @@ class Timeline(BaseModel):
         header += f"Total Matches: {len(matches)}\n"
         return header + "\n".join([event.reduce_into_one_line() for event in matches])
 
-  
-class TimelineOverview(BaseModel):
-    timeline: Timeline
+
+class TimelineSummary(BaseModel):
+    """Computed summary statistics for a timeline."""
     events_count: int
     duration_ms: int
     event_type_summaries: List[EventTypeSummary]
@@ -103,11 +103,11 @@ class TimelineOverview(BaseModel):
     http_request_status_code_summaries: List[RequestStatusCodeSummary]
     http_request_domain_summary: List[NetworkRequestDomainSummary]
     websockets_overview: List[WebSocketOverview]
-    
+
     def __str__(self):
-        return (f"TimelineOverview(duration_ms={self.duration_ms}, \n"
+        return (f"TimelineSummary(duration_ms={self.duration_ms}, \n"
                 f"events_count={self.events_count}, \n"
-                f"network_requests_count={self.network_requests_count}, \n"
+                f"http_requests_count={self.http_requests_count}, \n"
                 f"event_type_summaries={self.event_type_summaries}, \n"
-                f"request_status_code_summaries={self.http_request_status_code_summaries}) \n"
+                f"http_request_status_code_summaries={self.http_request_status_code_summaries}, \n"
                 f"http_request_domain_summary={self.http_request_domain_summary})")
