@@ -431,7 +431,8 @@ class _DomTarget(_BaseDTO):
     textContent: Optional[str] = None
     xpath: str
     type: Optional[str] = None
-    
+    value: Optional[str] = None
+
     def reduce_into_one_line(self) -> str:
         items = []
         if self.id:
@@ -442,15 +443,24 @@ class _DomTarget(_BaseDTO):
             items.append(f"type={self.type}")
         if self.textContent or self.src:
             items.append(f"text_content={self._truncate_string(self.textContent or self.src)}")
+        if self.value:
+            items.append(f"value={self._truncate_string(self.value)}")
         return " ".join(items)
 
 class UserActionEvent(BaseTimelineEvent):
     page_url: str
     target: _DomTarget
+    final_value: Optional[str] = None
 
     def reduce_into_one_line(self) -> str:
         base_line = super().reduce_into_one_line()
-        return (f"{base_line} {self._truncate_string(self.page_url)} {self.target.reduce_into_one_line()} ")
+        parts = [base_line, self._truncate_string(self.page_url), self.target.reduce_into_one_line()]
+
+        # Show final_value if available (event level)
+        if self.final_value:
+            parts.append(f"final_value={self._truncate_string(self.final_value)}")
+
+        return " ".join(parts) + " "
 
     @model_validator(mode="before")
     def validate_user_action(cls, values):
