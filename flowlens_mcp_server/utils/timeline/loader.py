@@ -6,6 +6,8 @@ from abc import ABC, abstractmethod
 from ...dto import dto, dto_timeline
 
 from ..logger_setup import Logger
+from ..extension_compatibility.events_mapping import map_event
+
 
 logger = Logger(__name__)
 
@@ -24,51 +26,13 @@ class TimelineLoader(ABC):
         events = []
         for i, event in enumerate(self._raw_timeline):
             event["index"] = i
-            mapped_event = self._map_event(event)
+            mapped_event = map_event(event)
             event_dto = TimelineLoader._create_event_dto(mapped_event)
             if event_dto:
                 events.append(event_dto)
         return dto_timeline.Timeline(
             metadata=self._metadata,
             events=events)
-
-    @staticmethod
-    def _map_event(event):
-        """Map event types to unified types (e.g., all console events to 'console').
-        Note: This is only intended for backward compatibility with the extension"""
-        event_type = event.get("type")
-        
-        # Map event types
-        if event_type == "dom_action":
-            event["type"] = "user_action"
-        elif event_type in ["console_debug", "console_log", "console_info", "console_warn", "console_error"]:
-            event["type"] = "console"
-            
-            if 'console_log_data' in event:
-                event["console_data"] = event['console_log_data']
-                event["action_type"] = "log"
-            elif 'console_warn_data' in event:
-                event["console_data"] = event['console_warn_data']
-                event["action_type"] = "warning"
-            elif 'console_error_data' in event:
-                event["console_data"] = event['console_error_data']
-                event["action_type"] = "error"
-            elif 'console_info_data' in event:
-                event["console_data"] = event['console_info_data']
-                event["action_type"] = "info"
-            elif 'console_debug_data' in event:
-                event["console_data"] = event['console_debug_data']
-                event["action_type"] = "debug"
-                
-            
-            
-        elif event_type in ["websocket_created", "websocket_handshake_request", "websocket_handshake_response",
-                           "websocket_frame_sent", "websocket_frame_received", "websocket_closed"]:
-            event["type"] = "websocket"
-                
-        
-        return event
-
 
 
     @staticmethod
