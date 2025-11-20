@@ -28,12 +28,7 @@ class TimelineEventType(Enum):
     NAVIGATION = "navigation"
     CONSOLE = "console"
     JAVASCRIPT_ERROR = "javascript_error"
-    WEBSOCKET_CREATED = "websocket_created"
-    WEBSOCKET_HANDSHAKE_REQUEST = "websocket_handshake_request"
-    WEBSOCKET_HANDSHAKE_RESPONSE = "websocket_handshake_response"
-    WEBSOCKET_FRAME_SENT = "websocket_frame_sent"
-    WEBSOCKET_FRAME_RECEIVED = "websocket_frame_received"
-    WEBSOCKET_CLOSED = "websocket_closed"
+    WEBSOCKET = "websocket"
     NETWORK_LEVEL_FAILED_REQUEST = "network_level_failed_request"
     
 

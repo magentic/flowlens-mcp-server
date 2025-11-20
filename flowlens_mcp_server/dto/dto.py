@@ -499,22 +499,8 @@ class ConsoleEvent(BaseTimelineEvent):
         if not isinstance(values, dict):
             return values
 
-        # Map various console data fields to unified console_data
-        console_field_mapping = {
-            'console_log_data': enums.ActionType.LOG,
-            'console_warn_data': enums.ActionType.WARNING,
-            'console_error_data': enums.ActionType.ERROR,
-            'console_info_data': enums.ActionType.INFO,
-            'console_debug_data': enums.ActionType.DEBUG,
-        }
-
-        for field_name, action_type in console_field_mapping.items():
-            if field_name in values:
-                values['console_data'] = values.pop(field_name)
-                values['action_type'] = action_type
-                break
-
         values['type'] = enums.TimelineEventType.CONSOLE
+        values['action_type'] = enums.ActionType(values.get("action_type"))
         return values
 
 class JavaScriptErrorData(BaseModel):
@@ -608,57 +594,14 @@ class WebSocketCreatedData(BaseModel):
         values['initiator_data'] = frames[0] if frames else None
         return values
 
-class WebsocketCreatedEvent(BaseTimelineEvent):
-    correlation_id: str
-    websocket_created_data: WebSocketCreatedData
-    
-    def reduce_into_one_line(self) -> str:
-        base_line = super().reduce_into_one_line()
-        return f"{base_line} socket_id={self.correlation_id} {self.websocket_created_data.reduce_into_one_line()}"
-
-    @model_validator(mode="before")
-    def validate_websocket_created(cls, values):
-        if not isinstance(values, dict):
-            return values
-        values['type'] = enums.TimelineEventType.WEBSOCKET_CREATED
-        values['action_type'] = enums.ActionType.CONNECTION_OPENED
-        return values
-
-class WebSocketHandshakeData(BaseModel):
+class _WebSocketHandshakeData(BaseModel):
     headers: Optional[dict] = None
     status: Optional[int] = None
-    
+
     def reduce_into_one_line(self) -> str:
         return f"status_code={self.status or ''}"
-    
-class WebSocketHandshakeEvent(BaseTimelineEvent):
-    correlation_id: str
-    websocket_handshake_data: WebSocketHandshakeData
-    
-    def reduce_into_one_line(self) -> str:
-        base_line = super().reduce_into_one_line()
-        return f"{base_line} socket_id={self.correlation_id} {self.websocket_handshake_data.reduce_into_one_line()}"
 
-class WebSocketHandshakeRequestEvent(WebSocketHandshakeEvent):
-    @model_validator(mode="before")
-    def validate_websocket_handshake(cls, values):
-        if not isinstance(values, dict):
-            return values
-        values['type'] = enums.TimelineEventType.WEBSOCKET_HANDSHAKE_REQUEST
-        values['action_type'] = enums.ActionType.HANDSHAKE_REQUEST
-        return values
-
-class WebSocketHandshakeResponseEvent(WebSocketHandshakeEvent):
-    @model_validator(mode="before")
-    def validate_websocket_handshake(cls, values):
-        if not isinstance(values, dict):
-            return values
-        values['type'] = enums.TimelineEventType.WEBSOCKET_HANDSHAKE_RESPONSE
-        values['action_type'] = enums.ActionType.HANDSHAKE_RESPONSE
-        return values
-    
-
-class WebSocketFrameData(_BaseDTO):
+class _WebSocketFrameData(_BaseDTO):
     opcode: int
     mask: bool
     payloadData: Optional[str] = None
@@ -667,63 +610,48 @@ class WebSocketFrameData(_BaseDTO):
     def reduce_into_one_line(self) -> str:
         return f"message={self._truncate_string(self.payloadData, 100)}" if self.payloadData else ""
 
-
-class WebSocketFrameEvent(BaseTimelineEvent):
-    correlation_id: str
-    websocket_frame_data: WebSocketFrameData
-    
-    def reduce_into_one_line(self) -> str:
-        base_line = super().reduce_into_one_line()
-        return f"{base_line} socket_id={self.correlation_id} {self.websocket_frame_data.reduce_into_one_line()}"
-    
-
-class WebSocketFrameSentEvent(WebSocketFrameEvent):
-    @model_validator(mode="before")
-    def validate_websocket_frame_sent(cls, values):
-        if not isinstance(values, dict):
-            return values
-        values['type'] = enums.TimelineEventType.WEBSOCKET_FRAME_SENT
-        values['action_type'] = enums.ActionType.MESSAGE_SENT
-        return values
-
-
-class WebSocketFrameReceivedEvent(WebSocketFrameEvent):
-    @model_validator(mode="before")
-    def validate_websocket_frame_received(cls, values):
-        if not isinstance(values, dict):
-            return values
-        values['type'] = enums.TimelineEventType.WEBSOCKET_FRAME_RECEIVED
-        values['action_type'] = enums.ActionType.MESSAGE_RECEIVED
-        return values
-
-class WebSocketClosedData(BaseModel):
+class _WebSocketClosedData(BaseModel):
     reason: Optional[str] = None
 
-class WebSocketClosedEvent(BaseTimelineEvent):
+class WebSocketEvent(BaseTimelineEvent):
     correlation_id: str
-    websocket_closed_data: WebSocketClosedData
-    
+    websocket_created_data: Optional[WebSocketCreatedData] = None
+    websocket_handshake_data: Optional[_WebSocketHandshakeData] = None
+    websocket_frame_data: Optional[_WebSocketFrameData] = None
+    websocket_closed_data: Optional[_WebSocketClosedData] = None
+
     def reduce_into_one_line(self) -> str:
         base_line = super().reduce_into_one_line()
-        return f"{base_line} socket_id={self.correlation_id} reason={self.websocket_closed_data.reason or ''}"
+        socket_id = f"socket_id={self.correlation_id}"
+
+        if self.websocket_created_data:
+            return f"{base_line} {socket_id} {self.websocket_created_data.reduce_into_one_line()}"
+        elif self.websocket_handshake_data:
+            return f"{base_line} {socket_id} {self.websocket_handshake_data.reduce_into_one_line()}"
+        elif self.websocket_frame_data:
+            return f"{base_line} {socket_id} {self.websocket_frame_data.reduce_into_one_line()}"
+        elif self.websocket_closed_data:
+            return f"{base_line} {socket_id} reason={self.websocket_closed_data.reason or ''}"
+        else:
+            return f"{base_line} {socket_id}"
 
     @model_validator(mode="before")
-    def validate_websocket_closed(cls, values):
+    def validate_websocket(cls, values):
         if not isinstance(values, dict):
             return values
-        values['type'] = enums.TimelineEventType.WEBSOCKET_CLOSED
-        values['action_type'] = enums.ActionType.CONNECTION_CLOSED
+
+        values['type'] = enums.TimelineEventType.WEBSOCKET
+        values['action_type'] = enums.ActionType(values.get("action_type"))
+        
         return values
 
 
 TimelineEventType = Union[NetworkRequestEvent, NetworkResponseEvent, NetworkRequestWithResponseEvent,
                          UserActionEvent, NavigationEvent, LocalStorageEvent,
                          JavaScriptErrorEvent, SessionStorageEvent,
-                         WebsocketCreatedEvent, WebSocketHandshakeRequestEvent, WebSocketHandshakeResponseEvent,
-                         WebSocketFrameSentEvent, WebSocketFrameReceivedEvent,
-                         WebSocketClosedEvent, ConsoleEvent]
+                         WebSocketEvent, ConsoleEvent]
 
-    
+
 types_dict: dict[str, Type[TimelineEventType]] = {
         enums.TimelineEventType.NETWORK_REQUEST.value: NetworkRequestEvent,
         enums.TimelineEventType.NETWORK_RESPONSE.value: NetworkResponseEvent,
@@ -732,12 +660,6 @@ types_dict: dict[str, Type[TimelineEventType]] = {
         enums.TimelineEventType.LOCAL_STORAGE.value: LocalStorageEvent,
         enums.TimelineEventType.JAVASCRIPT_ERROR.value: JavaScriptErrorEvent,
         enums.TimelineEventType.SESSION_STORAGE.value: SessionStorageEvent,
-        enums.TimelineEventType.WEBSOCKET_CREATED.value: WebsocketCreatedEvent,
-        enums.TimelineEventType.WEBSOCKET_HANDSHAKE_REQUEST.value: WebSocketHandshakeRequestEvent,
-        enums.TimelineEventType.WEBSOCKET_HANDSHAKE_RESPONSE.value: WebSocketHandshakeResponseEvent,
-        enums.TimelineEventType.WEBSOCKET_FRAME_SENT.value: WebSocketFrameSentEvent,
-        enums.TimelineEventType.WEBSOCKET_FRAME_RECEIVED.value: WebSocketFrameReceivedEvent,
-        enums.TimelineEventType.WEBSOCKET_CLOSED.value: WebSocketClosedEvent,
+        enums.TimelineEventType.WEBSOCKET.value: WebSocketEvent,
         enums.TimelineEventType.CONSOLE.value: ConsoleEvent,
         }
-
