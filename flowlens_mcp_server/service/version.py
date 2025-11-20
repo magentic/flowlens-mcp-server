@@ -1,5 +1,5 @@
 from ..dto import dto
-from ..utils.http_request import HttpClient
+from ..utils.flow.http_client import HttpClient
 from ..utils.settings import settings
 
 

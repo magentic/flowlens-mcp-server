@@ -1,13 +1,13 @@
-import asyncio
-from typing import List, Optional
+from typing import Optional
 
-from flowlens_mcp_server.utils.video.dom_snapshot_handler import DomSnapshotHandler
+from flowlens_mcp_server.utils.recording.dom_snapshot_handler import DomSnapshotHandler
 from ..dto import dto
-from ..utils import http_request, logger_setup, local_zip
-from ..utils.flow_registry import flow_registry
+from ..utils import logger_setup
+from ..utils.flow import http_client, local_zip
+from ..utils.flow.registry import flow_registry
+from .timeline import load_process_and_register_timeline, summarize_timeline
 from ..utils.settings import settings
-from ..utils.timeline.registry import timeline_registry
-from ..utils.video.handler import VideoHandler
+from ..utils.recording.video_handler import VideoHandler
 
 log = logger_setup.Logger(__name__)
 
@@ -22,7 +22,7 @@ class FlowLensService:
     def __init__(self, params: FlowLensServiceParams):
         self.params = params
         base_url = f"{settings.flowlens_url}/flowlens"
-        self._client = http_request.HttpClient(params.token, base_url)
+        self._client = http_client.HttpClient(params.token, base_url)
         self._zip_client = local_zip.LocalZipClient(params.local_flow_zip_path)
 
     async def get_cached_flow(self) -> Optional[dto.FlowlensFlow]:
@@ -36,15 +36,6 @@ class FlowLensService:
         if not flow:
             raise RuntimeError(f"Flow with id {self.params.flow_uuid} not found")
         return flow
-    
-    async def get_truncated_flow(self) -> dto.FlowlensFlow:
-        flow = await self.get_flow()
-        return flow.truncate()
-
-
-    async def get_flow_full_comments(self) -> List[dto.FlowComment]:
-        flow = await self.get_cached_flow()
-        return flow.comments
 
     async def save_screenshot(self, second: int) -> str:
         flow = await self.get_cached_flow()
@@ -102,7 +93,13 @@ class FlowLensService:
         return flow
     
     async def _create_flow(self, base_flow: dto.FullFlow) -> dto.FlowlensFlow:
-        timeline_overview = await timeline_registry.register_timeline(base_flow)
+        timeline, duration_ms = await load_process_and_register_timeline(
+            flow_id=base_flow.id,
+            is_local=base_flow.is_local,
+            source=base_flow.local_files_data.timeline_file_path if base_flow.is_local else base_flow.timeline_url
+        )
+        summary = summarize_timeline(timeline)
+
         flow = dto.FlowlensFlow(
             uuid=base_flow.id,
             title=base_flow.title,
@@ -111,18 +108,14 @@ class FlowLensService:
             system_id=base_flow.system_id,
             tags=base_flow.tags,
             comments=base_flow.comments if base_flow.comments else [],
-            events_count=timeline_overview.events_count,
-            duration_ms=timeline_overview.duration_ms,
-            http_requests_count=timeline_overview.http_requests_count,
-            event_type_summaries=timeline_overview.event_type_summaries,
-            http_request_status_code_summaries=timeline_overview.http_request_status_code_summaries,
-            http_request_domain_summary=timeline_overview.http_request_domain_summary,
             recording_type=base_flow.recording_type,
             are_screenshots_available=base_flow.are_screenshots_available,
-            websockets_overview=timeline_overview.websockets_overview,
             is_local=base_flow.is_local,
             local_files_data=base_flow.local_files_data,
-            video_url=base_flow.video_url
+            video_url=base_flow.video_url,
+            duration_ms = duration_ms,
+
+            timeline_summary=summary,
         )
         await flow_registry.register_flow(flow)
         return flow

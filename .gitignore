@@ -6,3 +6,4 @@ magentic_mcp_data/**
 data/**
 .gitignore
 .DS_Store
+flowlens_mcp_server/data/

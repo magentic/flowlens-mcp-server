@@ -1,10 +1,10 @@
 from typing import Optional
 import httpx
 import requests
-from ..dto import dto
-from ..models import enums
-from ..utils import logger_setup
-from ..utils.settings import settings
+from ...dto import dto
+from ...models import enums
+from .. import logger_setup
+from ..settings import settings
 
 log = logger_setup.Logger(__name__)
         
