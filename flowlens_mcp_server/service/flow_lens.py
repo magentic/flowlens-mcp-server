@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import Optional
 
 from flowlens_mcp_server.utils.recording.dom_snapshot_handler import DomSnapshotHandler
 from ..dto import dto
@@ -36,15 +36,6 @@ class FlowLensService:
         if not flow:
             raise RuntimeError(f"Flow with id {self.params.flow_uuid} not found")
         return flow
-    
-    async def get_truncated_flow(self) -> dto.FlowlensFlow:
-        flow = await self.get_flow()
-        return flow.truncate()
-
-
-    async def get_flow_full_comments(self) -> List[dto.FlowComment]:
-        flow = await self.get_cached_flow()
-        return flow.comments
 
     async def save_screenshot(self, second: int) -> str:
         flow = await self.get_cached_flow()

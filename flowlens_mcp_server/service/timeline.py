@@ -57,8 +57,8 @@ class RegisteredTimelineService:
         return self.timeline.get_network_response_body(index)
     
     @_load_timeline_from_registry_decorator
-    async def search_events_with_regex(self, pattern: str, event_type:Optional[enums.TimelineEventType] = None) -> str:
-        return self.timeline.search_events_with_regex(pattern, event_type)
+    async def search_events_with_regex(self, pattern: str) -> str:
+        return self.timeline.search_events_with_regex(pattern)
     
     @_load_timeline_from_registry_decorator
     async def search_network_events_with_url_regex(self, url_pattern: str) -> str:

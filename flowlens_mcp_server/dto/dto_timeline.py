@@ -33,7 +33,7 @@ class Timeline(BaseModel):
     
     def get_event_by_index(self, index: int) -> dto.TimelineEventType:
         if 0 <= index < len(self.events):
-            return self.events[index].truncate()
+            return self.events[index]
         raise IndexError(f"Event index {index} out of range.")
 
     def get_full_event_by_index(self, index: int) -> dto.TimelineEventType:
@@ -44,7 +44,7 @@ class Timeline(BaseModel):
     def get_event_by_relative_timestamp(self, relative_timestamp: int) -> dto.TimelineEventType:
         for event in self.events:
             if event.relative_time_ms == relative_timestamp:
-                return event.truncate()
+                return event
         raise ValueError(f"No event found with relative timestamp {relative_timestamp}ms.")
 
     def get_network_request_headers(self, event_index: int):
@@ -71,12 +71,10 @@ class Timeline(BaseModel):
             return event.network_response_data.body
         raise TypeError(f"Event with type {event.type} does not have network response body.")
 
-    def search_events_with_regex(self, pattern: str, event_type: Optional[enums.TimelineEventType] = None) -> str:
+    def search_events_with_regex(self, pattern: str) -> str:
         header = f"Events matching pattern '{pattern}':\n"
         matches: List[dto.TimelineEventType] = []
         for event in self.events:
-            if event.type != event_type:
-                    continue
             if event.search_with_regex(pattern):
                 matches.append(event)
         header += f"Total Matches: {len(matches)}\n"
@@ -88,6 +86,6 @@ class Timeline(BaseModel):
         for event in self.events:
             if isinstance(event, (dto.NetworkRequestEvent, dto.ProcessedHTTPRequestEvent)):
                 if event.search_url_with_regex(url_pattern):
-                    matches.append(event.truncate())
+                    matches.append(event)
         header += f"Total Matches: {len(matches)}\n"
         return header + "\n".join([event.reduce_into_one_line() for event in matches])

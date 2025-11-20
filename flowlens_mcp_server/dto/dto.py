@@ -138,14 +138,6 @@ class FlowlensFlow(_BaseDTO):
     local_files_data: Optional[LocalFilesData] = Field(None, exclude=True)
     video_url: Optional[str] = Field(None, exclude=True)
     timeline_summary: str
-    
-    def truncate(self):
-        copy = self.model_copy(deep=True)
-        # if copy.description:
-        #     copy.description = self._truncate_string(copy.description)
-        for comment in (copy.comments or []):
-            comment.content = self._truncate_string(comment.content)
-        return copy
 
 
 class TracingData(_BaseDTO):
@@ -264,10 +256,7 @@ class BaseTimelineEvent(_BaseDTO):
     timestamp: datetime
     relative_time_ms: int
     index: int
-    
-    def truncate(self):
-        return self
-    
+
     def search_with_regex(self, pattern: str) -> bool:
         match_obj = re.search(pattern, self.reduce_into_one_line() or "")
         return match_obj is not None
@@ -283,28 +272,7 @@ class NetworkRequestEvent(BaseTimelineEvent):
     @property
     def is_network_level_failed_request(self) -> bool:
         return self.network_request_data.network_level_err_text is not None
-
-    # def search_url_with_regex(self, pattern: str) -> bool:
-    #     is_url_match = re.search(pattern, self.network_request_data.url or "")
-    #     return is_url_match is not None
-    
-    # def search_with_regex(self, pattern: str) -> bool:
-    #     match_obj = super().search_with_regex(pattern)
-    #     match_obj = match_obj or re.search(pattern, self.network_request_data.body or "")
-    #     return match_obj is not None
-
-    # def reduce_into_one_line(self) -> str:
-    #     items = [
-    #         super().reduce_into_one_line(),
-    #         self.correlation_id,
-    #         self.network_request_data.reduce_into_one_line()
-    #     ]
-    #     if self.latency_ms is not None:
-    #         items.append(f"latency={self.latency_ms}ms")
-    #     if self.is_network_level_failed_request:
-    #         items.append(f"network_error={self.network_request_data.network_level_err_text}")
-    #     return " ".join(items)
-
+        
     def reduce_into_one_line(self) -> str:
         return "UNKNOWN"
 
@@ -330,52 +298,6 @@ class NetworkResponseEvent(BaseTimelineEvent):
         values['type'] = enums.TimelineEventType.HTTP_RESPONSE
         values['action_type'] = enums.ActionType.UNKNOWN
         return values
-    
-# class NetworkRequestWithResponseEvent(BaseTimelineEvent):
-#     correlation_id: str
-#     network_request_data: NetworkRequestData
-#     network_response_data: NetworkResponseData
-#     duration_ms: int
-
-#     def truncate(self):
-#         copy = self.model_copy(deep=True)
-#         copy.network_response_data = copy.network_response_data.truncate()
-#         copy.network_request_data = copy.network_request_data.truncate()
-#         return copy
-    
-#     def search_url_with_regex(self, pattern: str) -> bool:
-#         match_obj = super().search_with_regex(pattern)
-#         is_url_match = match_obj or re.search(pattern, self.network_request_data.url or "")
-#         return is_url_match is not None
-    
-#     def search_with_regex(self, pattern: str) -> bool:
-#         match_obj = super().search_with_regex(pattern)
-#         match_obj = match_obj or re.search(pattern, self.network_request_data.url or "")
-#         match_obj = match_obj or re.search(pattern, self.network_request_data.body or "")
-#         match_obj = match_obj or re.search(pattern, self.network_response_data.body or "")
-#         return match_obj is not None
-    
-#     def reduce_into_one_line(self) -> str:
-#         base_line = super().reduce_into_one_line()
-#         return (f"{base_line} {self.network_request_data.reduce_into_one_line()} "
-#                 f"{self.network_response_data.reduce_into_one_line()} duration={self.duration_ms}ms")
-
-#     @model_validator(mode="before")
-#     def validate_request_response_data(cls, values):
-#         if not isinstance(values, dict):
-#             return values
-            
-#         values['type'] = enums.TimelineEventType.HTTP_REQUEST
-#         values['action_type'] = enums.ActionType.HTTP_REQUEST_WITH_RESPONSE
-        
-#         # Only calculate duration_ms if the nested data is still in dict form
-#         network_response = values.get('network_response_data')
-#         network_request = values.get('network_request_data')
-        
-#         if isinstance(network_response, dict) and isinstance(network_request, dict):
-#             values['duration_ms'] = network_response.get('relative_time_ms', 0) - network_request.get('relative_time_ms', 0)
-#             values['correlation_id'] = network_response.get('correlation_id')
-#         return values
     
 class ProcessedHTTPRequestEvent(BaseTimelineEvent):
     correlation_id: str
@@ -568,11 +490,6 @@ class JavaScriptErrorEvent(BaseTimelineEvent):
         values['type'] = enums.TimelineEventType.JAVASCRIPT_ERROR
         values['action_type'] = enums.ActionType.ERROR_CAPTURED
         return values
-    
-    def _truncate_string(self, s: str) -> str:
-        if isinstance(s, str) and len(s) > settings.flowlens_max_string_length:
-            return s[:settings.flowlens_max_string_length] + "...(truncated)"
-        return s
 
 class SessionStorageData(BaseModel):
     key: Optional[str] = None
