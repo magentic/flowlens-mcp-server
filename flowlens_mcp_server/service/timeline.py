@@ -3,74 +3,74 @@ from typing import List, Optional
 from ..dto import dto, dto_timeline
 from ..models import enums
 from ..utils.timeline.registry import timeline_registry
+from ..utils.timeline.loader import get_timeline_loader
+from ..utils.timeline.events_processing import process_events
+from ..utils.timeline.events_summarizer import TimelineSummarizer
 
-class TimelineServiceParams:
-    def __init__(self, flow_uuid: str):
-        self.flow_uuid = flow_uuid
-
-def load_timeline_from_registry(func):
+def _load_timeline_from_registry_decorator(func):
     async def wrapper(self, *args, **kwargs):
-        if not self._timeline:
-            self._timeline = await timeline_registry.get_timeline(self.params.flow_uuid)
+        if not self.timeline:
+            self.timeline = await timeline_registry.get_timeline(self.flow_uuid)
         return await func(self, *args, **kwargs)
     return wrapper
 
-class TimelineService:
-    _timeline_state = {}
+class RegisteredTimelineService:
+    def __init__(self, flow_uuid: str):
+        self.timeline: dto_timeline.Timeline = None
 
-    def __init__(self, params: TimelineServiceParams):
-        self.params = params
-        self._timeline: dto_timeline.Timeline = None
-
-    @load_timeline_from_registry
+    @_load_timeline_from_registry_decorator
     async def list_events_within_range(self, start_index: int, 
                                       end_index: int, events_type: Optional[enums.TimelineEventType] = None) -> List[dict]:
-        return self._timeline.create_event_summary_for_range(start_index, end_index, events_type)
+        return self.timeline.create_event_summary_for_range(start_index, end_index, events_type)
 
-    @load_timeline_from_registry
+    @_load_timeline_from_registry_decorator
     async def list_events_within_duration(self, start_time: int, end_time: int) -> List[dict]:
-        return self._timeline.create_event_summary_for_duration(start_time, end_time)
+        return self.timeline.create_event_summary_for_duration(start_time, end_time)
 
-    @load_timeline_from_registry
+    @_load_timeline_from_registry_decorator
     async def list_all_events(self) -> str:
-        return self._timeline.create_events_summary()
+        return self.timeline.create_events_summary()
     
-    @load_timeline_from_registry
+    @_load_timeline_from_registry_decorator
     async def get_full_event_by_index(self, index: int) -> dto.TimelineEventType:
-        return self._timeline.get_event_by_index(index)
+        return self.timeline.get_event_by_index(index)
     
-    @load_timeline_from_registry
+    @_load_timeline_from_registry_decorator
     async def get_full_event_by_relative_timestamp(self, relative_timestamp: int) -> dto.TimelineEventType:
-        return self._timeline.get_event_by_relative_timestamp(relative_timestamp)
+        return self.timeline.get_event_by_relative_timestamp(relative_timestamp)
     
-    @load_timeline_from_registry
+    @_load_timeline_from_registry_decorator
     async def get_network_request_headers_by_index(self, index: int) -> dict:
-        return self._timeline.get_network_request_headers(index)
+        return self.timeline.get_network_request_headers(index)
     
-    @load_timeline_from_registry
+    @_load_timeline_from_registry_decorator
     async def get_network_response_headers_by_index(self, index: int) -> dict:
-        return self._timeline.get_network_response_headers(index)
+        return self.timeline.get_network_response_headers(index)
     
-    @load_timeline_from_registry
+    @_load_timeline_from_registry_decorator
     async def get_network_request_body(self, index: int) -> str:
-        return self._timeline.get_network_request_body(index)
+        return self.timeline.get_network_request_body(index)
     
-    @load_timeline_from_registry
+    @_load_timeline_from_registry_decorator
     async def get_network_response_body(self, index: int) -> str:
-        return self._timeline.get_network_response_body(index)
+        return self.timeline.get_network_response_body(index)
     
-    @load_timeline_from_registry
+    @_load_timeline_from_registry_decorator
     async def search_events_with_regex(self, pattern: str, event_type:Optional[enums.TimelineEventType] = None) -> str:
-        return self._timeline.search_events_with_regex(pattern, event_type)
+        return self.timeline.search_events_with_regex(pattern, event_type)
     
-    @load_timeline_from_registry
+    @_load_timeline_from_registry_decorator
     async def search_network_events_with_url_regex(self, url_pattern: str) -> str:
-        return self._timeline.search_network_events_with_url_regex(url_pattern)
-    
+        return self.timeline.search_network_events_with_url_regex(url_pattern)
 
+async def load_process_and_register_timeline(flow_id: str, is_local: bool, source: str) -> dto_timeline.Timeline:
+    timeline_loader = get_timeline_loader(is_local, source)
+    timeline = await timeline_loader.load()
+    timeline.events = process_events(timeline.events)
+    await timeline_registry.register_timeline(flow_id, timeline)
+    return timeline
     
-
-
-    
-    
-    
+def summarize_timeline(timeline: dto_timeline.Timeline) -> dto_timeline.TimelineSummary:
+    summarizer = TimelineSummarizer(timeline)
+    summary = summarizer.get_summary()
+    return summary

@@ -5,10 +5,8 @@ from ..dto import dto
 from ..utils import logger_setup
 from ..utils.flow import http_client, local_zip
 from ..utils.flow.registry import flow_registry
+from .timeline import load_process_and_register_timeline, summarize_timeline
 from ..utils.settings import settings
-from ..utils.timeline.loader import get_timeline_loader
-from ..utils.timeline.processor import TimelineProcessor
-from ..utils.timeline.registry import timeline_registry
 from ..utils.recording.video_handler import VideoHandler
 
 log = logger_setup.Logger(__name__)
@@ -104,17 +102,12 @@ class FlowLensService:
         return flow
     
     async def _create_flow(self, base_flow: dto.FullFlow) -> dto.FlowlensFlow:
-        # Load timeline data
-        source = base_flow.local_files_data.timeline_file_path if base_flow.is_local else base_flow.timeline_url
-        timeline_loader = get_timeline_loader(base_flow.is_local, source)
-        timeline = await timeline_loader.load()
-        # Register the processed timeline in the registry
-        await timeline_registry.register_timeline(base_flow.id, timeline)
-
-        # Process timeline and compute summary
-        processor = TimelineProcessor(timeline)
-        summary = await processor.get_summary()
-
+        timeline = await load_process_and_register_timeline(
+            flow_id=base_flow.id,
+            is_local=base_flow.is_local,
+            source=base_flow.local_files_data.timeline_file_path if base_flow.is_local else base_flow.timeline_url
+        )
+        summary = summarize_timeline(timeline)
 
         flow = dto.FlowlensFlow(
             uuid=base_flow.id,
@@ -124,8 +117,8 @@ class FlowLensService:
             system_id=base_flow.system_id,
             tags=base_flow.tags,
             comments=base_flow.comments if base_flow.comments else [],
-            events_count=summary.events_count,
             duration_ms=summary.duration_ms,
+            events_count=summary.events_count,
             http_requests_count=summary.http_requests_count,
             event_type_summaries=summary.event_type_summaries,
             http_request_status_code_summaries=summary.http_request_status_code_summaries,

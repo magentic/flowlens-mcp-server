@@ -6,7 +6,7 @@ from flowlens_mcp_server.models import enums
 from ..dto import dto
 from ..flowlens_mcp import server_instance
 from ..service.flow_lens import FlowLensService, FlowLensServiceParams
-from ..service.timeline import TimelineService, TimelineServiceParams
+from ..service.timeline import RegisteredTimelineService
 
 @server_instance.flowlens_mcp.tool
 async def get_flow_by_uuid(flow_uuid: str) -> dto.FlowlensFlow:
@@ -292,13 +292,10 @@ def _get_cached_flow_service(flow_uuid: str) -> FlowLensService:
     _assert_flow_cached(flow_uuid)
     return _get_flow_service(flow_uuid)
 
-async def _get_timeline_service(flow_uuid: str) -> TimelineService:
+async def _get_timeline_service(flow_uuid: str) -> RegisteredTimelineService:
     _assert_flow_cached(flow_uuid)
-    timeline_service = TimelineService(
-        TimelineServiceParams(
-            flow_uuid=flow_uuid
-        )
-    )
+    timeline_service = RegisteredTimelineService(flow_uuid=flow_uuid)
+
     return timeline_service
 
 
