@@ -124,8 +124,8 @@ class NetworkRequestDomainSummary(BaseModel):
 class WebSocketOverview(BaseModel):
     socket_id: str
     url: Optional[str] = None
-    sent_messages_count: Optional[int] = 0
-    received_messages_count: Optional[int] = 0
+    frames_sent_count: Optional[int] = 0
+    frames_received_count: Optional[int] = 0
     is_open: Optional[bool] = True
     opened_at_relative_time_ms: Optional[int] = 0
     opened_event_index: Optional[int] = None
@@ -143,19 +143,24 @@ class FlowlensFlow(_BaseDTO):
     system_id: str = Field(exclude=True)
     tags: Optional[List[FlowTag]] = None
     comments: Optional[List[FlowComment]] = None
-    events_count: int
-    duration_ms: int
-    event_type_summaries: List[EventTypeSummary]
-    http_requests_count: int
-    http_request_status_code_summaries: List[RequestStatusCodeSummary]
-    http_request_domain_summary: List[NetworkRequestDomainSummary]
+    
+    duration_ms: Optional[int] = None
+    
     recording_type: enums.RecordingType
     are_screenshots_available: bool
-    websockets_overview: List[WebSocketOverview]
+    
     is_local: bool = Field(exclude=True)
     local_files_data: Optional[LocalFilesData] = Field(None, exclude=True)
     video_url: Optional[str] = Field(None, exclude=True)
     is_rendering_finished: Optional[bool] = Field(None, exclude=True)
+
+    event_type_summaries: List[EventTypeSummary]
+    http_requests_count: int
+    http_request_status_code_summaries: List[RequestStatusCodeSummary]
+    http_request_domain_summary: List[NetworkRequestDomainSummary]
+    events_count: int
+    websockets_overview: List[WebSocketOverview]
+    timeline_summary: Optional[str] = None
     
     def truncate(self):
         copy = self.model_copy(deep=True)
@@ -302,33 +307,36 @@ class NetworkRequestEvent(BaseTimelineEvent):
     def is_network_level_failed_request(self) -> bool:
         return self.network_request_data.network_level_err_text is not None
 
-    def search_url_with_regex(self, pattern: str) -> bool:
-        is_url_match = re.search(pattern, self.network_request_data.url or "")
-        return is_url_match is not None
+    # def search_url_with_regex(self, pattern: str) -> bool:
+    #     is_url_match = re.search(pattern, self.network_request_data.url or "")
+    #     return is_url_match is not None
     
-    def search_with_regex(self, pattern: str) -> bool:
-        match_obj = super().search_with_regex(pattern)
-        match_obj = match_obj or re.search(pattern, self.network_request_data.body or "")
-        return match_obj is not None
+    # def search_with_regex(self, pattern: str) -> bool:
+    #     match_obj = super().search_with_regex(pattern)
+    #     match_obj = match_obj or re.search(pattern, self.network_request_data.body or "")
+    #     return match_obj is not None
+
+    # def reduce_into_one_line(self) -> str:
+    #     items = [
+    #         super().reduce_into_one_line(),
+    #         self.correlation_id,
+    #         self.network_request_data.reduce_into_one_line()
+    #     ]
+    #     if self.latency_ms is not None:
+    #         items.append(f"latency={self.latency_ms}ms")
+    #     if self.is_network_level_failed_request:
+    #         items.append(f"network_error={self.network_request_data.network_level_err_text}")
+    #     return " ".join(items)
 
     def reduce_into_one_line(self) -> str:
-        items = [
-            super().reduce_into_one_line(),
-            self.correlation_id,
-            self.network_request_data.reduce_into_one_line()
-        ]
-        if self.latency_ms is not None:
-            items.append(f"latency={self.latency_ms}ms")
-        if self.is_network_level_failed_request:
-            items.append(f"network_error={self.network_request_data.network_level_err_text}")
-        return " ".join(items)
+        return "UNKNOWN"
 
     @model_validator(mode="before")
     def validate_request_data(cls, values):
         if not isinstance(values, dict):
             return values
-        values['type'] = enums.TimelineEventType.NETWORK_REQUEST
-        values['action_type'] = enums.ActionType.DEBUGGER_REQUEST
+        values['type'] = enums.TimelineEventType.HTTP_REQUEST
+        values['action_type'] = enums.ActionType.UNKNOWN
         return values
 
 class NetworkResponseEvent(BaseTimelineEvent):
@@ -336,53 +344,96 @@ class NetworkResponseEvent(BaseTimelineEvent):
     network_response_data: NetworkResponseData
     
     def reduce_into_one_line(self) -> str:
-        base_line = super().reduce_into_one_line()
-        return (f"{base_line} {self.correlation_id} {self.network_response_data.reduce_into_one_line()}")
+        return "UNKNOWN"
     
     @model_validator(mode="before")
     def validate_response_data(cls, values):
         if not isinstance(values, dict):
             return values
-        values['type'] = enums.TimelineEventType.NETWORK_RESPONSE
-        values['action_type'] = enums.ActionType.DEBUGGER_RESPONSE
+        values['type'] = enums.TimelineEventType.HTTP_RESPONSE
+        values['action_type'] = enums.ActionType.UNKNOWN
         return values
     
-class NetworkRequestWithResponseEvent(BaseTimelineEvent):
+# class NetworkRequestWithResponseEvent(BaseTimelineEvent):
+#     correlation_id: str
+#     network_request_data: NetworkRequestData
+#     network_response_data: NetworkResponseData
+#     duration_ms: int
+
+#     def truncate(self):
+#         copy = self.model_copy(deep=True)
+#         copy.network_response_data = copy.network_response_data.truncate()
+#         copy.network_request_data = copy.network_request_data.truncate()
+#         return copy
+    
+#     def search_url_with_regex(self, pattern: str) -> bool:
+#         match_obj = super().search_with_regex(pattern)
+#         is_url_match = match_obj or re.search(pattern, self.network_request_data.url or "")
+#         return is_url_match is not None
+    
+#     def search_with_regex(self, pattern: str) -> bool:
+#         match_obj = super().search_with_regex(pattern)
+#         match_obj = match_obj or re.search(pattern, self.network_request_data.url or "")
+#         match_obj = match_obj or re.search(pattern, self.network_request_data.body or "")
+#         match_obj = match_obj or re.search(pattern, self.network_response_data.body or "")
+#         return match_obj is not None
+    
+#     def reduce_into_one_line(self) -> str:
+#         base_line = super().reduce_into_one_line()
+#         return (f"{base_line} {self.network_request_data.reduce_into_one_line()} "
+#                 f"{self.network_response_data.reduce_into_one_line()} duration={self.duration_ms}ms")
+
+#     @model_validator(mode="before")
+#     def validate_request_response_data(cls, values):
+#         if not isinstance(values, dict):
+#             return values
+            
+#         values['type'] = enums.TimelineEventType.HTTP_REQUEST
+#         values['action_type'] = enums.ActionType.HTTP_REQUEST_WITH_RESPONSE
+        
+#         # Only calculate duration_ms if the nested data is still in dict form
+#         network_response = values.get('network_response_data')
+#         network_request = values.get('network_request_data')
+        
+#         if isinstance(network_response, dict) and isinstance(network_request, dict):
+#             values['duration_ms'] = network_response.get('relative_time_ms', 0) - network_request.get('relative_time_ms', 0)
+#             values['correlation_id'] = network_response.get('correlation_id')
+#         return values
+    
+class ProcessedHTTPRequestEvent(BaseTimelineEvent):
     correlation_id: str
     network_request_data: NetworkRequestData
-    network_response_data: NetworkResponseData
     duration_ms: int
+    network_response_data: Optional[NetworkResponseData] = None
 
-    def truncate(self):
-        copy = self.model_copy(deep=True)
-        copy.network_response_data = copy.network_response_data.truncate()
-        copy.network_request_data = copy.network_request_data.truncate()
-        return copy
-    
-    def search_url_with_regex(self, pattern: str) -> bool:
-        match_obj = super().search_with_regex(pattern)
-        is_url_match = match_obj or re.search(pattern, self.network_request_data.url or "")
-        return is_url_match is not None
-    
-    def search_with_regex(self, pattern: str) -> bool:
-        match_obj = super().search_with_regex(pattern)
-        match_obj = match_obj or re.search(pattern, self.network_request_data.url or "")
-        match_obj = match_obj or re.search(pattern, self.network_request_data.body or "")
-        match_obj = match_obj or re.search(pattern, self.network_response_data.body or "")
-        return match_obj is not None
-    
     def reduce_into_one_line(self) -> str:
         base_line = super().reduce_into_one_line()
-        return (f"{base_line} {self.network_request_data.reduce_into_one_line()} "
-                f"{self.network_response_data.reduce_into_one_line()} duration={self.duration_ms}ms")
+        items = [
+            base_line,
+            self.network_request_data.reduce_into_one_line(),
+            f"correlation_id={self.correlation_id}"
+        ]
+        if self.network_response_data:
+            items.append(self.network_response_data.reduce_into_one_line())
+        if self.network_request_data.network_level_err_text:
+            items.append(f"network_error={self.network_request_data.network_level_err_text}")
+        items.append(f"duration={self.duration_ms}ms")
+        return " ".join(items)
 
     @model_validator(mode="before")
-    def validate_request_response_data(cls, values):
+    def validate_processed_request_data(cls, values):
         if not isinstance(values, dict):
             return values
             
-        values['type'] = enums.TimelineEventType.NETWORK_REQUEST_WITH_RESPONSE
-        values['action_type'] = enums.ActionType.DEBUGGER_REQUEST_WITH_RESPONSE
+        values['type'] = enums.TimelineEventType.HTTP_REQUEST
+        action_type = enums.ActionType.UNKNOWN
+        if values.get('is_network_level_failed'):
+            action_type = enums.ActionType.NETWORK_LEVEL_FAILED_REQUEST
+        elif values.get('is_pending_response'):
+            action_type = enums.ActionType.HTTP_REQUEST_PENDING_RESPONSE
+        else:
+            action_type = enums.ActionType.HTTP_REQUEST_WITH_RESPONSE
+        values['action_type'] = action_type
         
         # Only calculate duration_ms if the nested data is still in dict form
         network_response = values.get('network_response_data')
@@ -392,7 +443,9 @@ class NetworkRequestWithResponseEvent(BaseTimelineEvent):
             values['duration_ms'] = network_response.get('relative_time_ms', 0) - network_request.get('relative_time_ms', 0)
             values['correlation_id'] = network_response.get('correlation_id')
         return values
-    
+
+
+
 
 class _DomTarget(_BaseDTO):
     id: Optional[str] = None
@@ -646,15 +699,15 @@ class WebSocketEvent(BaseTimelineEvent):
         return values
 
 
-TimelineEventType = Union[NetworkRequestEvent, NetworkResponseEvent, NetworkRequestWithResponseEvent,
+TimelineEventType = Union[NetworkRequestEvent, NetworkResponseEvent, ProcessedHTTPRequestEvent,
                          UserActionEvent, NavigationEvent, LocalStorageEvent,
                          JavaScriptErrorEvent, SessionStorageEvent,
                          WebSocketEvent, ConsoleEvent]
 
 
 types_dict: dict[str, Type[TimelineEventType]] = {
-        enums.TimelineEventType.NETWORK_REQUEST.value: NetworkRequestEvent,
-        enums.TimelineEventType.NETWORK_RESPONSE.value: NetworkResponseEvent,
+        enums.TimelineEventType.HTTP_REQUEST.value: NetworkRequestEvent,
+        enums.TimelineEventType.HTTP_RESPONSE.value: NetworkResponseEvent,
         enums.TimelineEventType.USER_ACTION.value: UserActionEvent,
         enums.TimelineEventType.NAVIGATION.value: NavigationEvent,
         enums.TimelineEventType.LOCAL_STORAGE.value: LocalStorageEvent,

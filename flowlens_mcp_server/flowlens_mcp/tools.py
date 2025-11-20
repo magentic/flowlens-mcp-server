@@ -191,12 +191,8 @@ async def search_flow_events_with_regex(flow_uuid: str, pattern: str, event_type
     Search timeline events for a specific flow by pattern using regex. 
     It works by searching the oneliner of each event which contains the most important information about the event.
     Oneliners are as below:
-    - NetworkRequestWithResponseEvent (network request and response)
-    [index:int] network_request_with_response debugger_request_with_response [relative_timestamp:int]ms [POST|PUT|PATCH|GET|DELETE] [url:string] {[trace_id=opentelemtry_trace_id:string]:Optional} {[datadog_trace_id=datadog_trace_id:string]:Optional} status_code=[status_code:int] duration=[duration:int]ms
-    - NetworkRequestPending (request sent but no response received yet)
-    [index:int] network_request_pending debugger_request_pending [relative_timestamp:int]ms [POST|PUT|PATCH|GET|DELETE] [url:string] {[trace_id=opentelemtry_trace_id:string]:Optional} {[datadog_trace_id=datadog_trace_id:string]:Optional} 
-    - NetworkRequestFailedAtNetworkLevel (request failed at network level e.g. DNS failure, connection timeout, etc.)
-    [index:int] network_level_failed_request network_level_failed_request [relative_timestamp:int]ms [POST|PUT|PATCH|GET|DELETE] [url:string] {[trace_id=opentelemtry_trace_id:string]:Optional} {[datadog_trace_id=datadog_trace_id:string]:Optional} latency=[latency_ms:int]ms network_error=[error_text:string]
+    - ProcessedHTTPRequestEvent (HTTP requests: completed, no response received during recording, or failed at network level)
+    [index:int] http_request [with_response|pending_response|network_failure] [relative_timestamp:int]ms [POST|PUT|PATCH|GET|DELETE] [url:string] {[trace_id=opentelemtry_trace_id:string]:Optional} {[datadog_trace_id=datadog_trace_id:string]:Optional} correlation_id=[correlation_id:string] {[status_code=[status_code:int]]:Optional for with_response} {[network_error=[error_text:string]]:Optional for network_failure} duration=[duration:int]ms
     - UserActionEvent (user interactions: click, input, submit)
     [index:int] user_action [click|input|submit] [relative_timestamp:int]ms [page_url:string] {[elementId=[id:string]]:Optional} {[parentId=[parent_id:string]]:Optional} {[type=[element_type:string]]:Optional} {[text_content=[text or src]]:Optional} 
     - NavigationEvent (page navigation)

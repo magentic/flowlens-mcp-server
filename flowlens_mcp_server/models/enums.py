@@ -18,10 +18,8 @@ class RecordingType(Enum):
     RRWEB = "RRWEB"
     
 class TimelineEventType(Enum):
-    NETWORK_REQUEST = "network_request"
-    NETWORK_RESPONSE = "network_response"
-    NETWORK_REQUEST_WITH_RESPONSE = "network_request_with_response"
-    NETWORK_REQUEST_PENDING = "network_request_pending"
+    HTTP_REQUEST = "http_request"
+    HTTP_RESPONSE = "http_response"    
     LOCAL_STORAGE = "local_storage"
     SESSION_STORAGE = "session_storage"
     USER_ACTION = "user_action"
@@ -29,18 +27,14 @@ class TimelineEventType(Enum):
     CONSOLE = "console"
     JAVASCRIPT_ERROR = "javascript_error"
     WEBSOCKET = "websocket"
-    NETWORK_LEVEL_FAILED_REQUEST = "network_level_failed_request"
     
 
 class ActionType(Enum):
-    DEBUGGER_REQUEST = "debugger_request"
-    DEBUGGER_RESPONSE = "debugger_response"
-    DEBUGGER_REQUEST_WITH_RESPONSE = "debugger_request_with_response"
-    DEBUGGER_REQUEST_PENDING = "debugger_request_pending"
+    HTTP_REQUEST_WITH_RESPONSE = "with_response"
+    HTTP_REQUEST_PENDING_RESPONSE = "pending_response"
+    NETWORK_LEVEL_FAILED_REQUEST = "network_failure"
     CLICK = "click"
-    KEYDOWN_SESSION = "keydown_session"
     INPUT = "input"
-    SCROLL = "scroll"
     SUBMIT = "submit"
     GET = "get"
     SET = "set"
@@ -61,6 +55,5 @@ class ActionType(Enum):
     MESSAGE_SENT = "message_sent"
     MESSAGE_RECEIVED = "message_received"
     CONNECTION_CLOSED = "connection_closed"
-    NETWORK_LEVEL_FAILED_REQUEST = "network_level_failed_request"
     UNKNOWN = "unknown"
 

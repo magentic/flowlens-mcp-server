@@ -34,23 +34,21 @@ class TimelineSummarizer:
     def summarize_request_status_codes(self) -> List[dto.RequestStatusCodeSummary]:
         count_dict = defaultdict(int)
         for event in self.timeline.events:
-            if event.type == enums.TimelineEventType.NETWORK_REQUEST_WITH_RESPONSE:
+            if event.type == enums.TimelineEventType.HTTP_REQUEST and event.network_response_data:
                 status_code = event.network_response_data.status
                 if status_code:
                     count_dict[status_code] += 1
-            if event.type == enums.TimelineEventType.NETWORK_REQUEST_PENDING:
+            if event.type == enums.TimelineEventType.HTTP_REQUEST and event.action_type == enums.ActionType.HTTP_REQUEST_PENDING_RESPONSE:
                 count_dict["no_response"] += 1
-            elif event.type == enums.TimelineEventType.NETWORK_LEVEL_FAILED_REQUEST:
+            elif event.type == enums.TimelineEventType.HTTP_REQUEST and event.action_type == enums.ActionType.NETWORK_LEVEL_FAILED_REQUEST:
                 count_dict["network_failed"] += 1
         return [dto.RequestStatusCodeSummary(status_code=str(status_code), requests_count=count) 
                 for status_code, count in count_dict.items()]
     
     def summarize_request_domains(self) -> List[dto.NetworkRequestDomainSummary]:
         count_dict = defaultdict(int)
-        request_types = {enums.TimelineEventType.NETWORK_REQUEST, enums.TimelineEventType.NETWORK_REQUEST_WITH_RESPONSE,
-                         enums.TimelineEventType.NETWORK_REQUEST_PENDING}
         for event in self.timeline.events:
-            if event.type not in request_types:
+            if event.type != enums.TimelineEventType.HTTP_REQUEST:
                 continue
             domain = event.network_request_data.domain_name
             if domain:
@@ -60,8 +58,7 @@ class TimelineSummarizer:
         
     def count_network_requests(self) -> int:
         return sum(1 for event in self.timeline.events
-                   if event.type in {enums.TimelineEventType.NETWORK_REQUEST, 
-                                     enums.TimelineEventType.NETWORK_REQUEST_WITH_RESPONSE})
+                   if event.type == enums.TimelineEventType.HTTP_REQUEST)
 
     def summarize_websockets(self) -> List[dto_timeline.WebSocketOverview]:
         sockets = defaultdict(lambda: dto_timeline.WebSocketOverview(socket_id=""))
@@ -75,9 +72,9 @@ class TimelineSummarizer:
                 sockets[socket_id].opened_at_relative_time_ms = event.relative_time_ms
                 sockets[socket_id].opened_event_index = event.index
             elif event.action_type == enums.ActionType.MESSAGE_SENT:
-                sockets[socket_id].sent_messages_count += 1
+                sockets[socket_id].frames_sent_count += 1
             elif event.action_type == enums.ActionType.MESSAGE_RECEIVED:
-                sockets[socket_id].received_messages_count += 1
+                sockets[socket_id].frames_received_count += 1
             elif event.action_type == enums.ActionType.HANDSHAKE_REQUEST:
                 sockets[socket_id].handshake_requests_count += 1
             elif event.action_type == enums.ActionType.HANDSHAKE_RESPONSE:

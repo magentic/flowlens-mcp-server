@@ -16,6 +16,7 @@ def _load_timeline_from_registry_decorator(func):
 
 class RegisteredTimelineService:
     def __init__(self, flow_uuid: str):
+        self.flow_uuid = flow_uuid
         self.timeline: dto_timeline.Timeline = None
 
     @_load_timeline_from_registry_decorator
@@ -68,9 +69,9 @@ async def load_process_and_register_timeline(flow_id: str, is_local: bool, sourc
     timeline = await timeline_loader.load()
     timeline.events = process_events(timeline.events)
     await timeline_registry.register_timeline(flow_id, timeline)
-    return timeline
+    return timeline, timeline.metadata.get("recording_duration_ms", None)
     
-def summarize_timeline(timeline: dto_timeline.Timeline) -> dto_timeline.TimelineSummary:
+def summarize_timeline(timeline: dto_timeline.Timeline) -> str:
     summarizer = TimelineSummarizer(timeline)
     summary = summarizer.get_summary()
     return summary
