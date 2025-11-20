@@ -16,22 +16,20 @@ class TimelineLoader(ABC):
     """Abstract base class for loading timeline data."""
 
     def __init__(self, source: str):
-        self._source = source
-        self._raw_timeline: list = None
-        self._metadata: dict = None
+        self.source = source
 
     async def load(self) -> dto_timeline.Timeline:
         """Load and parse timeline data into a Timeline object."""
-        await self._load_timeline_data()
+        raw_timeline, metadata = await self._load_timeline_data()
         events = []
-        for i, event in enumerate(self._raw_timeline):
+        for i, event in enumerate(raw_timeline):
             event["index"] = i
             mapped_event = map_event(event)
             event_dto = TimelineLoader._create_event_dto(mapped_event)
             if event_dto:
                 events.append(event_dto)
         return dto_timeline.Timeline(
-            metadata=self._metadata,
+            metadata=metadata,
             events=events)
 
 
@@ -49,9 +47,9 @@ class TimelineLoader(ABC):
             return None
 
     @abstractmethod
-    async def _load_timeline_data(self) -> None:
+    async def _load_timeline_data(self) -> tuple[list[dict], dict]:
         """
-        Load raw timeline data and populate _raw_timeline and _metadata.
+        Load raw timeline data and returns raw_timeline and metadata.
 
         Must be implemented by subclasses.
         """
@@ -61,28 +59,30 @@ class TimelineLoader(ABC):
 class LocalTimelineLoader(TimelineLoader):
     """Timeline loader for local file system."""
 
-    async def _load_timeline_data(self) -> None:
+    async def _load_timeline_data(self) -> tuple[list[dict], dict]:
         """Load timeline data from a local JSON file."""
-        async with aiofiles.open(self._source, mode='r') as f:
+        async with aiofiles.open(self.source, mode='r') as f:
             content = await f.read()
         data = json.loads(content)
-        self._raw_timeline = data.get("timeline", [])
-        self._metadata = data.get("metadata", {})
+        raw_timeline = data.get("timeline", [])
+        metadata = data.get("metadata", {})
+        return raw_timeline, metadata
 
 
 class RemoteTimelineLoader(TimelineLoader):
     """Timeline loader for remote URLs."""
 
-    async def _load_timeline_data(self) -> None:
+    async def _load_timeline_data(self) -> tuple[list[dict], dict]:
         """Load timeline data from a remote URL."""
         data = await self._load_json_from_url()
-        self._raw_timeline = data.get("timeline", [])
-        self._metadata = data.get("metadata", {})
+        raw_timeline = data.get("timeline", [])
+        metadata = data.get("metadata", {})
+        return raw_timeline, metadata
 
     async def _load_json_from_url(self) -> dict:
         """Fetch and parse JSON data from the timeline URL."""
         async with aiohttp.ClientSession() as session:
-            async with session.get(self._source) as response:
+            async with session.get(self.source) as response:
                 response.raise_for_status()
                 try:
                     return await response.json(content_type=None)
