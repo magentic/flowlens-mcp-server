@@ -124,13 +124,7 @@ class FlowLensService:
             video_url=base_flow.video_url,
             duration_ms = duration_ms,
 
-            events_count=summary.events_count,
-            http_requests_count=summary.http_requests_count,
-            event_type_summaries=summary.event_type_summaries,
-            http_request_status_code_summaries=summary.http_request_status_code_summaries,
-            http_request_domain_summary=summary.http_request_domain_summary,
-            websockets_overview=summary.websockets_overview,
-            # timeline_summary=summary,
+            timeline_summary=summary,
         )
         await flow_registry.register_flow(flow)
         return flow

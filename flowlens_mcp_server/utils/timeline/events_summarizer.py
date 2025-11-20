@@ -1,5 +1,5 @@
 from collections import defaultdict
-from typing import List
+from typing import List, Optional
 
 from flowlens_mcp_server.models import enums
 from ...dto import dto, dto_timeline
@@ -8,60 +8,194 @@ class TimelineSummarizer:
     def __init__(self, timeline: dto_timeline.Timeline):
         self.timeline = timeline
 
-    def get_summary(self) -> dto_timeline.TimelineSummary:
-        """Process timeline events and return computed summary statistics."""
+    def get_summary(self) -> str:
+        """Process timeline events and return computed summary statistics as a formatted string."""
         total_recording_duration_ms = self.timeline.metadata.get("recording_duration_ms", 0)
+        network_requests_summary = self.summarize_network_requests()
+        console_events_summary = self.summarize_console_events()
+        local_storage_summary = self.summarize_local_storage_events()
+        session_storage_summary = self.summarize_session_storage_events()
+        user_actions_summary = self.summarize_user_actions()
+        websockets_overview = self.summarize_websockets()
 
-        return dto_timeline.TimelineSummary(
-            duration_ms=total_recording_duration_ms,
-            events_count=len(self.timeline.events),
-            http_requests_count=self.count_network_requests(),
-            event_type_summaries=self.summarize_event_types(),
-            http_request_status_code_summaries=self.summarize_request_status_codes(),
-            http_request_domain_summary=self.summarize_request_domains(),
-            websockets_overview=self.summarize_websockets()
+        # Calculate navigation events count
+        navigations_count = sum(
+            1 for event in self.timeline.events
+            if event.type == enums.TimelineEventType.NAVIGATION
         )
 
-    def summarize_event_types(self) -> List[dto.EventTypeSummary]:
+        # Calculate javascript error count
+        javascript_errors_count = sum(
+            1 for event in self.timeline.events
+            if event.type == enums.TimelineEventType.JAVASCRIPT_ERROR
+        )
+
+        # Build formatted string
+        lines = [
+            "Timeline Summary:",
+            f"- Total Events: {len(self.timeline.events)}",
+            f"- Duration: {total_recording_duration_ms}ms",
+            f"- Navigations: {navigations_count}",
+        ]
+
+        if javascript_errors_count > 0:
+            lines.append(f"- JavaScript Errors: {javascript_errors_count}")
+
+        # HTTP requests by domain and status
+        if network_requests_summary:
+            lines.append("\nHTTP Requests by Domain and Status:")
+            lines.append("- domain:")
+            lines.append("  - status_code: count")
+            for domain, status_counts in network_requests_summary.items():
+                lines.append(f"- {domain}:")
+                for status_code, count in status_counts.items():
+                    lines.append(f"  - {status_code}: {count}")
+
+        # Console events by level (only if present)
+        if console_events_summary:
+            lines.append("\nConsole Events by Level:")
+            lines.append("- level: count")
+            for level, count in console_events_summary.items():
+                lines.append(f"- {level}: {count}")
+
+        # Local storage events by operation (only if present)
+        if local_storage_summary:
+            lines.append("\nLocal Storage Operations:")
+            lines.append("- operation: count")
+            for operation, count in local_storage_summary.items():
+                lines.append(f"- {operation}: {count}")
+
+        # Session storage events by operation (only if present)
+        if session_storage_summary:
+            lines.append("\nSession Storage Operations:")
+            lines.append("- operation: count")
+            for operation, count in session_storage_summary.items():
+                lines.append(f"- {operation}: {count}")
+
+        # User actions by type (only if present)
+        if user_actions_summary:
+            lines.append("\nUser Actions:")
+            lines.append("- action: count")
+            for action, count in user_actions_summary.items():
+                lines.append(f"- {action}: {count}")
+
+        # WebSockets overview (only if present)
+        if websockets_overview:
+            lines.append(f"\nWebSockets Overview ({len(websockets_overview)} connection(s)):")
+            for ws in websockets_overview:
+                lines.append(f"- Socket ID: {ws.socket_id}")
+                if ws.url:
+                    lines.append(f"  - URL: {ws.url}")
+                lines.append(f"  - Status: {'Open' if ws.is_open else 'Closed'}")
+                lines.append(f"  - Frames Sent: {ws.frames_sent_count}")
+                lines.append(f"  - Frames Received: {ws.frames_received_count}")
+                if ws.opened_at_relative_time_ms is not None:
+                    lines.append(f"  - Opened At: {ws.opened_at_relative_time_ms}ms")
+                if ws.closed_at_relative_time_ms is not None:
+                    lines.append(f"  - Closed At: {ws.closed_at_relative_time_ms}ms")
+                if ws.closure_reason:
+                    lines.append(f"  - Closure Reason: {ws.closure_reason}")
+
+        return "\n".join(lines)
+
+    def summarize_event_types(self) -> dict[str, int]:
+        """Summarize event types with their counts.
+        Returns a dict mapping event_type to count."""
         count_dict = defaultdict(int)
         for event in self.timeline.events:
             event_type = event.type
             if event_type:
-                count_dict[event_type] += 1
-        return [dto.EventTypeSummary(event_type=event_type, events_count=count) 
-                for event_type, count in count_dict.items()]
+                count_dict[event_type.value] += 1
+        return dict(count_dict)
 
-    def summarize_request_status_codes(self) -> List[dto.RequestStatusCodeSummary]:
-        count_dict = defaultdict(int)
-        for event in self.timeline.events:
-            if event.type == enums.TimelineEventType.HTTP_REQUEST and event.network_response_data:
-                status_code = event.network_response_data.status
-                if status_code:
-                    count_dict[status_code] += 1
-            if event.type == enums.TimelineEventType.HTTP_REQUEST and event.action_type == enums.ActionType.HTTP_REQUEST_PENDING_RESPONSE:
-                count_dict["no_response"] += 1
-            elif event.type == enums.TimelineEventType.HTTP_REQUEST and event.action_type == enums.ActionType.NETWORK_LEVEL_FAILED_REQUEST:
-                count_dict["network_failed"] += 1
-        return [dto.RequestStatusCodeSummary(status_code=str(status_code), requests_count=count) 
-                for status_code, count in count_dict.items()]
-    
-    def summarize_request_domains(self) -> List[dto.NetworkRequestDomainSummary]:
-        count_dict = defaultdict(int)
+    def summarize_network_requests(self) -> dict[str, dict[str, int]]:
+        """Summarize network requests by domain with status code distribution.
+        Returns a nested dict: domain -> status_code -> count."""
+        domain_stats = defaultdict(lambda: defaultdict(int))
+
         for event in self.timeline.events:
             if event.type != enums.TimelineEventType.HTTP_REQUEST:
                 continue
-            domain = event.network_request_data.domain_name
-            if domain:
-                count_dict[domain] += 1
-        return [dto.NetworkRequestDomainSummary(domain=domain, requests_count=count) 
-                for domain, count in count_dict.items()]
-        
-    def count_network_requests(self) -> int:
-        return sum(1 for event in self.timeline.events
-                   if event.type == enums.TimelineEventType.HTTP_REQUEST)
 
-    def summarize_websockets(self) -> List[dto_timeline.WebSocketOverview]:
-        sockets = defaultdict(lambda: dto_timeline.WebSocketOverview(socket_id=""))
+            domain = event.network_request_data.domain_name
+            if not domain:
+                continue
+
+            # Determine status code or special state
+            if event.network_response_data and event.network_response_data.status:
+                status_code = str(event.network_response_data.status)
+            elif event.action_type == enums.ActionType.HTTP_REQUEST_PENDING_RESPONSE:
+                status_code = "no_response"
+            elif event.action_type == enums.ActionType.NETWORK_LEVEL_FAILED_REQUEST:
+                status_code = "network_failed"
+            else:
+                # Skip events without clear status
+                continue
+
+            domain_stats[domain][status_code] += 1
+
+        # Convert defaultdict to regular dict
+        return {domain: dict(status_counts) for domain, status_counts in domain_stats.items()}
+
+    def summarize_console_events(self) -> Optional[dict[str, int]]:
+        """Summarize console events by level (log, info, debug, warning, error).
+        Returns None if there are no console events."""
+        level_counts = defaultdict(int)
+
+        for event in self.timeline.events:
+            if event.type != enums.TimelineEventType.CONSOLE:
+                continue
+
+            # action_type for console events represents the level
+            level = event.action_type.value if event.action_type else "unknown"
+            level_counts[level] += 1
+
+        return dict(level_counts) if level_counts else None
+
+    def summarize_local_storage_events(self) -> Optional[dict[str, int]]:
+        """Summarize local storage events by operation (get, set, clear, remove).
+        Returns None if there are no local storage events."""
+        operation_counts = defaultdict(int)
+
+        for event in self.timeline.events:
+            if event.type != enums.TimelineEventType.LOCAL_STORAGE:
+                continue
+
+            operation = event.action_type.value if event.action_type else "unknown"
+            operation_counts[operation] += 1
+
+        return dict(operation_counts) if operation_counts else None
+
+    def summarize_session_storage_events(self) -> Optional[dict[str, int]]:
+        """Summarize session storage events by operation (get, set, clear, remove).
+        Returns None if there are no session storage events."""
+        operation_counts = defaultdict(int)
+
+        for event in self.timeline.events:
+            if event.type != enums.TimelineEventType.SESSION_STORAGE:
+                continue
+
+            operation = event.action_type.value if event.action_type else "unknown"
+            operation_counts[operation] += 1
+
+        return dict(operation_counts) if operation_counts else None
+
+    def summarize_user_actions(self) -> Optional[dict[str, int]]:
+        """Summarize user action events by action type (click, input, submit).
+        Returns None if there are no user action events."""
+        action_counts = defaultdict(int)
+
+        for event in self.timeline.events:
+            if event.type != enums.TimelineEventType.USER_ACTION:
+                continue
+
+            action = event.action_type.value if event.action_type else "unknown"
+            action_counts[action] += 1
+
+        return dict(action_counts) if action_counts else None
+
+    def summarize_websockets(self) -> List[dto.WebSocketOverview]:
+        sockets = defaultdict(lambda: dto.WebSocketOverview(socket_id=""))
         for event in self.timeline.events:
             if event.type != enums.TimelineEventType.WEBSOCKET:
                 continue

@@ -34,7 +34,7 @@ class TimelineLoader(ABC):
 
 
     @staticmethod
-    def _create_event_dto(event: dict) -> dto_timeline.TimelineEventType:
+    def _create_event_dto(event: dict) -> dto.TimelineEventType:
         """Create a DTO event object from raw event data."""
         try:
             event_type = event.get("type")

@@ -109,18 +109,6 @@ class FullFlow(BaseModel):
         return self.id
 
 
-class EventTypeSummary(BaseModel):
-    event_type: str
-    events_count: int
-
-class RequestStatusCodeSummary(BaseModel):
-    status_code: str
-    requests_count: int
-
-class NetworkRequestDomainSummary(BaseModel):
-    domain: str
-    requests_count: int
-    
 class WebSocketOverview(BaseModel):
     socket_id: str
     url: Optional[str] = None
@@ -143,24 +131,13 @@ class FlowlensFlow(_BaseDTO):
     system_id: str = Field(exclude=True)
     tags: Optional[List[FlowTag]] = None
     comments: Optional[List[FlowComment]] = None
-    
     duration_ms: Optional[int] = None
-    
     recording_type: enums.RecordingType
     are_screenshots_available: bool
-    
     is_local: bool = Field(exclude=True)
     local_files_data: Optional[LocalFilesData] = Field(None, exclude=True)
     video_url: Optional[str] = Field(None, exclude=True)
-    is_rendering_finished: Optional[bool] = Field(None, exclude=True)
-
-    event_type_summaries: List[EventTypeSummary]
-    http_requests_count: int
-    http_request_status_code_summaries: List[RequestStatusCodeSummary]
-    http_request_domain_summary: List[NetworkRequestDomainSummary]
-    events_count: int
-    websockets_overview: List[WebSocketOverview]
-    timeline_summary: Optional[str] = None
+    timeline_summary: str
     
     def truncate(self):
         copy = self.model_copy(deep=True)

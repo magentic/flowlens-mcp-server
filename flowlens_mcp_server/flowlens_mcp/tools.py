@@ -11,8 +11,12 @@ from ..service.timeline import RegisteredTimelineService
 @server_instance.flowlens_mcp.tool
 async def get_flow_by_uuid(flow_uuid: str) -> dto.FlowlensFlow:
     """
-    Get a specific full flow by its UUID. It contains all flow data including a summary of timeline events 
-    e.g. number of events, status codes distribution, events types distribution, network requests domain distribution, etc.
+    Get a specific full flow by its UUID. It contains all flow data including a timeline_summary object that has:
+    - Total events count
+    - Events types distribution
+    - Network requests count per domain with status code distribution (showing which domains had which status codes)
+    - Console events count grouped by level (log, info, debug, warning, error) when present
+    - WebSockets overview
     It is a very important entry point to start investigating a flow.
     Note: the comments field in the returned flow is truncated to max of 50 characters per comment. If you need full comments use get_flow_full_comments tool.
     Consider running get_flow again if are_screenshots_available is False and recording type is not RRWEB 
@@ -28,8 +32,12 @@ async def get_flow_by_uuid(flow_uuid: str) -> dto.FlowlensFlow:
 @server_instance.flowlens_mcp.tool
 async def get_flow_from_local_zip(flow_zip_path: str) -> dto.FlowlensFlow:
     """
-    Get a specific full flow from a local zip file path. It contains all flow data including a summary of timeline events 
-    e.g. number of events, status codes distribution, events types distribution, network requests domain distribution, etc.
+    Get a specific full flow from a local zip file path. It contains all flow data including a timeline_summary object that has:
+    - Total events count
+    - Events types distribution
+    - Network requests count per domain with status code distribution (showing which domains had which status codes)
+    - Console events count grouped by level (log, info, debug, warning, error) when present
+    - WebSockets overview
     It is a very important entry point to start investigating a flow.
     Note: the comments field in the returned flow is truncated to max of 50 characters per comment. If you need full comments use get_flow_full_comments tool.
     Consider running get_flow again if are_screenshots_available is False and recording type is not RRWEB 

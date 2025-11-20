@@ -1,10 +1,10 @@
 from typing import List
 
 from flowlens_mcp_server.models import enums
-from ...dto import dto, dto_timeline
+from ...dto import dto
 
 
-def process_events(events: List[dto_timeline.TimelineEventType]) -> List[dto_timeline.TimelineEventType]:
+def process_events(events: List[dto.TimelineEventType]) -> List[dto.TimelineEventType]:
     requests_map = {}
     processed_timeline = []
 
