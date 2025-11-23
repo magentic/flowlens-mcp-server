@@ -70,18 +70,18 @@ async def list_flow_timeline_events_within_duration(flow_uuid: str, start_relati
     return await timeline_service.list_events_within_duration(start_relative_time_ms, end_relative_time_ms)
 
 @server_instance.flowlens_mcp.tool
-async def get_full_flow_timeline_event_by_index(flow_uuid: str, event_index: int) -> dto.TimelineEventType:
+async def get_full_flow_timeline_event_by_index(flow_uuid: str, event_index: int) -> Union[dto.TimelineEventType, str]:
     """
     Get a full timeline event for a specific flow by its index.
     Args:
         flow_uuid (string): The UUID of the flow to retrieve the event for.
         event_index (int): The index of the event to retrieve.
     Returns:
-        dto.TimelineEventType: The TimelineEventType dto object which is union of all possible event types (
-                                    NetworkRequestEvent, NetworkResponseEvent, NetworkRequestWithResponseEvent,
-                                    DomActionEvent, NavigationEvent, LocalStorageEvent)
-
-
+        Union[dto.TimelineEventType, str]: The TimelineEventType dto object (union of all possible event types:
+        NetworkRequestEvent, NetworkResponseEvent, ProcessedHTTPRequestEvent, UserActionEvent, NavigationEvent,
+        LocalStorageEvent, ConsoleEvent, JavaScriptErrorEvent, SessionStorageEvent, WebSocketEvent) if small enough,
+        or a file path string if the event exceeds 45k tokens (~135k characters). Large events are automatically
+        saved to /tmp/flowlens_event_{flow_uuid}_{event_index}.json to avoid exceeding MCP response size limits.
     """
     timeline_service = await _get_timeline_service(flow_uuid)
     return await timeline_service.get_full_event_by_index(event_index)

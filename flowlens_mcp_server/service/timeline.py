@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List, Optional, Union
 
 from ..dto import dto, dto_timeline
 from ..models import enums
@@ -6,6 +6,7 @@ from ..utils.timeline.registry import timeline_registry
 from ..utils.timeline.loader import get_timeline_loader
 from ..utils.timeline.events_processing import process_events
 from ..utils.timeline.events_summarizer import TimelineSummarizer
+from ..utils.flow.flow_helpers import save_event_to_file_if_large
 
 def _load_timeline_from_registry_decorator(func):
     async def wrapper(self, *args, **kwargs):
@@ -33,8 +34,9 @@ class RegisteredTimelineService:
         return self.timeline.create_events_summary()
     
     @_load_timeline_from_registry_decorator
-    async def get_full_event_by_index(self, index: int) -> dto.TimelineEventType:
-        return self.timeline.get_event_by_index(index)
+    async def get_full_event_by_index(self, index: int) -> Union[dto.TimelineEventType, str]:
+        event = self.timeline.get_event_by_index(index)
+        return save_event_to_file_if_large(event, self.flow_uuid, index)
     
     @_load_timeline_from_registry_decorator
     async def get_full_event_by_relative_timestamp(self, relative_timestamp: int) -> dto.TimelineEventType:
