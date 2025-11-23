@@ -2,8 +2,7 @@ def map_event(event: dict) -> dict:
     """Map event types to unified types (e.g., all console events to 'console').
     Note: This is only intended for backward compatibility with the extension"""
     event_type = event.get("type")
-    
-    # Map event types
+
     if event_type == "dom_action":
         event["type"] = "user_action"
 

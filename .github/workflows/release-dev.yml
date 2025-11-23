@@ -55,7 +55,6 @@ jobs:
     upload_wheel_test:
         needs: [build_wheel]
         runs-on: ubuntu-latest
-        # Only publish when pushing to 'dev'
         if: github.repository_owner == 'magentic' && github.ref == 'refs/heads/dev'
         permissions:
             id-token: write

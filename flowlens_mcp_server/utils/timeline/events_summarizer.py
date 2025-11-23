@@ -19,19 +19,16 @@ class TimelineSummarizer:
         user_actions_summary = self.summarize_user_actions()
         websockets_overview = self.summarize_websockets()
 
-        # Calculate navigation events count
         navigations_count = sum(
             1 for event in self.timeline.events
             if event.type == enums.TimelineEventType.NAVIGATION
         )
 
-        # Calculate javascript error count
         javascript_errors_count = sum(
             1 for event in self.timeline.events
             if event.type == enums.TimelineEventType.JAVASCRIPT_ERROR
         )
 
-        # Build formatted string
         lines = [
             f"- Total Events: {len(self.timeline.events)}",
             f"- Duration: {total_recording_duration_ms}ms",
@@ -45,7 +42,6 @@ class TimelineSummarizer:
 
         lines.append("\n## Breakdown for existing timeline events:")
 
-        # HTTP requests by domain and status
         if network_requests_summary:
             total_requests = sum(sum(status_counts.values()) for status_counts in network_requests_summary.values())
             lines.append(f"\nHTTP Requests by Domain and Status (Total requests = {total_requests}):")
@@ -56,35 +52,30 @@ class TimelineSummarizer:
                 for status_code, count in status_counts.items():
                     lines.append(f"  - {status_code}: {count}")
 
-        # Console events by level (only if present)
         if console_events_summary:
             lines.append(f"\nConsole Events by Level (Total events = {sum(console_events_summary.values())}):")
             lines.append("- level: count")
             for level, count in console_events_summary.items():
                 lines.append(f"- {level}: {count}")
 
-        # Local storage events by operation (only if present)
         if local_storage_summary:
             lines.append(f"\nLocal Storage Operations (Total operations = {sum(local_storage_summary.values())}):")
             lines.append("- operation: count")
             for operation, count in local_storage_summary.items():
                 lines.append(f"- {operation}: {count}")
 
-        # Session storage events by operation (only if present)
         if session_storage_summary:
             lines.append(f"\nSession Storage Operations (Total operations = {sum(session_storage_summary.values())}):")
             lines.append("- operation: count")
             for operation, count in session_storage_summary.items():
                 lines.append(f"- {operation}: {count}")
 
-        # User actions by type (only if present)
         if user_actions_summary:
             lines.append(f"\nUser Actions (Total actions = {sum(user_actions_summary.values())}):")
             lines.append("- action: count")
             for action, count in user_actions_summary.items():
                 lines.append(f"- {action}: {count}")
 
-        # WebSockets overview (only if present)
         if websockets_overview:
             lines.append(f"\nWebSockets Overview (Total connections = {len(websockets_overview)}):")
             for ws in websockets_overview:
@@ -144,7 +135,6 @@ class TimelineSummarizer:
             if not domain:
                 continue
 
-            # Determine status code or special state
             if event.network_response_data and event.network_response_data.status:
                 status_code = str(event.network_response_data.status)
             elif event.action_type == enums.ActionType.HTTP_REQUEST_PENDING_RESPONSE:
@@ -152,12 +142,10 @@ class TimelineSummarizer:
             elif event.action_type == enums.ActionType.NETWORK_LEVEL_FAILED_REQUEST:
                 status_code = "network_failed"
             else:
-                # Skip events without clear status
                 continue
 
             domain_stats[domain][status_code] += 1
 
-        # Convert defaultdict to regular dict
         return {domain: dict(status_counts) for domain, status_counts in domain_stats.items()}
 
     def summarize_console_events(self) -> Optional[dict[str, int]]:
@@ -169,7 +157,6 @@ class TimelineSummarizer:
             if event.type != enums.TimelineEventType.CONSOLE:
                 continue
 
-            # action_type for console events represents the level
             level = event.action_type.value if event.action_type else "unknown"
             level_counts[level] += 1
 
