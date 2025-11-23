@@ -11,6 +11,7 @@ class TimelineSummarizer:
     def get_summary(self) -> str:
         """Process timeline events and return computed summary statistics as a formatted string."""
         total_recording_duration_ms = self.timeline.metadata.get("recording_duration_ms", 0)
+        starting_url = self.timeline.metadata.get("starting_url", "N/A")
         network_requests_summary = self.summarize_network_requests()
         console_events_summary = self.summarize_console_events()
         local_storage_summary = self.summarize_local_storage_events()
@@ -32,18 +33,22 @@ class TimelineSummarizer:
 
         # Build formatted string
         lines = [
-            "Timeline Summary:",
             f"- Total Events: {len(self.timeline.events)}",
             f"- Duration: {total_recording_duration_ms}ms",
+            f"- Starting URL: {starting_url}",
             f"- Navigations: {navigations_count}",
         ]
 
         if javascript_errors_count > 0:
             lines.append(f"- JavaScript Errors: {javascript_errors_count}")
 
+
+        lines.append("\n## Breakdown for existing timeline events:")
+
         # HTTP requests by domain and status
         if network_requests_summary:
-            lines.append("\nHTTP Requests by Domain and Status:")
+            total_requests = sum(sum(status_counts.values()) for status_counts in network_requests_summary.values())
+            lines.append(f"\nHTTP Requests by Domain and Status (Total requests = {total_requests}):")
             lines.append("- domain:")
             lines.append("  - status_code: count")
             for domain, status_counts in network_requests_summary.items():
@@ -53,35 +58,35 @@ class TimelineSummarizer:
 
         # Console events by level (only if present)
         if console_events_summary:
-            lines.append("\nConsole Events by Level:")
+            lines.append(f"\nConsole Events by Level (Total events = {sum(console_events_summary.values())}):")
             lines.append("- level: count")
             for level, count in console_events_summary.items():
                 lines.append(f"- {level}: {count}")
 
         # Local storage events by operation (only if present)
         if local_storage_summary:
-            lines.append("\nLocal Storage Operations:")
+            lines.append(f"\nLocal Storage Operations (Total operations = {sum(local_storage_summary.values())}):")
             lines.append("- operation: count")
             for operation, count in local_storage_summary.items():
                 lines.append(f"- {operation}: {count}")
 
         # Session storage events by operation (only if present)
         if session_storage_summary:
-            lines.append("\nSession Storage Operations:")
+            lines.append(f"\nSession Storage Operations (Total operations = {sum(session_storage_summary.values())}):")
             lines.append("- operation: count")
             for operation, count in session_storage_summary.items():
                 lines.append(f"- {operation}: {count}")
 
         # User actions by type (only if present)
         if user_actions_summary:
-            lines.append("\nUser Actions:")
+            lines.append(f"\nUser Actions (Total actions = {sum(user_actions_summary.values())}):")
             lines.append("- action: count")
             for action, count in user_actions_summary.items():
                 lines.append(f"- {action}: {count}")
 
         # WebSockets overview (only if present)
         if websockets_overview:
-            lines.append(f"\nWebSockets Overview ({len(websockets_overview)} connection(s)):")
+            lines.append(f"\nWebSockets Overview (Total connections = {len(websockets_overview)}):")
             for ws in websockets_overview:
                 lines.append(f"- Socket ID: {ws.socket_id}")
                 if ws.url:
@@ -95,6 +100,24 @@ class TimelineSummarizer:
                     lines.append(f"  - Closed At: {ws.closed_at_relative_time_ms}ms")
                 if ws.closure_reason:
                     lines.append(f"  - Closure Reason: {ws.closure_reason}")
+
+
+        missing_event_types = []
+        if not network_requests_summary:
+            missing_event_types.append("HTTP requests")
+        if not console_events_summary:
+            missing_event_types.append("console events")
+        if not local_storage_summary:
+            missing_event_types.append("local storage events")
+        if not session_storage_summary:
+            missing_event_types.append("session storage events")
+        if not user_actions_summary:
+            missing_event_types.append("user actions")
+        if not websockets_overview:
+            missing_event_types.append("websocket events")
+
+        if missing_event_types:
+            lines.append(f"\n No {', '.join(missing_event_types)} recorded.")
 
         return "\n".join(lines)
 

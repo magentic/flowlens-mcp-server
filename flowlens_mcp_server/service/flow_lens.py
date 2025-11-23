@@ -93,7 +93,7 @@ class FlowLensService:
         return flow
     
     async def _create_flow(self, base_flow: dto.FullFlow) -> dto.FlowlensFlow:
-        timeline, duration_ms, starting_url = await load_process_and_register_timeline(
+        timeline = await load_process_and_register_timeline(
             flow_id=base_flow.id,
             is_local=base_flow.is_local,
             source=base_flow.local_files_data.timeline_file_path if base_flow.is_local else base_flow.timeline_url
@@ -113,8 +113,6 @@ class FlowLensService:
             is_local=base_flow.is_local,
             local_files_data=base_flow.local_files_data,
             video_url=base_flow.video_url,
-            duration_ms = duration_ms,
-            starting_url=starting_url,
 
             timeline_summary=summary,
         )
