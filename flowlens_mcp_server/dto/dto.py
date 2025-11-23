@@ -131,7 +131,6 @@ class FlowlensFlow(_BaseDTO):
     system_id: str = Field(exclude=True)
     tags: Optional[List[FlowTag]] = None
     comments: Optional[List[FlowComment]] = None
-    duration_ms: Optional[int] = None
     recording_type: enums.RecordingType
     are_screenshots_available: bool
     is_local: bool = Field(exclude=True)
