@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Union
 # from fastmcp import Context
 
 from flowlens_mcp_server.models import enums
@@ -9,7 +9,7 @@ from ..service.flow_lens import FlowLensService, FlowLensServiceParams
 from ..service.timeline import RegisteredTimelineService
 
 @server_instance.flowlens_mcp.tool
-async def get_flow_by_uuid(flow_uuid: str) -> dto.FlowlensFlow:
+async def get_flow_by_uuid(flow_uuid: str) -> Union[dto.FlowlensFlow, str]:
     """
     Get a specific full flow by its UUID. It contains all flow data including a timeline_summary object that has:
     - Total events count
@@ -18,18 +18,20 @@ async def get_flow_by_uuid(flow_uuid: str) -> dto.FlowlensFlow:
     - Console events count grouped by level (log, info, debug, warning, error) when present
     - WebSockets overview
     It is a very important entry point to start investigating a flow.
-    Consider running get_flow again if are_screenshots_available is False and recording type is not RRWEB 
+    Consider running get_flow again if are_screenshots_available is False and recording type is not RRWEB
     because the flow might be still processing and screenshots might become available later.
     Args:
         flow_uuid (string): The UUID of the flow to retrieve.
     Returns:
-        dto.FlowlensFlow: The FlowlensFlow dto object.
+        Union[dto.FlowlensFlow, str]: The FlowlensFlow dto object if small enough, or a file path string
+        if the flow exceeds 45k tokens (~135k characters). Large flows are automatically saved to
+        /tmp/flowlens_flow_{uuid}.json to avoid exceeding MCP response size limits.
     """
     service: FlowLensService = _get_flow_service(flow_uuid=flow_uuid)
     return await service.get_flow()
 
 @server_instance.flowlens_mcp.tool
-async def get_flow_from_local_zip(flow_zip_path: str) -> dto.FlowlensFlow:
+async def get_flow_from_local_zip(flow_zip_path: str) -> Union[dto.FlowlensFlow, str]:
     """
     Get a specific full flow from a local zip file path. It contains all flow data including a timeline_summary object that has:
     - Total events count
@@ -38,12 +40,14 @@ async def get_flow_from_local_zip(flow_zip_path: str) -> dto.FlowlensFlow:
     - Console events count grouped by level (log, info, debug, warning, error) when present
     - WebSockets overview
     It is a very important entry point to start investigating a flow.
-    Consider running get_flow again if are_screenshots_available is False and recording type is not RRWEB 
+    Consider running get_flow again if are_screenshots_available is False and recording type is not RRWEB
     because the flow might be still processing and screenshots might become available later.
     Args:
         flow_zip_path (string): The local zip file path of the flow to retrieve.
     Returns:
-        dto.FlowlensFlow: The FlowlensFlow dto object.
+        Union[dto.FlowlensFlow, str]: The FlowlensFlow dto object if small enough, or a file path string
+        if the flow exceeds 45k tokens (~135k characters). Large flows are automatically saved to
+        /tmp/flowlens_flow_{uuid}.json to avoid exceeding MCP response size limits.
     """
     params = FlowLensServiceParams(local_flow_zip_path=flow_zip_path)
     service = FlowLensService(params)

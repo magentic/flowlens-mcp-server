@@ -1,10 +1,11 @@
-from typing import Optional
+from typing import Optional, Union
 
 from flowlens_mcp_server.utils.recording.dom_snapshot_handler import DomSnapshotHandler
 from ..dto import dto
 from ..utils import logger_setup
 from ..utils.flow import http_client, local_zip
 from ..utils.flow.registry import flow_registry
+from ..utils.flow.flow_helpers import save_flow_to_file_if_large
 from .timeline import load_process_and_register_timeline, summarize_timeline
 from ..utils.settings import settings
 from ..utils.recording.video_handler import VideoHandler
@@ -31,7 +32,7 @@ class FlowLensService:
             raise RuntimeError(f"Flow with id {self.params.flow_uuid} not found in cache. Must get the flow first before accessing it.")
         return cached_flow
     
-    async def get_flow(self) -> dto.FlowlensFlow:
+    async def get_flow(self) -> Union[dto.FlowlensFlow, str]:
         flow = await self._request_flow()
         if not flow:
             raise RuntimeError(f"Flow with id {self.params.flow_uuid} not found")
@@ -61,7 +62,7 @@ class FlowLensService:
         else:
             raise RuntimeError("Either flow_uuid or local_flow_zip_path must be provided to request a flow")
         
-    async def _request_flow_by_uuid(self) -> dto.FlowlensFlow:
+    async def _request_flow_by_uuid(self) -> Union[dto.FlowlensFlow, str]:
         response = await self._get_remote_flow()
         await self._load_video(response)
         return await self._create_flow(response)
@@ -86,13 +87,13 @@ class FlowLensService:
         except Exception:
             pass
     
-    async def _request_flow_by_zip(self) -> dto.FlowlensFlow:
+    async def _request_flow_by_zip(self) -> Union[dto.FlowlensFlow, str]:
         response: dto.FullFlow = await self._zip_client.get()
         flow = await self._create_flow(response)
         await self._log_flow_usage(response)
         return flow
     
-    async def _create_flow(self, base_flow: dto.FullFlow) -> dto.FlowlensFlow:
+    async def _create_flow(self, base_flow: dto.FullFlow) -> Union[dto.FlowlensFlow, str]:
         timeline, duration_ms = await load_process_and_register_timeline(
             flow_id=base_flow.id,
             is_local=base_flow.is_local,
@@ -118,7 +119,8 @@ class FlowLensService:
             timeline_summary=summary,
         )
         await flow_registry.register_flow(flow)
-        return flow
+
+        return save_flow_to_file_if_large(flow)
 
     async def _load_video(self, flow: dto.FullFlow):
         if not flow.are_screenshots_available:
