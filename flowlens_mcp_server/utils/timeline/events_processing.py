@@ -5,6 +5,19 @@ from ...dto import dto
 
 
 def process_events(events: List[dto.TimelineEventType]) -> List[dto.TimelineEventType]:
+    """
+    Process timeline events by merging HTTP request and response events.
+
+    This function matches HTTP requests with their corresponding responses based on
+    correlation_id, and marks unmatched requests as pending or network-failed.
+    The final list is sorted chronologically and re-indexed.
+
+    Args:
+        events: List of raw timeline events
+
+    Returns:
+        List of processed timeline events with merged HTTP request/response pairs
+    """
     requests_map = {}
     processed_timeline = []
 

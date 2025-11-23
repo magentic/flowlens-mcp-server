@@ -65,6 +65,22 @@ class RegisteredTimelineService:
         return self.timeline.search_network_events_with_url_regex(url_pattern)
 
 async def load_process_and_register_timeline(flow_id: str, is_local: bool, source: str) -> dto_timeline.Timeline:
+    """
+    Load, process, and register a timeline for a flow.
+
+    This orchestrates the complete timeline initialization pipeline:
+    1. Load timeline data from source (local file or remote URL)
+    2. Process events (merge HTTP request/response pairs)
+    3. Register the processed timeline in the registry
+
+    Args:
+        flow_id: The flow UUID to register the timeline under
+        is_local: Whether the timeline source is local or remote
+        source: File path (if local) or URL (if remote) to the timeline data
+
+    Returns:
+        Tuple of (processed Timeline, recording duration in milliseconds)
+    """
     timeline_loader = get_timeline_loader(is_local, source)
     timeline = await timeline_loader.load()
     timeline.events = process_events(timeline.events)
