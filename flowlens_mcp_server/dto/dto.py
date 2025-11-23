@@ -199,7 +199,6 @@ class NetworkRequestData(BaseNetworkData):
     def validate_url_length(cls, values:dict):
         url = values.get("url")
         parts = urlsplit(url)
-        # remove query params and fragment
         cleaned = urlunsplit((parts.scheme, parts.netloc, parts.path, "", ""))
         values["url"] = cleaned
         return values
@@ -377,7 +376,6 @@ class UserActionEvent(BaseTimelineEvent):
         base_line = super().reduce_into_one_line()
         parts = [base_line, self._truncate_string(self.page_url), self.target.reduce_into_one_line()]
 
-        # Show final_value if available (event level)
         if self.final_value:
             parts.append(f"final_value={self._truncate_string(self.final_value)}")
 

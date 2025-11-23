@@ -50,7 +50,7 @@ class VideoHandler:
         frame = None
         ts = -1
         while True:
-            ret = cap.grab()  # Fast frame grab without decoding
+            ret = cap.grab()
             if not ret:
                 break
             ts = int(cap.get(cv2.CAP_PROP_POS_MSEC) / 1000.0)
