@@ -69,7 +69,7 @@ async def load_process_and_register_timeline(flow_id: str, is_local: bool, sourc
     timeline = await timeline_loader.load()
     timeline.events = process_events(timeline.events)
     await timeline_registry.register_timeline(flow_id, timeline)
-    return timeline, timeline.metadata.get("recording_duration_ms", None)
+    return timeline, timeline.metadata.get("recording_duration_ms", None), timeline.metadata.get("starting_url", None)
     
 def summarize_timeline(timeline: dto_timeline.Timeline) -> str:
     summarizer = TimelineSummarizer(timeline)
