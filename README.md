@@ -9,6 +9,10 @@
 - Share it with your coding agent via the FlowLens MCP server, giving the agent full access to the recording.
 - Your agent inspects and analyzes the flow for debugging and insights — without spending time/tokens on reproducing the issue.
 
+## Demo
+
+https://github.com/user-attachments/assets/fd73f2e6-6a7d-4518-b0db-62b8c6e6c99a
+
 ## Requirements
 
 - <a href="https://chromewebstore.google.com/detail/jecmhbndeedjenagcngpdmjgomhjgobf?utm_source=github-repo" target="_blank" rel="noopener noreferrer">FlowLens browser extension</a> add to chrome and pin for ease of use 
