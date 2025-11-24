@@ -300,7 +300,7 @@ class NetworkResponseEvent(BaseTimelineEvent):
 class ProcessedHTTPRequestEvent(BaseTimelineEvent):
     correlation_id: str
     network_request_data: NetworkRequestData
-    duration_ms: int
+    duration_ms: Optional[int] = None
     network_response_data: Optional[NetworkResponseData] = None
 
     def reduce_into_one_line(self) -> str:
@@ -314,31 +314,15 @@ class ProcessedHTTPRequestEvent(BaseTimelineEvent):
             items.append(self.network_response_data.reduce_into_one_line())
         if self.network_request_data.network_level_err_text:
             items.append(f"network_error={self.network_request_data.network_level_err_text}")
-        items.append(f"duration={self.duration_ms}ms")
+        duration_display = f"{self.duration_ms}ms" if self.duration_ms is not None else "N/A"
+        items.append(f"duration={duration_display}")
         return " ".join(items)
 
     @model_validator(mode="before")
     def validate_processed_request_data(cls, values):
         if not isinstance(values, dict):
             return values
-            
         values['type'] = enums.TimelineEventType.HTTP_REQUEST
-        action_type = enums.ActionType.UNKNOWN
-        if values.get('is_network_level_failed'):
-            action_type = enums.ActionType.NETWORK_LEVEL_FAILED_REQUEST
-        elif values.get('is_pending_response'):
-            action_type = enums.ActionType.HTTP_REQUEST_PENDING_RESPONSE
-        else:
-            action_type = enums.ActionType.HTTP_REQUEST_WITH_RESPONSE
-        values['action_type'] = action_type
-        
-        # Only calculate duration_ms if the nested data is still in dict form
-        network_response = values.get('network_response_data')
-        network_request = values.get('network_request_data')
-        
-        if isinstance(network_response, dict) and isinstance(network_request, dict):
-            values['duration_ms'] = network_response.get('relative_time_ms', 0) - network_request.get('relative_time_ms', 0)
-            values['correlation_id'] = network_response.get('correlation_id')
         return values
 
 
