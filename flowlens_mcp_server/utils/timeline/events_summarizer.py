@@ -46,11 +46,11 @@ class TimelineSummarizer:
             total_requests = sum(sum(status_counts.values()) for status_counts in network_requests_summary.values())
             lines.append(f"\nHTTP Requests by Domain and Status (Total requests = {total_requests}):")
             lines.append("- domain:")
-            lines.append("  - status_code: count")
+            lines.append("  - status: count")
             for domain, status_counts in network_requests_summary.items():
                 lines.append(f"- {domain}:")
-                for status_code, count in status_counts.items():
-                    lines.append(f"  - {status_code}: {count}")
+                for status, count in status_counts.items():
+                    lines.append(f"  - {status}: {count}")
 
         if console_events_summary:
             lines.append(f"\nConsole Events by Level (Total events = {sum(console_events_summary.values())}):")
@@ -138,9 +138,9 @@ class TimelineSummarizer:
             if event.network_response_data and event.network_response_data.status:
                 status_code = str(event.network_response_data.status)
             elif event.action_type == enums.ActionType.HTTP_REQUEST_PENDING_RESPONSE:
-                status_code = "no_response"
+                status_code = enums.ActionType.HTTP_REQUEST_PENDING_RESPONSE.value
             elif event.action_type == enums.ActionType.NETWORK_LEVEL_FAILED_REQUEST:
-                status_code = "network_failed"
+                status_code = enums.ActionType.NETWORK_LEVEL_FAILED_REQUEST.value
             else:
                 continue
 
