@@ -1,40 +1,99 @@
-# FlowLens MCP Server
-A local MCP server that fetches your recorded user flows and bug reports from the <a href="https://www.magentic.ai/?utm_source=pypi-pkg_flowlens" target="_blank" rel="noopener noreferrer">FlowLens platform</a> and exposes them to your AI coding agents for *context-aware debugging*.
+# FlowLens MCP
 
+[![PyPI version](https://img.shields.io/pypi/v/flowlens-mcp-server.svg)](https://pypi.org/project/flowlens-mcp-server/)
+
+`flowlens-mcp-server` gives your coding agent (Claude Code, Cursor, Copilot, Codex) full browser context for in-depth debugging and regression testing.
+
+## How it works
+- Record your browser flow using the <a href="https://chromewebstore.google.com/detail/jecmhbndeedjenagcngpdmjgomhjgobf?utm_source=github-repo" target="_blank" rel="noopener noreferrer">FlowLens Chrome extension</a> (user actions, network, console, storage, DOM events/screen recording).
+- Share it with your coding agent via the FlowLens MCP server, giving the agent full access to the recording.
+- Your agent inspects and analyzes the flow for debugging and insights — without spending time/tokens on reproducing the issue.
+
+## Requirements
+
+- <a href="https://chromewebstore.google.com/detail/jecmhbndeedjenagcngpdmjgomhjgobf?utm_source=github-repo" target="_blank" rel="noopener noreferrer">FlowLens browser extension</a> add to chrome and pin for ease of use 
+- [pipx](https://pipx.pypa.io/stable/installation/) 
 
 ## Getting Started
-*Install flowlens-mcp-server*
+
+To install:
 ```bash
 pipx install flowlens-mcp-server
 ```
 
-**IMPORTANT NOTE: If your version is not supported anymore, please, upgrade to the latest version**
+To upgrade to the latest version:
 ```bash
 pipx upgrade flowlens-mcp-server
 ```
 
-## Agent Configuration
+To check that the installation was successfully:
+```bash
+flowlens-mcp-server
+```
 
-### MCP server json configuration
+## Add FlowLens MCP server
+
+Add the following config to your MCP client (ex: `~/.claude.json`) under `mcpServers`:
 
 ```json
-"flowlens-mcp": {
-    "command": "pipx",
-    "args": [
-        "run",
-        "flowlens-mcp-server"
-    ],
-    "type": "stdio",
-    "env" : {
-        "FLOWLENS_MCP_TOKEN" : "<YOUR_FLOWLENS_MCP_TOKEN>"
-    }
+"flowlens": {
+  "command": "flowlens-mcp-server",
+  "type": "stdio"
 }
 ```
 
-### Claude Code Shortcut
+### MCP Client configuration
+<details>
+  <summary>Claude Code</summary>
+    Use the Claude Code CLI to add the FlowLens MCP server (<a href="https://docs.anthropic.com/en/docs/claude-code/mcp">guide</a>):
+
 ```bash
-claude mcp add flowlens-mcp --transport stdio --env FLOWLENS_MCP_TOKEN=<YOUR_FLOWLENS_MCP_TOKEN> -- pipx run "flowlens-mcp-server"
+claude mcp add flowlens --transport stdio -- flowlens-mcp-server
 ```
+</details>
+
+<details>
+  <summary>Cursor</summary>
+
+  **Click the button to install:**
+
+[<img src="https://cursor.com/deeplink/mcp-install-dark.svg" alt="Install in Cursor">](https://cursor.com/en/install-mcp?name=flowlens&config=eyJjb21tYW5kIjoiZmxvd2xlbnMtbWNwLXNlcnZlciJ9)
+
+**Or install manually:**
+
+Go to `Cursor Settings` -> `MCP` -> `New MCP Server`. Use the config provided above.
+
+</details>
 
 
+<details>
+  <summary>Copilot / VS Code</summary>
+  Follow the MCP install <a href="https://code.visualstudio.com/docs/copilot/chat/mcp-servers#_add-an-mcp-server">guide</a>,
+  with the standard config from above. You can also install the FlowLens MCP server using the VS Code CLI:
+  
+  ```bash
+  code --add-mcp '{"name":"flowlens","command":"flowlens-mcp-server"}'
+  ```
+</details>
 
+<details>
+  <summary>Codex</summary>
+  Use the Codex CLI to add the FlowLens MCP server <a href="https://github.com/openai/codex/blob/main/docs/advanced.md#model-context-protocol-mcp">configure MCP guide</a>:
+
+```bash
+codex mcp add flowlens -- flowlens-mcp-server
+```
+</details>
+
+## Usecases:
+
+### Bug reporting
+- Use FlowLens to quickly report bugs with full context to your coding agent. You no longer need to copy-paste console logs, take multiple screenshots, or have the agent spend tokens on reproducing the issue.
+
+
+### Regression testing
+- Use FlowLens to record your crticial user flows and ask your coding agent to auto test these flows or generate corresponding playwright test scripts
+
+
+### Shareable flows
+- Share captured flows with your teammates on the [FlowLens platform](https://flowlens.magentic.ai) and debug with your coding agent by adding a generated access token in the MCP config. More on this [here](https://flowlens.magentic.ai/flowlens/setup-wizard)

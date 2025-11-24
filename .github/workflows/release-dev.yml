@@ -1,0 +1,70 @@
+
+on:
+    push:
+        branches:
+            - dev
+
+
+jobs:
+    build_wheel:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v5
+              with:
+                  fetch-depth: -1
+                  fetch-tags: true
+
+            - uses: actions/setup-python@v6
+              with:
+                  python-version: 3.12
+
+            - name: Install Poetry
+              uses: abatilo/actions-poetry@v2
+
+            - name: Install dependencies
+              run: poetry install --no-root
+
+            - name: Configure dev environment URL
+              run: |
+                  sed -i 's|flowlens_url: str = "https://flowlens-api.magentic.ai"|flowlens_url: str = "https://flowlens-api-dev.magentic.ai"|g' flowlens_mcp_server/utils/settings.py
+                  grep "flowlens-api-dev" flowlens_mcp_server/utils/settings.py
+
+            - name: Update version for dev release
+              run: |
+                  CURRENT_VERSION=$(grep '^version = ' pyproject.toml | sed 's/version = "\(.*\)"/\1/')
+                  NEW_VERSION="${CURRENT_VERSION}.dev${{ github.run_number }}"
+                  sed -i "s/^version = .*/version = \"${NEW_VERSION}\"/" pyproject.toml
+                  sed -i "s/flowlens_mcp_version: str = .*/flowlens_mcp_version: str = \"${NEW_VERSION}\"/" flowlens_mcp_server/utils/settings.py
+                  echo "Updated version to ${NEW_VERSION}"
+                  grep "^version = " pyproject.toml
+                  grep "flowlens_mcp_version" flowlens_mcp_server/utils/settings.py
+
+            - name: Update README for dev installation
+              run: |
+                  sed -i 's|pipx install flowlens-mcp-server|pipx install flowlens-mcp-server \\\n  --pip-args="--index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple"|g' README.md
+                  grep -A 1 "pipx install" README.md
+
+            - name: Build wheel
+              run: poetry build --format wheel
+
+            - uses: actions/upload-artifact@v4
+              with:
+                  name: wheel
+                  path: dist/*.whl
+
+    upload_wheel_test:
+        needs: [build_wheel]
+        runs-on: ubuntu-latest
+        if: github.repository_owner == 'magentic' && github.ref == 'refs/heads/dev'
+        permissions:
+            id-token: write
+
+        steps:
+            - uses: actions/download-artifact@v5
+              with:
+                  name: wheel
+                  path: dist/
+
+            - uses: pypa/gh-action-pypi-publish@release/v1
+              with:
+                  repository-url: https://test.pypi.org/legacy/

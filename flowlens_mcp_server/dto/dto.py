@@ -22,6 +22,12 @@ class _BaseDTO(BaseModel):
         if isinstance(s, str) and len(s) > limit:
             return s[:limit] + "...(truncated)"
         return s
+
+class McpVersionResponse(BaseModel):
+    version: str
+    is_supported: bool
+    session_uuid: str
+    recommendation: Optional[str] = None
     
 class RequestParams(BaseModel):
     endpoint: str
@@ -33,9 +39,6 @@ class RequestParams(BaseModel):
 class FlowTag(BaseModel):
     id: str
     title: str
-    
-class FlowTagList(BaseModel):
-    tags: List[FlowTag]
     
 class FlowComment(BaseModel):
     model_config = ConfigDict(
@@ -56,18 +59,6 @@ class FlowComment(BaseModel):
         values["video_second"] = max(0, values.get("timestamp"))
         return values
 
-class System(BaseModel):
-    id: str
-    name: str
-    description: Optional[str] = None
-    users: Optional[List["User"]] = None
-
-class User(BaseModel):
-    id: str
-    username: str
-    email: str
-    systems: Optional[List[System]] = None
-    auth_id: str
 
 class LocalFilesData(BaseModel):
     zip_file_path: str
@@ -76,7 +67,7 @@ class LocalFilesData(BaseModel):
     video_file_path: Optional[str] = None
     rrweb_file_path: Optional[str] = None
     
-class Flow(BaseModel):
+class FullFlow(BaseModel):
     model_config = ConfigDict(
         json_encoders={datetime: lambda v: v.isoformat()},
         ser_json_timedelta='iso8601',
@@ -86,19 +77,15 @@ class Flow(BaseModel):
     description: Optional[str] = None
     video_duration_ms: int
     created_at: datetime = Field(..., description="Native datetime in UTC")
-    system_id: str
+    system_id: Optional[str] = 'N/A'
     is_local: bool
-    system: Optional[System] = []
     tags: Optional[List[FlowTag]] = []
-    reporter: Optional[str] = None
-    sequence_diagram_status: Optional[enums.ProcessingStatus] = enums.ProcessingStatus.COMPLETED
-    is_timeline_uploaded: Optional[bool] = True
-    is_video_uploaded: Optional[bool] = True
-    has_extended_sequence_diagram: Optional[bool] = False
     comments: Optional[List[FlowComment]] = None
     recording_type: enums.RecordingType
-    recording_status: Optional[enums.ProcessingStatus] = enums.ProcessingStatus.COMPLETED
     local_files_data: Optional[LocalFilesData] = Field(None, exclude=True)
+    anonymous_user_id: Optional[str] = None
+    timeline_url: Optional[str] = None
+    video_url: Optional[str] = None
     
     @model_validator(mode="before")
     def validate_timestamp(cls, values:dict):
@@ -110,15 +97,6 @@ class Flow(BaseModel):
         }
         values["recording_type"] = recording_type_dict.get(values.get("recording_type"))
         return values
-
-class FlowList(BaseModel):
-    flows: List[Flow]
-
-class FullFlow(Flow):
-    timeline_url: Optional[str] = None
-    video_url: Optional[str] = None
-    sequence_diagram_url: Optional[str] = None
-    extended_sequence_diagram_url: Optional[str] = None
     
     @property
     def are_screenshots_available(self) -> bool:
@@ -129,57 +107,13 @@ class FullFlow(Flow):
     @property
     def uuid(self) -> str:
         return self.id
-    
-class DeleteResponse(BaseModel):
-    id: str
-    success: bool
-    message: Optional[str] = None
 
-class FlowUpdate(BaseModel):
-    title: Optional[str] = None
-    description: Optional[str] = None
-    system_id: str
-    tag_ids: Optional[List[int]] = None
 
-class FlowTagCreateUpdate(BaseModel):
-    title: str
-    system_id: str
-
-class FlowSequenceDiagramResponse(BaseModel):
-    flow_id: str
-    status: enums.ProcessingStatus
-    url: Optional[str] = None
-    has_extended_diagram: bool = False
-    extended_diagram_url: Optional[str] = None
-    
-class FlowShareLink(BaseModel):
-    model_config = ConfigDict(
-        json_encoders={datetime: lambda v: v.isoformat()},
-        ser_json_timedelta='iso8601',
-    )
-    
-    flow_id: str
-    token: str
-    share_url: str
-    expires_at: datetime
-
-class EventTypeSummary(BaseModel):
-    event_type: str
-    events_count: int
-
-class RequestStatusCodeSummary(BaseModel):
-    status_code: str
-    requests_count: int
-
-class NetworkRequestDomainSummary(BaseModel):
-    domain: str
-    requests_count: int
-    
 class WebSocketOverview(BaseModel):
     socket_id: str
     url: Optional[str] = None
-    sent_messages_count: Optional[int] = 0
-    received_messages_count: Optional[int] = 0
+    frames_sent_count: Optional[int] = 0
+    frames_received_count: Optional[int] = 0
     is_open: Optional[bool] = True
     opened_at_relative_time_ms: Optional[int] = 0
     opened_event_index: Optional[int] = None
@@ -194,31 +128,15 @@ class FlowlensFlow(_BaseDTO):
     title: str
     description: Optional[str] = None
     created_at: datetime = Field(..., description="Native datetime in UTC")
-    system_id: str
+    system_id: str = Field(exclude=True)
     tags: Optional[List[FlowTag]] = None
     comments: Optional[List[FlowComment]] = None
-    reporter: Optional[str] = None
-    events_count: int
-    duration_ms: int
-    event_type_summaries: List[EventTypeSummary]
-    http_requests_count: int
-    http_request_status_code_summaries: List[RequestStatusCodeSummary]
-    http_request_domain_summary: List[NetworkRequestDomainSummary]
     recording_type: enums.RecordingType
     are_screenshots_available: bool
-    websockets_overview: List[WebSocketOverview]
-    is_local: bool
+    is_local: bool = Field(exclude=True)
     local_files_data: Optional[LocalFilesData] = Field(None, exclude=True)
     video_url: Optional[str] = Field(None, exclude=True)
-    is_rendering_finished: Optional[bool] = Field(None, exclude=True)
-    
-    def truncate(self):
-        copy = self.model_copy(deep=True)
-        # if copy.description:
-        #     copy.description = self._truncate_string(copy.description)
-        for comment in (copy.comments or []):
-            comment.content = self._truncate_string(comment.content)
-        return copy
+    timeline_summary: str
 
 
 class TracingData(_BaseDTO):
@@ -281,7 +199,6 @@ class NetworkRequestData(BaseNetworkData):
     def validate_url_length(cls, values:dict):
         url = values.get("url")
         parts = urlsplit(url)
-        # remove query params and fragment
         cleaned = urlunsplit((parts.scheme, parts.netloc, parts.path, "", ""))
         values["url"] = cleaned
         return values
@@ -303,21 +220,6 @@ class NetworkResponseData(BaseNetworkData):
         values["url"] = cls._truncate_string(url, 2000)
         return values
     
-
-class DomTarget(_BaseDTO):
-    src: Optional[str] = None
-    textContent: Optional[str] = None
-    xpath: str
-    type: Optional[str] = None
-    
-
-    def reduce_into_one_line(self) -> str:
-        items = [
-            f"type={self.type or 'unknown'}"
-        ]
-        if self.textContent or self.src:
-            items.append(f"text_content={self._truncate_string(self.textContent or self.src)}")
-        return " ".join(items)
 
 class NavigationData(BaseModel):
     url: str
@@ -352,10 +254,7 @@ class BaseTimelineEvent(_BaseDTO):
     timestamp: datetime
     relative_time_ms: int
     index: int
-    
-    def truncate(self):
-        return self
-    
+
     def search_with_regex(self, pattern: str) -> bool:
         match_obj = re.search(pattern, self.reduce_into_one_line() or "")
         return match_obj is not None
@@ -371,34 +270,16 @@ class NetworkRequestEvent(BaseTimelineEvent):
     @property
     def is_network_level_failed_request(self) -> bool:
         return self.network_request_data.network_level_err_text is not None
-
-    def search_url_with_regex(self, pattern: str) -> bool:
-        is_url_match = re.search(pattern, self.network_request_data.url or "")
-        return is_url_match is not None
-    
-    def search_with_regex(self, pattern: str) -> bool:
-        match_obj = super().search_with_regex(pattern)
-        match_obj = match_obj or re.search(pattern, self.network_request_data.body or "")
-        return match_obj is not None
-
+        
     def reduce_into_one_line(self) -> str:
-        items = [
-            super().reduce_into_one_line(),
-            self.correlation_id,
-            self.network_request_data.reduce_into_one_line()
-        ]
-        if self.latency_ms is not None:
-            items.append(f"latency={self.latency_ms}ms")
-        if self.is_network_level_failed_request:
-            items.append(f"network_error={self.network_request_data.network_level_err_text}")
-        return " ".join(items)
+        return "UNKNOWN"
 
     @model_validator(mode="before")
     def validate_request_data(cls, values):
         if not isinstance(values, dict):
             return values
-        values['type'] = enums.TimelineEventType.NETWORK_REQUEST
-        values['action_type'] = enums.ActionType.DEBUGGER_REQUEST
+        values['type'] = enums.TimelineEventType.HTTP_REQUEST
+        values['action_type'] = enums.ActionType.UNKNOWN
         return values
 
 class NetworkResponseEvent(BaseTimelineEvent):
@@ -406,53 +287,50 @@ class NetworkResponseEvent(BaseTimelineEvent):
     network_response_data: NetworkResponseData
     
     def reduce_into_one_line(self) -> str:
-        base_line = super().reduce_into_one_line()
-        return (f"{base_line} {self.correlation_id} {self.network_response_data.reduce_into_one_line()}")
+        return "UNKNOWN"
     
     @model_validator(mode="before")
     def validate_response_data(cls, values):
         if not isinstance(values, dict):
             return values
-        values['type'] = enums.TimelineEventType.NETWORK_RESPONSE
-        values['action_type'] = enums.ActionType.DEBUGGER_RESPONSE
+        values['type'] = enums.TimelineEventType.HTTP_RESPONSE
+        values['action_type'] = enums.ActionType.UNKNOWN
         return values
     
-class NetworkRequestWithResponseEvent(BaseTimelineEvent):
+class ProcessedHTTPRequestEvent(BaseTimelineEvent):
     correlation_id: str
     network_request_data: NetworkRequestData
-    network_response_data: NetworkResponseData
     duration_ms: int
+    network_response_data: Optional[NetworkResponseData] = None
 
-    def truncate(self):
-        copy = self.model_copy(deep=True)
-        copy.network_response_data = copy.network_response_data.truncate()
-        copy.network_request_data = copy.network_request_data.truncate()
-        return copy
-    
-    def search_url_with_regex(self, pattern: str) -> bool:
-        match_obj = super().search_with_regex(pattern)
-        is_url_match = match_obj or re.search(pattern, self.network_request_data.url or "")
-        return is_url_match is not None
-    
-    def search_with_regex(self, pattern: str) -> bool:
-        match_obj = super().search_with_regex(pattern)
-        match_obj = match_obj or re.search(pattern, self.network_request_data.url or "")
-        match_obj = match_obj or re.search(pattern, self.network_request_data.body or "")
-        match_obj = match_obj or re.search(pattern, self.network_response_data.body or "")
-        return match_obj is not None
-    
     def reduce_into_one_line(self) -> str:
         base_line = super().reduce_into_one_line()
-        return (f"{base_line} {self.network_request_data.reduce_into_one_line()} "
-                f"{self.network_response_data.reduce_into_one_line()} duration={self.duration_ms}ms")
+        items = [
+            base_line,
+            self.network_request_data.reduce_into_one_line(),
+            f"correlation_id={self.correlation_id}"
+        ]
+        if self.network_response_data:
+            items.append(self.network_response_data.reduce_into_one_line())
+        if self.network_request_data.network_level_err_text:
+            items.append(f"network_error={self.network_request_data.network_level_err_text}")
+        items.append(f"duration={self.duration_ms}ms")
+        return " ".join(items)
 
     @model_validator(mode="before")
-    def validate_request_response_data(cls, values):
+    def validate_processed_request_data(cls, values):
         if not isinstance(values, dict):
             return values
             
-        values['type'] = enums.TimelineEventType.NETWORK_REQUEST_WITH_RESPONSE
-        values['action_type'] = enums.ActionType.DEBUGGER_REQUEST_WITH_RESPONSE
+        values['type'] = enums.TimelineEventType.HTTP_REQUEST
+        action_type = enums.ActionType.UNKNOWN
+        if values.get('is_network_level_failed'):
+            action_type = enums.ActionType.NETWORK_LEVEL_FAILED_REQUEST
+        elif values.get('is_pending_response'):
+            action_type = enums.ActionType.HTTP_REQUEST_PENDING_RESPONSE
+        else:
+            action_type = enums.ActionType.HTTP_REQUEST_WITH_RESPONSE
+        values['action_type'] = action_type
         
         # Only calculate duration_ms if the nested data is still in dict form
         network_response = values.get('network_response_data')
@@ -462,27 +340,56 @@ class NetworkRequestWithResponseEvent(BaseTimelineEvent):
             values['duration_ms'] = network_response.get('relative_time_ms', 0) - network_request.get('relative_time_ms', 0)
             values['correlation_id'] = network_response.get('correlation_id')
         return values
-    
 
-class DomActionEvent(BaseTimelineEvent):
+
+
+
+class _DomTarget(_BaseDTO):
+    id: Optional[str] = None
+    parentId: Optional[str] = None
+    src: Optional[str] = None
+    textContent: Optional[str] = None
+    xpath: str
+    type: Optional[str] = None
+    value: Optional[str] = None
+
+    def reduce_into_one_line(self) -> str:
+        items = []
+        if self.id:
+            items.append(f"elementId={self.id}")
+        if self.parentId:
+            items.append(f"parentId={self.parentId}")
+        if self.type:
+            items.append(f"type={self.type}")
+        if self.textContent or self.src:
+            items.append(f"text_content={self._truncate_string(self.textContent or self.src)}")
+        if self.value:
+            items.append(f"value={self._truncate_string(self.value)}")
+        return " ".join(items)
+
+class UserActionEvent(BaseTimelineEvent):
     page_url: str
-    target: DomTarget
-    
+    target: _DomTarget
+    final_value: Optional[str] = None
+
     def reduce_into_one_line(self) -> str:
         base_line = super().reduce_into_one_line()
-        return (f"{base_line} {self.target.reduce_into_one_line()} ")
-    
+        parts = [base_line, self._truncate_string(self.page_url), self.target.reduce_into_one_line()]
+
+        if self.final_value:
+            parts.append(f"final_value={self._truncate_string(self.final_value)}")
+
+        return " ".join(parts) + " "
+
     @model_validator(mode="before")
-    def validate_dom_action(cls, values):
+    def validate_user_action(cls, values):
         if not isinstance(values, dict):
             return values
-        values['type'] = enums.TimelineEventType.DOM_ACTION
+        values['type'] = enums.TimelineEventType.USER_ACTION
         action_map = {
             "click": enums.ActionType.CLICK,
-            "keydown_session": enums.ActionType.KEYDOWN_SESSION,
+            "input": enums.ActionType.INPUT,
             "submit": enums.ActionType.SUBMIT,
-            "scroll": enums.ActionType.SCROLL,
-            "input": enums.ActionType.INPUT
         }
         action = values.get("action_type")
         values["action_type"] = action_map.get(action, enums.ActionType.UNKNOWN)
@@ -533,90 +440,26 @@ class LocalStorageEvent(BaseTimelineEvent):
         values["action_type"] = actions_map.get(action, None)
         return values
 
-class ConsoleData(BaseModel):
+class _ConsoleData(BaseModel):
     message: Optional[str] = None
     stack: Optional[str] = None
     userAgent: Optional[str] = None
-    
-class ConsoleWarningEvent(BaseTimelineEvent):
+
+class ConsoleEvent(BaseTimelineEvent):
     page_url: Optional[str] = None
-    console_warn_data: ConsoleData
-    
+    console_data: _ConsoleData
+
     def reduce_into_one_line(self) -> str:
         base_line = super().reduce_into_one_line()
-        return (f"{base_line} {self._truncate_string(self.console_warn_data.message)} ")
+        return f"{base_line} {self._truncate_string(self.console_data.message)} "
 
     @model_validator(mode="before")
-    def validate_console_warning(cls, values):
+    def validate_console(cls, values):
         if not isinstance(values, dict):
             return values
-        values['type'] = enums.TimelineEventType.CONSOLE_WARNING
-        values['action_type'] = enums.ActionType.WARNING_LOGGED
-        return values
 
-class ConsoleErrorEvent(BaseTimelineEvent):
-    page_url: Optional[str] = None
-    console_error_data: ConsoleData
-    
-    def reduce_into_one_line(self) -> str:
-        base_line = super().reduce_into_one_line()
-        return (f"{base_line} {self.console_error_data.message} ")
-
-    @model_validator(mode="before")
-    def validate_console_error(cls, values):
-        if not isinstance(values, dict):
-            return values
-        values['type'] = enums.TimelineEventType.CONSOLE_ERROR
-        values['action_type'] = enums.ActionType.ERROR_LOGGED
-        return values
-    
-
-class ConsoleInfoEvent(BaseTimelineEvent):
-    page_url: Optional[str] = None
-    console_info_data: ConsoleData
-    
-    def reduce_into_one_line(self) -> str:
-        base_line = super().reduce_into_one_line()
-        return (f"{base_line} {self._truncate_string(self.console_info_data.message)} ")
-
-    @model_validator(mode="before")
-    def validate_console_info(cls, values):
-        if not isinstance(values, dict):
-            return values
-        values['type'] = enums.TimelineEventType.CONSOLE_INFO
-        values['action_type'] = enums.ActionType.INFO_LOGGED
-        return values
-
-class ConsoleDebugEvent(BaseTimelineEvent):
-    page_url: Optional[str] = None
-    console_debug_data: ConsoleData
-    
-    def reduce_into_one_line(self) -> str:
-        base_line = super().reduce_into_one_line()
-        return (f"{base_line} {self._truncate_string(self.console_debug_data.message)} ")
-
-    @model_validator(mode="before")
-    def validate_console_debug(cls, values):
-        if not isinstance(values, dict):
-            return values
-        values['type'] = enums.TimelineEventType.CONSOLE_DEBUG
-        values['action_type'] = enums.ActionType.DEBUG_LOGGED
-        return values
-
-class ConsoleLogEvent(BaseTimelineEvent):
-    page_url: Optional[str] = None
-    console_log_data: ConsoleData
-    
-    def reduce_into_one_line(self) -> str:
-        base_line = super().reduce_into_one_line()
-        return (f"{base_line} {self._truncate_string(self.console_log_data.message)} ")
-
-    @model_validator(mode="before")
-    def validate_console_log(cls, values):
-        if not isinstance(values, dict):
-            return values
-        values['type'] = enums.TimelineEventType.CONSOLE_LOG
-        values['action_type'] = enums.ActionType.LOG_LOGGED
+        values['type'] = enums.TimelineEventType.CONSOLE
+        values['action_type'] = enums.ActionType(values.get("action_type"))
         return values
 
 class JavaScriptErrorData(BaseModel):
@@ -644,11 +487,6 @@ class JavaScriptErrorEvent(BaseTimelineEvent):
         values['type'] = enums.TimelineEventType.JAVASCRIPT_ERROR
         values['action_type'] = enums.ActionType.ERROR_CAPTURED
         return values
-    
-    def _truncate_string(self, s: str) -> str:
-        if isinstance(s, str) and len(s) > settings.flowlens_max_string_length:
-            return s[:settings.flowlens_max_string_length] + "...(truncated)"
-        return s
 
 class SessionStorageData(BaseModel):
     key: Optional[str] = None
@@ -710,57 +548,14 @@ class WebSocketCreatedData(BaseModel):
         values['initiator_data'] = frames[0] if frames else None
         return values
 
-class WebsocketCreatedEvent(BaseTimelineEvent):
-    correlation_id: str
-    websocket_created_data: WebSocketCreatedData
-    
-    def reduce_into_one_line(self) -> str:
-        base_line = super().reduce_into_one_line()
-        return f"{base_line} socket_id={self.correlation_id} {self.websocket_created_data.reduce_into_one_line()}"
-
-    @model_validator(mode="before")
-    def validate_websocket_created(cls, values):
-        if not isinstance(values, dict):
-            return values
-        values['type'] = enums.TimelineEventType.WEBSOCKET_CREATED
-        values['action_type'] = enums.ActionType.CONNECTION_OPENED
-        return values
-
-class WebSocketHandshakeData(BaseModel):
+class _WebSocketHandshakeData(BaseModel):
     headers: Optional[dict] = None
     status: Optional[int] = None
-    
+
     def reduce_into_one_line(self) -> str:
         return f"status_code={self.status or ''}"
-    
-class WebSocketHandshakeEvent(BaseTimelineEvent):
-    correlation_id: str
-    websocket_handshake_data: WebSocketHandshakeData
-    
-    def reduce_into_one_line(self) -> str:
-        base_line = super().reduce_into_one_line()
-        return f"{base_line} socket_id={self.correlation_id} {self.websocket_handshake_data.reduce_into_one_line()}"
 
-class WebSocketHandshakeRequestEvent(WebSocketHandshakeEvent):
-    @model_validator(mode="before")
-    def validate_websocket_handshake(cls, values):
-        if not isinstance(values, dict):
-            return values
-        values['type'] = enums.TimelineEventType.WEBSOCKET_HANDSHAKE_REQUEST
-        values['action_type'] = enums.ActionType.HANDSHAKE_REQUEST
-        return values
-
-class WebSocketHandshakeResponseEvent(WebSocketHandshakeEvent):
-    @model_validator(mode="before")
-    def validate_websocket_handshake(cls, values):
-        if not isinstance(values, dict):
-            return values
-        values['type'] = enums.TimelineEventType.WEBSOCKET_HANDSHAKE_RESPONSE
-        values['action_type'] = enums.ActionType.HANDSHAKE_RESPONSE
-        return values
-    
-
-class WebSocketFrameData(_BaseDTO):
+class _WebSocketFrameData(_BaseDTO):
     opcode: int
     mask: bool
     payloadData: Optional[str] = None
@@ -769,85 +564,56 @@ class WebSocketFrameData(_BaseDTO):
     def reduce_into_one_line(self) -> str:
         return f"message={self._truncate_string(self.payloadData, 100)}" if self.payloadData else ""
 
-
-class WebSocketFrameEvent(BaseTimelineEvent):
-    correlation_id: str
-    websocket_frame_data: WebSocketFrameData
-    
-    def reduce_into_one_line(self) -> str:
-        base_line = super().reduce_into_one_line()
-        return f"{base_line} socket_id={self.correlation_id} {self.websocket_frame_data.reduce_into_one_line()}"
-    
-
-class WebSocketFrameSentEvent(WebSocketFrameEvent):
-    @model_validator(mode="before")
-    def validate_websocket_frame_sent(cls, values):
-        if not isinstance(values, dict):
-            return values
-        values['type'] = enums.TimelineEventType.WEBSOCKET_FRAME_SENT
-        values['action_type'] = enums.ActionType.MESSAGE_SENT
-        return values
-
-
-class WebSocketFrameReceivedEvent(WebSocketFrameEvent):
-    @model_validator(mode="before")
-    def validate_websocket_frame_received(cls, values):
-        if not isinstance(values, dict):
-            return values
-        values['type'] = enums.TimelineEventType.WEBSOCKET_FRAME_RECEIVED
-        values['action_type'] = enums.ActionType.MESSAGE_RECEIVED
-        return values
-
-class WebSocketClosedData(BaseModel):
+class _WebSocketClosedData(BaseModel):
     reason: Optional[str] = None
 
-class WebSocketClosedEvent(BaseTimelineEvent):
+class WebSocketEvent(BaseTimelineEvent):
     correlation_id: str
-    websocket_closed_data: WebSocketClosedData
-    
+    websocket_created_data: Optional[WebSocketCreatedData] = None
+    websocket_handshake_data: Optional[_WebSocketHandshakeData] = None
+    websocket_frame_data: Optional[_WebSocketFrameData] = None
+    websocket_closed_data: Optional[_WebSocketClosedData] = None
+
     def reduce_into_one_line(self) -> str:
         base_line = super().reduce_into_one_line()
-        return f"{base_line} socket_id={self.correlation_id} reason={self.websocket_closed_data.reason or ''}"
+        socket_id = f"socket_id={self.correlation_id}"
+
+        if self.websocket_created_data:
+            return f"{base_line} {socket_id} {self.websocket_created_data.reduce_into_one_line()}"
+        elif self.websocket_handshake_data:
+            return f"{base_line} {socket_id} {self.websocket_handshake_data.reduce_into_one_line()}"
+        elif self.websocket_frame_data:
+            return f"{base_line} {socket_id} {self.websocket_frame_data.reduce_into_one_line()}"
+        elif self.websocket_closed_data:
+            return f"{base_line} {socket_id} reason={self.websocket_closed_data.reason or ''}"
+        else:
+            return f"{base_line} {socket_id}"
 
     @model_validator(mode="before")
-    def validate_websocket_closed(cls, values):
+    def validate_websocket(cls, values):
         if not isinstance(values, dict):
             return values
-        values['type'] = enums.TimelineEventType.WEBSOCKET_CLOSED
-        values['action_type'] = enums.ActionType.CONNECTION_CLOSED
-        return values
-     
-TimelineEventType = Union[NetworkRequestEvent, NetworkResponseEvent, NetworkRequestWithResponseEvent,
-                         DomActionEvent, NavigationEvent, LocalStorageEvent, ConsoleWarningEvent, ConsoleErrorEvent,
-                         JavaScriptErrorEvent, SessionStorageEvent, 
-                         WebsocketCreatedEvent, WebSocketHandshakeRequestEvent, WebSocketHandshakeResponseEvent,
-                         WebSocketFrameSentEvent, WebSocketFrameReceivedEvent,
-                         WebSocketClosedEvent, ConsoleDebugEvent, ConsoleLogEvent, ConsoleInfoEvent]
 
-    
+        values['type'] = enums.TimelineEventType.WEBSOCKET
+        values['action_type'] = enums.ActionType(values.get("action_type"))
+        
+        return values
+
+
+TimelineEventType = Union[NetworkRequestEvent, NetworkResponseEvent, ProcessedHTTPRequestEvent,
+                         UserActionEvent, NavigationEvent, LocalStorageEvent,
+                         JavaScriptErrorEvent, SessionStorageEvent,
+                         WebSocketEvent, ConsoleEvent]
+
+
 types_dict: dict[str, Type[TimelineEventType]] = {
-        enums.TimelineEventType.NETWORK_REQUEST.value: NetworkRequestEvent,
-        enums.TimelineEventType.NETWORK_RESPONSE.value: NetworkResponseEvent,
-        enums.TimelineEventType.DOM_ACTION.value: DomActionEvent,
+        enums.TimelineEventType.HTTP_REQUEST.value: NetworkRequestEvent,
+        enums.TimelineEventType.HTTP_RESPONSE.value: NetworkResponseEvent,
+        enums.TimelineEventType.USER_ACTION.value: UserActionEvent,
         enums.TimelineEventType.NAVIGATION.value: NavigationEvent,
         enums.TimelineEventType.LOCAL_STORAGE.value: LocalStorageEvent,
-        enums.TimelineEventType.CONSOLE_WARNING.value: ConsoleWarningEvent,
-        enums.TimelineEventType.CONSOLE_ERROR.value: ConsoleErrorEvent,
         enums.TimelineEventType.JAVASCRIPT_ERROR.value: JavaScriptErrorEvent,
         enums.TimelineEventType.SESSION_STORAGE.value: SessionStorageEvent,
-        enums.TimelineEventType.WEBSOCKET_CREATED.value: WebsocketCreatedEvent,
-        enums.TimelineEventType.WEBSOCKET_HANDSHAKE_REQUEST.value: WebSocketHandshakeRequestEvent,
-        enums.TimelineEventType.WEBSOCKET_HANDSHAKE_RESPONSE.value: WebSocketHandshakeResponseEvent,
-        enums.TimelineEventType.WEBSOCKET_FRAME_SENT.value: WebSocketFrameSentEvent,
-        enums.TimelineEventType.WEBSOCKET_FRAME_RECEIVED.value: WebSocketFrameReceivedEvent,
-        enums.TimelineEventType.WEBSOCKET_CLOSED.value: WebSocketClosedEvent,
-        enums.TimelineEventType.CONSOLE_DEBUG.value: ConsoleDebugEvent,
-        enums.TimelineEventType.CONSOLE_LOG.value: ConsoleLogEvent,
-        enums.TimelineEventType.CONSOLE_INFO.value: ConsoleInfoEvent,
+        enums.TimelineEventType.WEBSOCKET.value: WebSocketEvent,
+        enums.TimelineEventType.CONSOLE.value: ConsoleEvent,
         }
-
-class McpVersionResponse(BaseModel):
-    version: str
-    is_supported: bool
-    session_uuid: str
-    recommendation: Optional[str] = None

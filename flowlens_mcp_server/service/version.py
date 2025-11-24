@@ -1,5 +1,5 @@
 from ..dto import dto
-from ..utils.http_request import HttpClient
+from ..utils.flow.http_client import HttpClient
 from ..utils.settings import settings
 
 
@@ -29,4 +29,7 @@ class VersionService:
         )
 
     def _check_version(self) -> dto.McpVersionResponse:
-        return self._client.get_sync(f"version/{settings.flowlens_mcp_version}", response_model=dto.McpVersionResponse)
+        normalized_flowlens_mcp_version = ".".join(settings.flowlens_mcp_version.split(".")[0:3])
+        return self._client.get_sync(f"version/{normalized_flowlens_mcp_version}", response_model=dto.McpVersionResponse)
+    
+    
