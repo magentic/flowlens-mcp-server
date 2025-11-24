@@ -12,7 +12,7 @@ Go to the <a href="https://chromewebstore.google.com/detail/jecmhbndeedjenagcngp
 pipx install flowlens-mcp-server
 ```
 
-You can install pipx via the [official installation guide](https://pipx.pypa.io/stable/installation/).
+You can install `pipx` via the [official installation guide](https://pipx.pypa.io/stable/installation/).
 
 To upgrade to the latest version:
 ```bash
@@ -45,11 +45,12 @@ Add the following to the mcp json config (ex: `~/.claude.json`) under `mcpServer
 ### Usecases:
 
 #### Bug reporting
-- Use FlowLens to quickly report bugs will full context to your coding agent without the need to copy-paste console logs or taking multiple screenshots or having the agent to spend tokens on reproducing the issue
-ADD VID/GIF
+- Use FlowLens to quickly report bugs with full context to your coding agent. You no longer need to copy-paste console logs, take multiple screenshots, or have the agent spend tokens on reproducing the issue.
 
-#### Regresstion testing
+
+#### Regression testing
 - Use FlowLens to record your crticial user flows and ask your coding agent to auto test these flows or generate corresponding playwright test scripts
-ADD VID/GIF
 
 
+#### Shareable flows
+- Share captured flows with your teammates on the [FlowLens platform](https://flowlens.magentic.ai) and debug with your coding agent by adding a generated access token in the MCP config. More on this [here](https://flowlens.magentic.ai/flowlens/setup-wizard)
