@@ -2,7 +2,7 @@
 
 [![PyPI version](https://img.shields.io/pypi/v/flowlens-mcp-server.svg)](https://pypi.org/project/flowlens-mcp-server/)
 
-`flowlens-mcp-server` gives your coding agent (Claude Code, Cursor, Copilot, Codex, Gemini) full browser context for in-depth debugging and regression testing.
+`flowlens-mcp-server` gives your coding agent (Claude Code, Cursor, Copilot, Codex) full browser context for in-depth debugging and regression testing.
 
 ## How it works
 - Record your browser flow using the <a href="https://chromewebstore.google.com/detail/jecmhbndeedjenagcngpdmjgomhjgobf?utm_source=github-repo" target="_blank" rel="noopener noreferrer">FlowLens Chrome extension</a> (user actions, network, console, storage, DOM events/screen recording).
@@ -36,7 +36,7 @@ flowlens-mcp-server
 Add the following config to your MCP client (ex: `~/.claude.json`) under `mcpServers`:
 
 ```json
-"flowlens-mcp": {
+"flowlens": {
   "command": "flowlens-mcp-server",
   "type": "stdio"
 }
@@ -48,8 +48,32 @@ Add the following config to your MCP client (ex: `~/.claude.json`) under `mcpSer
     Use the Claude Code CLI to add the FlowLens MCP server (<a href="https://docs.anthropic.com/en/docs/claude-code/mcp">guide</a>):
 
 ```bash
-claude mcp add flowlens-mcp --transport stdio -- flowlens-mcp-server
+claude mcp add flowlens --transport stdio -- flowlens-mcp-server
 ```
+</details>
+
+<details>
+  <summary>Cursor</summary>
+
+  **Click the button to install:**
+
+[<img src="https://cursor.com/deeplink/mcp-install-dark.svg" alt="Install in Cursor">](https://cursor.com/en/install-mcp?name=flowlens&config=eyJjb21tYW5kIjoiZmxvd2xlbnMtbWNwLXNlcnZlciJ9)
+
+**Or install manually:**
+
+Go to `Cursor Settings` -> `MCP` -> `New MCP Server`. Use the config provided above.
+
+</details>
+
+
+<details>
+  <summary>Copilot / VS Code</summary>
+  Follow the MCP install <a href="https://code.visualstudio.com/docs/copilot/chat/mcp-servers#_add-an-mcp-server">guide</a>,
+  with the standard config from above. You can also install the FlowLens MCP server using the VS Code CLI:
+  
+  ```bash
+  code --add-mcp '{"name":"flowlens","command":"flowlens-mcp-server"}'
+  ```
 </details>
 
 <details>
@@ -57,9 +81,8 @@ claude mcp add flowlens-mcp --transport stdio -- flowlens-mcp-server
   Use the Codex CLI to add the FlowLens MCP server <a href="https://github.com/openai/codex/blob/main/docs/advanced.md#model-context-protocol-mcp">configure MCP guide</a>:
 
 ```bash
-codex mcp add flowlens-mcp -- flowlens-mcp-server
+codex mcp add flowlens -- flowlens-mcp-server
 ```
-</details>
 
 
 ## Usecases:
