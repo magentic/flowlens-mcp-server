@@ -2,7 +2,12 @@
 
 [![PyPI version](https://img.shields.io/pypi/v/flowlens-mcp-server.svg)](https://pypi.org/project/flowlens-mcp-server/)
 
-`flowlens-mcp-server` lets your coding agent (Claude Code, Cursor, Copilot, Gemini) inspect your recorded user web flows (video, network activity, console logs, and DOM events) via <a href="https://chromewebstore.google.com/detail/jecmhbndeedjenagcngpdmjgomhjgobf?utm_source=github-repo" target="_blank" rel="noopener noreferrer">FlowLens Chrome extension</a>. It acts as an MCP (Model Context Protocol) server, giving your coding agent full browser context for in-depth debugging and regression testing.
+`flowlens-mcp-server` gives your coding agent (Claude Code, Cursor, Copilot, Codex, Gemini) full browser context for in-depth debugging and regression testing.
+
+## How it works
+- Record your browser flow using the <a href="https://chromewebstore.google.com/detail/jecmhbndeedjenagcngpdmjgomhjgobf?utm_source=github-repo" target="_blank" rel="noopener noreferrer">FlowLens Chrome extension</a> (user actions, network, console, storage, DOM events/screen recording).
+- Share it with your coding agent via the FlowLens MCP server, giving the agent full access to the recording.
+- Your agent inspects and analyzes the flow for debugging and insights — without spending time/tokens on reproducing the issue.
 
 ## Requirements
 
@@ -46,6 +51,16 @@ Add the following config to your MCP client (ex: `~/.claude.json`) under `mcpSer
 claude mcp add flowlens-mcp --transport stdio -- flowlens-mcp-server
 ```
 </details>
+
+<details>
+  <summary>Codex</summary>
+  Use the Codex CLI to add the FlowLens MCP server <a href="https://github.com/openai/codex/blob/main/docs/advanced.md#model-context-protocol-mcp">configure MCP guide</a>:
+
+```bash
+codex mcp add flowlens-mcp -- flowlens-mcp-server
+```
+</details>
+
 
 ## Usecases:
 
