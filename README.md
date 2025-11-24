@@ -83,7 +83,7 @@ Go to `Cursor Settings` -> `MCP` -> `New MCP Server`. Use the config provided ab
 ```bash
 codex mcp add flowlens -- flowlens-mcp-server
 ```
-
+</details>
 
 ## Usecases:
 
