@@ -1,39 +1,34 @@
-# FlowLens MCP Server
-A local MCP server that connects your recorded web user flows via <a href="https://chromewebstore.google.com/detail/jecmhbndeedjenagcngpdmjgomhjgobf?utm_source=github-repo" target="_blank" rel="noopener noreferrer">FlowLens Chrome extension</a> to your coding agent. 
+# FlowLens MCP
 
+[![PyPI version](https://img.shields.io/pypi/v/flowlens-mcp-server.svg)](https://pypi.org/project/flowlens-mcp-server/)
+
+`flowlens-mcp-server` lets your coding agent (Claude Code, Cursor, Copilot, Gemini) inspect your recorded user web flows (video, network activity, console logs, and DOM events) via <a href="https://chromewebstore.google.com/detail/jecmhbndeedjenagcngpdmjgomhjgobf?utm_source=github-repo" target="_blank" rel="noopener noreferrer">FlowLens Chrome extension</a>. It acts as an MCP (Model Context Protocol) server, giving your coding agent full browser context for in-depth debugging and regression testing.
+
+## Requirements
+
+- <a href="https://chromewebstore.google.com/detail/jecmhbndeedjenagcngpdmjgomhjgobf?utm_source=github-repo" target="_blank" rel="noopener noreferrer">FlowLens browser extension </a> add to chrome and pin for ease of use 
+- [pipx](https://pipx.pypa.io/stable/installation/) 
 
 ## Getting Started
-*Install FlowLens browser extension* 
 
-Go to the <a href="https://chromewebstore.google.com/detail/jecmhbndeedjenagcngpdmjgomhjgobf?utm_source=github-repo" target="_blank" rel="noopener noreferrer">chrome webstore</a>, add to chrome and pin it for ease of use 
-
-*Install flowlens-mcp-server*
+To install:
 ```bash
 pipx install flowlens-mcp-server
 ```
-
-You can install `pipx` via the [official installation guide](https://pipx.pypa.io/stable/installation/).
 
 To upgrade to the latest version:
 ```bash
 pipx upgrade flowlens-mcp-server
 ```
 
-To check that the package is installed successfully:
+To check that the installation was successfully:
 ```bash
 flowlens-mcp-server
 ```
 
-## Add the MCP server
+## Add FlowLens MCP server
 
-### Claude Code quick setup cli command:
-```bash
-claude mcp add flowlens-mcp --transport stdio -- flowlens-mcp-server
-```
-
-### MCP server json configuration
-
-Add the following to the mcp json config (ex: `~/.claude.json`) under `mcpServers`:
+Add the following config to your MCP client (ex: `~/.claude.json`) under `mcpServers`:
 
 ```json
 "flowlens-mcp": {
@@ -41,6 +36,16 @@ Add the following to the mcp json config (ex: `~/.claude.json`) under `mcpServer
   "type": "stdio"
 }
 ```
+
+### MCP Client configuration
+<details>
+  <summary>Claude Code</summary>
+    Use the Claude Code CLI to add the FlowLens MCP server (<a href="https://docs.anthropic.com/en/docs/claude-code/mcp">guide</a>):
+    
+```bash
+claude mcp add flowlens-mcp --transport stdio -- flowlens-mcp-server
+```
+</details>
 
 ## Usecases:
 
