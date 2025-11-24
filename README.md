@@ -11,7 +11,7 @@
 
 ## Demo
 
-https://github.com/user-attachments/assets/fd73f2e6-6a7d-4518-b0db-62b8c6e6c99a
+<video src="https://github.com/user-attachments/assets/fd73f2e6-6a7d-4518-b0db-62b8c6e6c99a" autoplay loop muted playsinline></video>
 
 ## Requirements
 
