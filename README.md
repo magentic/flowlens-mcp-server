@@ -6,7 +6,7 @@
 
 ## Requirements
 
-- <a href="https://chromewebstore.google.com/detail/jecmhbndeedjenagcngpdmjgomhjgobf?utm_source=github-repo" target="_blank" rel="noopener noreferrer">FlowLens browser extension </a> add to chrome and pin for ease of use 
+- <a href="https://chromewebstore.google.com/detail/jecmhbndeedjenagcngpdmjgomhjgobf?utm_source=github-repo" target="_blank" rel="noopener noreferrer">FlowLens browser extension</a> add to chrome and pin for ease of use 
 - [pipx](https://pipx.pypa.io/stable/installation/) 
 
 ## Getting Started
@@ -41,7 +41,7 @@ Add the following config to your MCP client (ex: `~/.claude.json`) under `mcpSer
 <details>
   <summary>Claude Code</summary>
     Use the Claude Code CLI to add the FlowLens MCP server (<a href="https://docs.anthropic.com/en/docs/claude-code/mcp">guide</a>):
-    
+
 ```bash
 claude mcp add flowlens-mcp --transport stdio -- flowlens-mcp-server
 ```
