@@ -17,7 +17,6 @@ async def get_flow_by_uuid(flow_uuid: str) -> dto.FlowlensFlow:
     - Console events count grouped by level (log, info, debug, warning, error) when present
     - WebSockets overview
     It is a very important entry point to start investigating a flow.
-    Consider running get_flow again if are_screenshots_available is False and recording type is not RRWEB 
     because the flow might be still processing and screenshots might become available later.
     Args:
         flow_uuid (string): The UUID of the flow to retrieve.
@@ -37,7 +36,6 @@ async def get_flow_from_local_zip(flow_zip_path: str) -> dto.FlowlensFlow:
     - Console events count grouped by level (log, info, debug, warning, error) when present
     - WebSockets overview
     It is a very important entry point to start investigating a flow.
-    Consider running get_flow again if are_screenshots_available is False and recording type is not RRWEB 
     because the flow might be still processing and screenshots might become available later.
     Args:
         flow_zip_path (string): The local zip file path of the flow to retrieve.

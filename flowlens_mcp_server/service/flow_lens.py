@@ -8,6 +8,7 @@ from ..utils.flow.registry import flow_registry
 from .timeline import load_process_and_register_timeline, summarize_timeline
 from ..utils.settings import settings
 from ..utils.recording.video_handler import VideoHandler
+from ..utils.recording.download import download_recording
 
 log = logger_setup.Logger(__name__)
 
@@ -63,7 +64,12 @@ class FlowLensService:
         
     async def _request_flow_by_uuid(self) -> dto.FlowlensFlow:
         response = await self._get_remote_flow()
-        await self._load_video(response)
+        if response.is_recording_available:
+            await download_recording(
+                flow_uuid=response.uuid,
+                flow_type=response.recording_type,
+                video_url=response.video_url,
+            )
         return await self._create_flow(response)
 
     async def _get_remote_flow(self):
@@ -109,7 +115,7 @@ class FlowLensService:
             tags=base_flow.tags,
             comments=base_flow.comments if base_flow.comments else [],
             recording_type=base_flow.recording_type,
-            are_screenshots_available=base_flow.are_screenshots_available,
+            is_recording_available=base_flow.is_recording_available,
             is_local=base_flow.is_local,
             local_files_data=base_flow.local_files_data,
             video_url=base_flow.video_url,
@@ -118,10 +124,3 @@ class FlowLensService:
         )
         await flow_registry.register_flow(flow)
         return flow
-
-    async def _load_video(self, flow: dto.FullFlow):
-        if not flow.are_screenshots_available:
-            return
-        handler = VideoHandler(flow)
-        await handler.load_video()
-        

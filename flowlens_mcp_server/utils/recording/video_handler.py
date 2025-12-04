@@ -2,10 +2,7 @@ import asyncio
 import aiofiles
 import cv2
 import os
-import shutil
-import tempfile
 from typing import Union
-import aiohttp
 from ..settings import settings
 from ...dto import dto
 
@@ -26,9 +23,6 @@ class VideoHandler:
             self._video_dir_path = f"{settings.flowlens_save_dir_path}/flows/{self._flow.uuid}"
         self._video_name = "video.webm"
 
-    async def load_video(self):
-        """Load video from remote URL if needed."""
-        await self._download_video()
 
     async def save_screenshot(self, video_sec: int) -> str:
         """Extract and save a screenshot at the specified second."""
@@ -70,29 +64,3 @@ class VideoHandler:
             raise RuntimeError("Failed to encode frame as JPEG")
 
         return _FrameInfo(buffer)
-
-    async def _download_video(self):
-        """Download video from remote URL if not already present."""
-        if not self._flow.video_url:
-            return
-
-        dest_path = os.path.join(self._video_dir_path, self._video_name)
-        if os.path.exists(dest_path):
-            return
-
-        try:
-            os.makedirs(self._video_dir_path, exist_ok=True)
-            tmp_fd, tmp_path = tempfile.mkstemp(suffix=".webm")
-            os.close(tmp_fd)
-
-            timeout = aiohttp.ClientTimeout(connect=5, sock_read=60)
-            async with aiohttp.ClientSession(timeout=timeout) as session:
-                async with session.get(self._flow.video_url) as resp:
-                    resp.raise_for_status()
-                    async with aiofiles.open(tmp_path, "wb") as f:
-                        async for chunk in resp.content.iter_chunked(64 * 1024):
-                            await f.write(chunk)
-
-            shutil.move(tmp_path, dest_path)
-        except Exception as exc:
-            raise RuntimeError(f"failed to download video: {exc}") from exc
