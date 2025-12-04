@@ -49,7 +49,7 @@ Add the following config to your MCP client (ex: `~/.claude.json`) under `mcpSer
 ### MCP Client configuration
 <details>
   <summary>Claude Code</summary>
-    Use the Claude Code CLI to add the FlowLens MCP server (<a href="https://docs.anthropic.com/en/docs/claude-code/mcp">guide</a>):
+    Use the Claude Code CLI to add the FlowLens MCP server (<a href="https://docs.anthropic.com/en/docs/claude-code/mcp" target="_blank" rel="noopener noreferrer">guide</a>):
 
 ```bash
 claude mcp add flowlens --transport stdio -- flowlens-mcp-server
@@ -72,7 +72,7 @@ Go to `Cursor Settings` -> `MCP` -> `New MCP Server`. Use the config provided ab
 
 <details>
   <summary>Copilot / VS Code</summary>
-  Follow the MCP install <a href="https://code.visualstudio.com/docs/copilot/chat/mcp-servers#_add-an-mcp-server">guide</a>,
+  Follow the MCP install <a href="https://code.visualstudio.com/docs/copilot/chat/mcp-servers#_add-an-mcp-server" target="_blank" rel="noopener noreferrer">guide</a>,
   with the standard config from above. You can also install the FlowLens MCP server using the VS Code CLI:
   
   ```bash
@@ -81,13 +81,37 @@ Go to `Cursor Settings` -> `MCP` -> `New MCP Server`. Use the config provided ab
 </details>
 
 <details>
-  <summary>Codex</summary>
-  Use the Codex CLI to add the FlowLens MCP server <a href="https://github.com/openai/codex/blob/main/docs/advanced.md#model-context-protocol-mcp">configure MCP guide</a>:
+    <summary>Codex</summary>
+    Use the Codex CLI to add the FlowLens MCP server <a href="https://github.com/openai/codex/blob/main/docs/advanced.md#model-context-protocol-mcp" target="_blank" rel="noopener noreferrer">configure MCP guide</a>:
 
 ```bash
 codex mcp add flowlens -- flowlens-mcp-server
 ```
 </details>
+
+<details>
+  <summary>Antigravity</summary>
+Follow the <a href="https://antigravity.google/docs/mcp" target="_blank" rel="noopener noreferrer">Connecting Custom MCP Servers guide</a>. Add the following config to the MCP servers config:
+
+```json
+"flowlens": {
+  "command": "flowlens-mcp-server"
+}
+```
+</details>
+
+### Note:
+The above setup only works with local flows. If you want to also connect to shareable flows, get your `FLOWLENS_MCP_TOKEN` from the <a href="https://flowlens.magentic.ai/flowlens/setup-wizard?tool=vscode" target="_blank" rel="noopener noreferrer">FlowLens platform</a> and add it to your relevant MCP config file:
+
+```json
+"flowlens": {
+  "command": "flowlens-mcp-server",
+  "type": "stdio",
+  "env": {
+    "FLOWLENS_MCP_TOKEN": "YOUR_FLOWLENS_MCP_TOKEN"
+  }
+}
+```
 
 ## Usecases:
 
