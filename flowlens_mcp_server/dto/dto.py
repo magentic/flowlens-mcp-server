@@ -99,7 +99,7 @@ class FullFlow(BaseModel):
         return values
     
     @property
-    def are_screenshots_available(self) -> bool:
+    def is_recording_available(self) -> bool:
         if self.video_url:
             return True
         return self.is_local
@@ -132,7 +132,7 @@ class FlowlensFlow(_BaseDTO):
     tags: Optional[List[FlowTag]] = None
     comments: Optional[List[FlowComment]] = None
     recording_type: enums.RecordingType
-    are_screenshots_available: bool
+    is_recording_available: bool
     is_local: bool = Field(exclude=True)
     local_files_data: Optional[LocalFilesData] = Field(None, exclude=True)
     video_url: Optional[str] = Field(None, exclude=True)
