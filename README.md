@@ -109,6 +109,7 @@ The above setup only works with local flows. If you want to also connect to shar
   "type": "stdio",
   "env": {
     "FLOWLENS_MCP_TOKEN": "YOUR_FLOWLENS_MCP_TOKEN"
+  }
 }
 ```
 
